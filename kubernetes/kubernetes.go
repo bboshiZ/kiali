@@ -361,11 +361,12 @@ func (in *K8SClient) GetPods(namespace, labelSelector string) ([]core_v1.Pod, er
 func (in *K8SClient) GetPodPortForwarder(namespace, name, portMap string) (*httputil.PortForwarder, error) {
 	writer := new(bytes.Buffer)
 
-	clientConfig, err := ConfigClient()
-	if err != nil {
-		log.Errorf("Error getting Kubernetes Client config: %v", err)
-		return nil, err
-	}
+	clientConfig := in.RestConfig
+	// clientConfig, err := ConfigClient()
+	// if err != nil {
+	// 	log.Errorf("Error getting Kubernetes Client config: %v", err)
+	// 	return nil, err
+	// }
 
 	// First try whether the pod exist or not
 	pod, err := in.GetPod(namespace, name)

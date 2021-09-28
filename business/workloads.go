@@ -122,7 +122,8 @@ func (in *WorkloadService) GetWorkloadList(namespace string, linkIstioResources 
 				if IsNamespaceCached(namespace) {
 					*dest, err2 = kialiCache.GetIstioObjects(namespace, resourceType, "")
 				} else {
-					*dest, err2 = in.k8s.GetIstioObjects(namespace, resourceType, "")
+					// *dest, err2 = in.k8s.GetIstioObjects(namespace, resourceType, "")
+					*dest, err2 = remoteIstioClusters[defaultClusterID].K8s.GetIstioObjects(namespace, resourceType, "")
 				}
 				if err2 != nil {
 					log.Errorf("Error fetching Istio %s per namespace %s: %s", resourceType, namespace, err2)
@@ -201,7 +202,9 @@ func (in *WorkloadService) GetWorkload(namespace string, workloadName string, wo
 				services, err = kialiCache.GetServices(namespace, workload.Labels)
 			}
 		} else {
-			services, err = in.k8s.GetServices(namespace, workload.Labels)
+			// services, err = in.k8s.GetServices(namespace, workload.Labels)
+			services, err = remoteIstioClusters[defaultClusterID].K8s.GetServices(namespace, workload.Labels)
+
 		}
 		if err != nil {
 			return nil, err
@@ -241,7 +244,9 @@ func (in *WorkloadService) GetPods(namespace string, labelSelector string) (mode
 			ps, err = kialiCache.GetPods(namespace, labelSelector)
 		}
 	} else {
-		ps, err = in.k8s.GetPods(namespace, labelSelector)
+		// ps, err = in.k8s.GetPods(namespace, labelSelector)
+		ps, err = remoteIstioClusters[defaultClusterID].K8s.GetPods(namespace, labelSelector)
+
 	}
 
 	if err != nil {
@@ -253,7 +258,8 @@ func (in *WorkloadService) GetPods(namespace string, labelSelector string) (mode
 }
 
 func (in *WorkloadService) GetPod(namespace, name string) (*models.Pod, error) {
-	p, err := in.k8s.GetPod(namespace, name)
+	// p, err := in.k8s.GetPod(namespace, name)
+	p, err := remoteIstioClusters[defaultClusterID].K8s.GetPod(namespace, name)
 	if err != nil {
 		return nil, err
 	}
@@ -316,7 +322,8 @@ func (in *WorkloadService) getParsedLogs(namespace, name string, opts *LogOption
 		k8sOpts.TailLines = nil
 	}
 
-	podLog, err := in.k8s.GetPodLogs(namespace, name, &k8sOpts)
+	// podLog, err := in.k8s.GetPodLogs(namespace, name, &k8sOpts)
+	podLog, err := remoteIstioClusters[defaultClusterID].K8s.GetPodLogs(namespace, name, &k8sOpts)
 
 	if err != nil {
 		return nil, err
@@ -471,7 +478,12 @@ func fetchWorkloads(layer *Layer, namespace string, labelSelector string) (model
 		if IsNamespaceCached(namespace) {
 			pods, err = kialiCache.GetPods(namespace, labelSelector)
 		} else {
-			pods, err = layer.k8s.GetPods(namespace, labelSelector)
+			// pods, err = layer.k8s.GetPods(namespace, labelSelector)
+			for _, c := range remoteIstioClusters {
+				ps, _ := c.K8s.GetPods(namespace, labelSelector)
+				pods = append(pods, ps...)
+			}
+
 		}
 		if err != nil {
 			log.Errorf("Error fetching Pods per namespace %s: %s", namespace, err)
@@ -487,7 +499,11 @@ func fetchWorkloads(layer *Layer, namespace string, labelSelector string) (model
 		if IsNamespaceCached(namespace) {
 			dep, err = kialiCache.GetDeployments(namespace)
 		} else {
-			dep, err = layer.k8s.GetDeployments(namespace)
+			// dep, err = layer.k8s.GetDeployments(namespace)
+			for _, c := range remoteIstioClusters {
+				ps, _ := c.K8s.GetDeployments(namespace)
+				dep = append(dep, ps...)
+			}
 		}
 		if err != nil {
 			log.Errorf("Error fetching Deployments per namespace %s: %s", namespace, err)
@@ -503,7 +519,11 @@ func fetchWorkloads(layer *Layer, namespace string, labelSelector string) (model
 		if IsNamespaceCached(namespace) {
 			repset, err = kialiCache.GetReplicaSets(namespace)
 		} else {
-			repset, err = layer.k8s.GetReplicaSets(namespace)
+			// repset, err = layer.k8s.GetReplicaSets(namespace)
+			for _, c := range remoteIstioClusters {
+				ps, _ := c.K8s.GetReplicaSets(namespace)
+				repset = append(repset, ps...)
+			}
 		}
 		if err != nil {
 			log.Errorf("Error fetching ReplicaSets per namespace %s: %s", namespace, err)
@@ -515,7 +535,8 @@ func fetchWorkloads(layer *Layer, namespace string, labelSelector string) (model
 		defer wg.Done()
 		var err error
 		if isWorkloadIncluded(kubernetes.ReplicationControllerType) {
-			repcon, err = layer.k8s.GetReplicationControllers(namespace)
+			// repcon, err = layer.k8s.GetReplicationControllers(namespace)
+			repcon, err = remoteIstioClusters[defaultClusterID].K8s.GetReplicationControllers(namespace)
 			if err != nil {
 				log.Errorf("Error fetching GetReplicationControllers per namespace %s: %s", namespace, err)
 				errChan <- err
@@ -542,7 +563,8 @@ func fetchWorkloads(layer *Layer, namespace string, labelSelector string) (model
 			if IsNamespaceCached(namespace) {
 				fulset, err = kialiCache.GetStatefulSets(namespace)
 			} else {
-				fulset, err = layer.k8s.GetStatefulSets(namespace)
+				// fulset, err = layer.k8s.GetStatefulSets(namespace)
+				fulset, err = remoteIstioClusters[defaultClusterID].K8s.GetStatefulSets(namespace)
 			}
 			if err != nil {
 				log.Errorf("Error fetching StatefulSets per namespace %s: %s", namespace, err)
@@ -555,7 +577,9 @@ func fetchWorkloads(layer *Layer, namespace string, labelSelector string) (model
 		defer wg.Done()
 		var err error
 		if isWorkloadIncluded(kubernetes.CronJobType) {
-			conjbs, err = layer.k8s.GetCronJobs(namespace)
+			// conjbs, err = layer.k8s.GetCronJobs(namespace)
+			conjbs, err = remoteIstioClusters[defaultClusterID].K8s.GetCronJobs(namespace)
+
 			if err != nil {
 				log.Errorf("Error fetching CronJobs per namespace %s: %s", namespace, err)
 				errChan <- err
@@ -567,7 +591,8 @@ func fetchWorkloads(layer *Layer, namespace string, labelSelector string) (model
 		defer wg.Done()
 		var err error
 		if isWorkloadIncluded(kubernetes.JobType) {
-			jbs, err = layer.k8s.GetJobs(namespace)
+			// jbs, err = layer.k8s.GetJobs(namespace)
+			jbs, err = remoteIstioClusters[defaultClusterID].K8s.GetJobs(namespace)
 			if err != nil {
 				log.Errorf("Error fetching Jobs per namespace %s: %s", namespace, err)
 				errChan <- err
@@ -582,7 +607,9 @@ func fetchWorkloads(layer *Layer, namespace string, labelSelector string) (model
 			if IsNamespaceCached(namespace) {
 				daeset, err = kialiCache.GetDaemonSets(namespace)
 			} else {
-				daeset, err = layer.k8s.GetDaemonSets(namespace)
+				// daeset, err = layer.k8s.GetDaemonSets(namespace)
+				daeset, err = remoteIstioClusters[defaultClusterID].K8s.GetDaemonSets(namespace)
+
 			}
 			if err != nil {
 				log.Errorf("Error fetching DaemonSets per namespace %s: %s", namespace, err)
@@ -1038,7 +1065,8 @@ func fetchWorkload(layer *Layer, namespace string, workloadName string, workload
 		if IsNamespaceCached(namespace) {
 			pods, err = kialiCache.GetPods(namespace, "")
 		} else {
-			pods, err = layer.k8s.GetPods(namespace, "")
+			// pods, err = layer.k8s.GetPods(namespace, "")
+			pods, err = remoteIstioClusters[defaultClusterID].K8s.GetPods(namespace, "")
 		}
 		if err != nil {
 			log.Errorf("Error fetching Pods per namespace %s: %s", namespace, err)
@@ -1058,8 +1086,10 @@ func fetchWorkload(layer *Layer, namespace string, workloadName string, workload
 		if IsNamespaceCached(namespace) {
 			dep, err = kialiCache.GetDeployment(namespace, workloadName)
 		} else {
-			dep, err = layer.k8s.GetDeployment(namespace, workloadName)
+			// dep, err = layer.k8s.GetDeployment(namespace, workloadName)
+			dep, err = remoteIstioClusters[defaultClusterID].K8s.GetDeployment(namespace, workloadName)
 		}
+
 		if err != nil {
 			if errors.IsNotFound(err) {
 				dep = nil
@@ -1083,7 +1113,9 @@ func fetchWorkload(layer *Layer, namespace string, workloadName string, workload
 		if IsNamespaceCached(namespace) {
 			repset, err = kialiCache.GetReplicaSets(namespace)
 		} else {
-			repset, err = layer.k8s.GetReplicaSets(namespace)
+			// repset, err = layer.k8s.GetReplicaSets(namespace)
+			repset, err = remoteIstioClusters[defaultClusterID].K8s.GetReplicaSets(namespace)
+
 		}
 		if err != nil {
 			log.Errorf("Error fetching ReplicaSets per namespace %s: %s", namespace, err)
@@ -1099,7 +1131,9 @@ func fetchWorkload(layer *Layer, namespace string, workloadName string, workload
 		}
 		var err error
 		if isWorkloadIncluded(kubernetes.ReplicationControllerType) {
-			repcon, err = layer.k8s.GetReplicationControllers(namespace)
+			// repcon, err = layer.k8s.GetReplicationControllers(namespace)
+			repcon, err = remoteIstioClusters[defaultClusterID].K8s.GetReplicationControllers(namespace)
+
 			if err != nil {
 				log.Errorf("Error fetching GetReplicationControllers per namespace %s: %s", namespace, err)
 				errChan <- err
@@ -1116,6 +1150,7 @@ func fetchWorkload(layer *Layer, namespace string, workloadName string, workload
 		var err error
 		if layer.k8s.IsOpenShift() && isWorkloadIncluded(kubernetes.DeploymentConfigType) {
 			depcon, err = layer.k8s.GetDeploymentConfig(namespace, workloadName)
+			// depcon, err = remoteIstioClusters[defaultClusterID].K8s.GetDeploymentConfig(namespace, workloadName)
 			if err != nil {
 				depcon = nil
 			}
@@ -1133,7 +1168,9 @@ func fetchWorkload(layer *Layer, namespace string, workloadName string, workload
 			if IsNamespaceCached(namespace) {
 				fulset, err = kialiCache.GetStatefulSet(namespace, workloadName)
 			} else {
-				fulset, err = layer.k8s.GetStatefulSet(namespace, workloadName)
+				// fulset, err = layer.k8s.GetStatefulSet(namespace, workloadName)
+				fulset, err = remoteIstioClusters[defaultClusterID].K8s.GetStatefulSet(namespace, workloadName)
+
 			}
 			if err != nil {
 				fulset = nil
@@ -1347,7 +1384,6 @@ func fetchWorkload(layer *Layer, namespace string, workloadName string, workload
 	}
 
 	// Build workload from controllers
-
 	if _, exist := controllers[workloadName]; exist {
 		w := models.Workload{
 			Pods:              models.Pods{},
@@ -1367,6 +1403,7 @@ func fetchWorkload(layer *Layer, namespace string, workloadName string, workload
 		switch controllerType {
 		case kubernetes.DeploymentType:
 			if dep != nil && dep.Name == workloadName {
+				delete(dep.Spec.Template.Labels, "pod-template-hash")
 				selector := labels.Set(dep.Spec.Template.Labels).AsSelector()
 				w.SetPods(kubernetes.FilterPodsForSelector(selector, pods))
 				w.ParseDeployment(dep)

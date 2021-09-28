@@ -72,7 +72,7 @@ func IsResourceCached(namespace string, resource string) bool {
 // Get the business.Layer
 func Get(authInfo *api.AuthInfo) (*Layer, error) {
 	// Kiali Cache will be initialized once at first use of Business layer
-	once.Do(initKialiCache)
+	// once.Do(initKialiCache)
 
 	// Use an existing client factory if it exists, otherwise create and use in the future
 	if clientFactory == nil {

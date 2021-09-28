@@ -54,7 +54,9 @@ func (in *SvcService) GetServiceList(namespace string, linkIstioResources bool) 
 		if IsNamespaceCached(namespace) {
 			svcs, err2 = kialiCache.GetServices(namespace, nil)
 		} else {
-			svcs, err2 = in.k8s.GetServices(namespace, nil)
+			// svcs, err2 = in.k8s.GetServices(namespace, nil)
+			svcs, err2 = remoteIstioClusters[defaultClusterID].K8s.GetServices(namespace, nil)
+
 		}
 		if err2 != nil {
 			log.Errorf("Error fetching Services per namespace %s: %s", namespace, err2)
@@ -70,7 +72,8 @@ func (in *SvcService) GetServiceList(namespace string, linkIstioResources bool) 
 		if IsNamespaceCached(namespace) {
 			pods, err2 = kialiCache.GetPods(namespace, "")
 		} else {
-			pods, err2 = in.k8s.GetPods(namespace, "")
+			// pods, err2 = in.k8s.GetPods(namespace, "")
+			pods, err2 = remoteIstioClusters[defaultClusterID].K8s.GetPods(namespace, "")
 		}
 		if err2 != nil {
 			log.Errorf("Error fetching Pods per namespace %s: %s", namespace, err2)
@@ -86,7 +89,8 @@ func (in *SvcService) GetServiceList(namespace string, linkIstioResources bool) 
 		if IsNamespaceCached(namespace) {
 			deployments, err2 = kialiCache.GetDeployments(namespace)
 		} else {
-			deployments, err2 = in.k8s.GetDeployments(namespace)
+			// deployments, err2 = in.k8s.GetDeployments(namespace)
+			deployments, err2 = remoteIstioClusters[defaultClusterID].K8s.GetDeployments(namespace)
 		}
 		if err2 != nil {
 			log.Errorf("Error fetching Deployments per namespace %s: %s", namespace, err2)
@@ -110,7 +114,8 @@ func (in *SvcService) GetServiceList(namespace string, linkIstioResources bool) 
 				if IsNamespaceCached(namespace) {
 					*dest, err2 = kialiCache.GetIstioObjects(namespace, resourceType, "")
 				} else {
-					*dest, err2 = in.k8s.GetIstioObjects(namespace, resourceType, "")
+					// *dest, err2 = in.k8s.GetIstioObjects(namespace, resourceType, "")
+					*dest, err2 = remoteIstioClusters[defaultClusterID].K8s.GetIstioObjects(namespace, resourceType, "")
 				}
 				if err2 != nil {
 					log.Errorf("Error fetching Istio %s per namespace %s: %s", resourceType, namespace, err2)
@@ -230,7 +235,8 @@ func (in *SvcService) GetService(namespace, service, interval string, queryTime 
 			if IsNamespaceCached(namespace) {
 				pods, err2 = kialiCache.GetPods(namespace, labelsSelector)
 			} else {
-				pods, err2 = in.k8s.GetPods(namespace, labelsSelector)
+				// pods, err2 = in.k8s.GetPods(namespace, labelsSelector)
+				pods, err2 = remoteIstioClusters[defaultClusterID].K8s.GetPods(namespace, labelsSelector)
 			}
 			if err2 != nil {
 				errChan <- err2
@@ -373,7 +379,9 @@ func (in *SvcService) getService(namespace, service string) (svc *core_v1.Servic
 			svc, err = kialiCache.GetService(namespace, service)
 		}
 	} else {
-		svc, err = in.k8s.GetService(namespace, service)
+		// in.k8s = remoteIstioClusters[defaultClusterID].K8s
+		// svc, err = in.k8s.GetService(namespace, service)
+		svc, err = remoteIstioClusters[defaultClusterID].K8s.GetService(namespace, service)
 	}
 	return svc, err
 }
@@ -402,7 +410,9 @@ func (in *SvcService) getServiceDefinition(namespace, service string) (svc *core
 				eps, err = kialiCache.GetEndpoints(namespace, service)
 			}
 		} else {
-			eps, err2 = in.k8s.GetEndpoints(namespace, service)
+			// eps, err2 = in.k8s.GetEndpoints(namespace, service)
+			eps, err2 = remoteIstioClusters[defaultClusterID].K8s.GetEndpoints(namespace, service)
+
 		}
 		if err2 != nil && !errors.IsNotFound(err2) {
 			log.Errorf("Error fetching Endpoints  namespace %s and service %s: %s", namespace, service, err2)
@@ -437,6 +447,8 @@ func (in *SvcService) GetServiceDefinitionList(namespace string) (*models.Servic
 		svcs, err = kialiCache.GetServices(namespace, nil)
 	} else {
 		svcs, err = in.k8s.GetServices(namespace, nil)
+		svcs, err = remoteIstioClusters[defaultClusterID].K8s.GetServices(namespace, nil)
+
 	}
 	if err != nil {
 		log.Errorf("Error fetching Service definitions for namespace %s: %s", namespace, err)

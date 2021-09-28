@@ -28,6 +28,8 @@ var HealthAnnotation = []models.AnnotationKey{models.RateHealthAnnotation}
 // GetServiceHealth returns a service health (service request error rate)
 func (in *HealthService) GetServiceHealth(namespace, service, rateInterval string, queryTime time.Time) (models.ServiceHealth, error) {
 	rqHealth, err := in.getServiceRequestsHealth(namespace, service, rateInterval, queryTime)
+	// rqHealth, err := remoteIstioClusters[defaultClusterID].K8s.getServiceRequestsHealth(namespace, service, rateInterval, queryTime)
+
 	return models.ServiceHealth{Requests: rqHealth}, err
 }
 

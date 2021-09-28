@@ -103,7 +103,7 @@ func NewRouter() *mux.Router {
 	}
 
 	rootRouter.PathPrefix(webRootWithSlash).HandlerFunc(fileServerHandler)
-
+	handlers.InitRemoteCluster()
 	return rootRouter
 }
 

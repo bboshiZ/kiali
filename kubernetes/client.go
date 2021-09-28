@@ -22,7 +22,7 @@ import (
 	"github.com/kiali/kiali/log"
 )
 
-const RemoteSecretData = "/kiali-remote-secret/kiali"
+const RemoteSecretData = "/aa/kiali-remote-secret/kiali"
 
 var (
 	emptyListOptions = meta_v1.ListOptions{}
@@ -75,6 +75,7 @@ type K8SClient struct {
 	// It is represented as a pointer to include the initialization phase.
 	// See istio_details_service.go#hasSecurityResource() for more details.
 	securityResources *map[string]bool
+	RestConfig        *rest.Config
 }
 
 // GetK8sApi returns the clientset referencing all K8s rest clients
@@ -171,7 +172,8 @@ func ConfigClient() (*rest.Config, error) {
 // It returns an error on any problem.
 func NewClientFromConfig(config *rest.Config) (*K8SClient, error) {
 	client := K8SClient{
-		token: config.BearerToken,
+		token:      config.BearerToken,
+		RestConfig: config,
 	}
 
 	log.Debugf("Rest perf config QPS: %f Burst: %d", config.QPS, config.Burst)

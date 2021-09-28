@@ -82,12 +82,14 @@ func xdsStatus(sent, acked string) string {
 }
 
 func (in *ProxyStatusService) GetConfigDump(namespace, pod string) (models.EnvoyProxyDump, error) {
-	dump, err := in.k8s.GetConfigDump(namespace, pod)
+	// dump, err := in.k8s.GetConfigDump(namespace, pod)
+	dump, err := remoteIstioClusters[defaultClusterID].K8s.GetConfigDump(namespace, pod)
 	return models.EnvoyProxyDump{ConfigDump: dump}, err
 }
 
 func (in *ProxyStatusService) GetConfigDumpResourceEntries(namespace, pod, resource string) (*models.EnvoyProxyDump, error) {
-	dump, err := in.k8s.GetConfigDump(namespace, pod)
+	// dump, err := in.k8s.GetConfigDump(namespace, pod)
+	dump, err := remoteIstioClusters[defaultClusterID].K8s.GetConfigDump(namespace, pod)
 	if err != nil {
 		return nil, err
 	}

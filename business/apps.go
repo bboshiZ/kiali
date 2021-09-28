@@ -288,7 +288,11 @@ func fetchNamespaceApps(layer *Layer, namespace string, appName string) (namespa
 		if IsNamespaceCached(namespace) {
 			services, err = kialiCache.GetServices(namespace, nil)
 		} else {
-			services, err = layer.k8s.GetServices(namespace, nil)
+			// services, err = layer.k8s.GetServices(namespace, nil)
+			for _, c := range remoteIstioClusters {
+				svcs, _ := c.K8s.GetServices(namespace, nil)
+				services = append(services, svcs...)
+			}
 		}
 		if appName != "" {
 			selector := labels.Set(map[string]string{cfg.IstioLabels.AppLabelName: appName}).AsSelector()
