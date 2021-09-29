@@ -8,14 +8,15 @@ import (
 
 // AppList is the API handler to fetch all the apps to be displayed, related to a single namespace
 func AppList(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
 
+	params := mux.Vars(r)
 	// Get business layer
 	business, err := getBusiness(r)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Apps initialization error: "+err.Error())
 		return
 	}
+
 	namespace := params["namespace"]
 
 	// Fetch and build apps
