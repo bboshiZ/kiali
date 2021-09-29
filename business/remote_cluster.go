@@ -38,10 +38,9 @@ var (
 	defaultClusterID    = "shareit-cce-test"
 )
 
-func InitRemoteCluster() {
+func InitRemoteCluster() (clusterID string) {
 	saToken, _ := kubernetes.GetKialiToken()
-	authInfo := &api.AuthInfo{Token: saToken}
-	business, _ := Get(authInfo)
+	business, _ := Get(&api.AuthInfo{Token: saToken})
 	in := business.Mesh
 	// business.Mesh.InitRemoteCluster()
 
@@ -119,13 +118,15 @@ func InitRemoteCluster() {
 		meshCluster.KialiInstances = in.findRemoteKiali(clusterName, remoteSecret)
 
 		defaultClusterID = secret.Annotations["istio/remoteCluster"]
+		clusterID = defaultClusterID
 		remoteIstioClusters[secret.Annotations["istio/remoteCluster"]] = meshCluster
 	}
 
-	once.Do(initKialiCache)
+	initKialiCache()
 
 	for k, c := range remoteIstioClusters {
 		fmt.Printf("new remote k8s cluster:%s,%+v\n", k, c)
 	}
 
+	return
 }

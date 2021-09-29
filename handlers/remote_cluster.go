@@ -1,9 +1,13 @@
 package handlers
 
-import "github.com/kiali/kiali/business"
+import (
+	"github.com/kiali/kiali/business"
+	"github.com/kiali/kiali/graph/telemetry/istio"
+)
 
 func InitRemoteCluster() {
-	business.InitRemoteCluster()
+	istio.RemoteCluster = business.InitRemoteCluster()
+
 	// saToken, _ := kubernetes.GetKialiToken()
 	// authInfo := &api.AuthInfo{Token: saToken}
 	// business, _ := business.Get(authInfo)

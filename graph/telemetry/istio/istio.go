@@ -867,6 +867,8 @@ func buildAggregateNodeTrafficMap(namespace string, n graph.Node, o graph.Teleme
 	return trafficMap
 }
 
+var RemoteCluster string
+
 func promQuery(query string, queryTime time.Time, api prom_v1.API) model.Vector {
 	if query == "" {
 		return model.Vector{}
@@ -877,7 +879,8 @@ func promQuery(query string, queryTime time.Time, api prom_v1.API) model.Vector 
 
 	// wrap with a round() to be in line with metrics api
 	query = fmt.Sprintf("round(%s,0.001)", query)
-	query = strings.Replace(query, "{", "{cluster=\"sgt-service-sg2-prod\",", 1)
+	s := fmt.Sprintf("{cluster=\"%s\",", RemoteCluster)
+	query = strings.Replace(query, "{", s, 1)
 	// sa := "cluster=sgt-service-sg2-prod"
 	log.Infof("Graph query:\n%s@time=%v (now=%v, %v)\n", query, queryTime.Format(graph.TF), time.Now().Format(graph.TF), queryTime.Unix())
 
