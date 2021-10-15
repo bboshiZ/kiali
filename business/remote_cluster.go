@@ -40,6 +40,7 @@ var (
 
 func InitRemoteCluster() (clusterID string) {
 	saToken, _ := kubernetes.GetKialiToken()
+	// fmt.Printf("saToken:%+v\n", string(saToken))
 	business, _ := Get(&api.AuthInfo{Token: saToken})
 	in := business.Mesh
 	// business.Mesh.InitRemoteCluster()
@@ -49,6 +50,8 @@ func InitRemoteCluster() (clusterID string) {
 	if err != nil {
 		return
 	}
+
+	// fmt.Printf("secrets:%+v\n", secrets)
 
 	if len(secrets) == 0 {
 		return

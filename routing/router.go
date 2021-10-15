@@ -25,6 +25,7 @@ func NewRouter() *mux.Router {
 	webRootWithSlash := webRoot + "/"
 
 	rootRouter := mux.NewRouter().StrictSlash(false)
+	rootRouter.Use(mux.CORSMethodMiddleware(rootRouter))
 	appRouter := rootRouter
 
 	staticFileServer := http.FileServer(http.Dir(conf.Server.StaticContentRootDirectory))
@@ -71,6 +72,7 @@ func NewRouter() *mux.Router {
 
 	// Build our API server routes and install them.
 	apiRoutes := NewRoutes()
+
 	authenticationHandler, _ := handlers.NewAuthenticationHandler()
 	for _, route := range apiRoutes.Routes {
 		handlerFunction := metricHandler(route.HandlerFunc, route)
@@ -86,6 +88,7 @@ func NewRouter() *mux.Router {
 			Handler(handlerFunction)
 	}
 
+	// appRouter.Methods("OPTIONS").Handler(http.HandlerFunc(supportCrof))
 	// All client-side routes are prefixed with /console.
 	// They are forwarded to index.html and will be handled by react-router.
 	appRouter.PathPrefix("/console").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -106,6 +109,12 @@ func NewRouter() *mux.Router {
 	handlers.InitRemoteCluster()
 	return rootRouter
 }
+
+// func supportCrof(w http.ResponseWriter, r *http.Request) {
+// 	w.Header().Set("Access-Control-Allow-Origin", "*")             //允许访问所有域
+// 	w.Header().Add("Access-Control-Allow-Headers", "Content-Type") //header的类型
+// 	w.Header().Set("content-type", "application/json")             //返回数据格式是json
+// }
 
 // statusResponseWriter contains a ResponseWriter and a StatusCode to read in the metrics middleware
 type statusResponseWriter struct {

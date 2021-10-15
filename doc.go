@@ -70,7 +70,7 @@ type ContainerParam struct {
 	Name string `json:"container"`
 }
 
-// swagger:parameters istioConfigList workloadList workloadDetails workloadUpdate serviceDetails serviceUpdate appSpans serviceSpans workloadSpans appTraces serviceTraces workloadTraces errorTraces workloadValidations appList serviceMetrics aggregateMetrics appMetrics workloadMetrics istioConfigDetails istioConfigDetailsSubtype istioConfigDelete istioConfigDeleteSubtype istioConfigUpdate istioConfigUpdateSubtype serviceList appDetails graphAggregate graphAggregateByService graphApp graphAppVersion graphNamespace graphService graphWorkload namespaceMetrics customDashboard appDashboard serviceDashboard workloadDashboard istioConfigCreate istioConfigCreateSubtype namespaceUpdate namespaceTls podDetails podLogs namespaceValidations getIter8Experiments postIter8Experiments patchIter8Experiments deleteIter8Experiments podProxyDump podProxyResource
+// swagger:parameters istioConfigList workloadList workloadDetails workloadUpdate serviceDetails serviceUpdate appSpans serviceSpans workloadSpans appTraces serviceTraces workloadTraces errorTraces workloadValidations appList serviceMetrics aggregateMetrics appMetrics workloadMetrics istioConfigDetails istioConfigDetailsSubtype istioConfigDelete istioConfigDeleteSubtype istioConfigUpdate istioConfigUpdateSubtype serviceList appDetails graphAggregate graphAggregateByService graphApp graphAppVersion graphNamespace graphService graphWorkload namespaceMetrics customDashboard appDashboard serviceDashboard workloadDashboard istioConfigCreate istioConfigCreateSubtype namespaceUpdate namespaceTls podDetails podLogs namespaceValidations getIter8Experiments postIter8Experiments patchIter8Experiments deleteIter8Experiments podProxyDump podProxyResource istioVirtualserviceCreate istioDestinationruleCreate
 type NamespaceParam struct {
 	// The namespace name.
 	//
@@ -820,4 +820,81 @@ type MetricsStatsResponse struct {
 type ClustersResponse struct {
 	// in: body
 	Body []business.Cluster
+}
+
+// Posted parameters for aaa
+// swagger:parameters istioVirtualserviceCreate
+type VirtualServiceQueryBody struct {
+	// in: body
+	// required: true
+	Body models.VirtualService
+}
+
+// Posted parameters for bbb
+// swagger:parameters istioDestinationruleCreate
+type DestinationRuleQueryBody struct {
+	// in: body
+	// required: true
+	Body models.DestinationRule
+}
+
+//xxxxxxxxxxxxxxxxxxxxxxxxx
+//xxxxxxxxxxxxxxxxxxxxxxxxx
+//xxxxxxxxxxxxxxxxxxxxxxxxx
+type ObjectMeta struct {
+	Name        string            `json:"name"`
+	Namespace   string            `json:"namespace,omitempty" protobuf:"bytes,3,opt,name=namespace"`
+	Labels      map[string]string `json:"labels,omitempty" protobuf:"bytes,11,rep,name=labels"`
+	Annotations map[string]string `json:"annotations,omitempty" protobuf:"bytes,12,rep,name=annotations"`
+}
+type IstioBase struct {
+	Metadata ObjectMeta `json:"metadata"`
+}
+
+type VirtualService struct {
+	IstioBase
+	Spec struct {
+		Hosts    []string    `json:"hosts,omitempty"`
+		Gateways interface{} `json:"gateways,omitempty"`
+		Http     interface{} `json:"http,omitempty"`
+		Tcp      interface{} `json:"tcp,omitempty"`
+		Tls      interface{} `json:"tls,omitempty"`
+		ExportTo interface{} `json:"exportTo,omitempty"`
+	} `json:"spec"`
+}
+
+type PortSelector struct {
+	// Valid port number
+	Number               uint32   `protobuf:"varint,1,opt,name=number,proto3" json:"number,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+type Destination struct {
+	// The name of a service from the service registry. Service
+	// names are looked up from the platform's service registry (e.g.,
+	// Kubernetes services, Consul services, etc.) and from the hosts
+	// declared by [ServiceEntry](https://istio.io/docs/reference/config/networking/service-entry/#ServiceEntry). Traffic forwarded to
+	// destinations that are not found in either of the two, will be dropped.
+	//
+	// *Note for Kubernetes users*: When short names are used (e.g. "reviews"
+	// instead of "reviews.default.svc.cluster.local"), Istio will interpret
+	// the short name based on the namespace of the rule, not the service. A
+	// rule in the "default" namespace containing a host "reviews will be
+	// interpreted as "reviews.default.svc.cluster.local", irrespective of
+	// the actual namespace associated with the reviews service. To avoid
+	// potential misconfiguration, it is recommended to always use fully
+	// qualified domain names over short names.
+	Host string `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
+	// The name of a subset within the service. Applicable only to services
+	// within the mesh. The subset must be defined in a corresponding
+	// DestinationRule.
+	Subset string `protobuf:"bytes,2,opt,name=subset,proto3" json:"subset,omitempty"`
+	// Specifies the port on the host that is being addressed. If a service
+	// exposes only a single port it is not required to explicitly select the
+	// port.
+	Port                 *PortSelector `protobuf:"bytes,3,opt,name=port,proto3" json:"port,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
+	XXX_unrecognized     []byte        `json:"-"`
+	XXX_sizecache        int32         `json:"-"`
 }
