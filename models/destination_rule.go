@@ -5,23 +5,11 @@ import (
 	"github.com/kiali/kiali/kubernetes"
 )
 
-// DestinationRules destinationRules
-//
-// This is used for returning an array of DestinationRules
-//
-// swagger:model destinationRules
-// An array of destinationRule
-// swagger:allOf
 type DestinationRules struct {
 	Permissions ResourcePermissions `json:"permissions"`
 	Items       []DestinationRule   `json:"items"`
 }
 
-// DestinationRule destinationRule
-//
-// This is used for returning a DestinationRule
-//
-// swagger:model destinationRule
 type DestinationRule struct {
 	IstioBase
 	Spec struct {

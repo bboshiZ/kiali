@@ -6,19 +6,27 @@ import (
 )
 
 type responseError struct {
-	Error  string `json:"error,omitempty"`
+	Code   int    `json:"code"`
+	Error  string `json:"message,omitempty"`
 	Detail string `json:"detail,omitempty"`
 }
 
+type resp struct {
+	Code    int         `json:"code,omitempty"`
+	Message string      `json:"message,omitempty"`
+	Result  interface{} `json:"result,omitempty"`
+}
+
 func RespondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
-	response, err := json.Marshal(payload)
+	// response, err := json.Marshal(payload)
+	response, err := json.Marshal(resp{code, "", payload})
 	if err != nil {
 		response, _ = json.Marshal(responseError{Error: err.Error()})
-		code = http.StatusInternalServerError
+		// code = http.StatusInternalServerError
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
+	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(response)
 }
 
@@ -35,13 +43,34 @@ func RespondWithJSONIndent(w http.ResponseWriter, code int, payload interface{})
 }
 
 func RespondWithError(w http.ResponseWriter, code int, message string) {
-	RespondWithJSON(w, code, responseError{Error: message})
+
+	response, err := json.Marshal(resp{code, message, ""})
+	if err != nil {
+		response, _ = json.Marshal(responseError{Error: err.Error()})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(response)
+
+	// RespondWithJSON(w, code, responseError{Code: code, Error: message})
 }
 
 func RespondWithDetailedError(w http.ResponseWriter, code int, message, detail string) {
-	RespondWithJSON(w, code, responseError{Error: message, Detail: detail})
+
+	response, err := json.Marshal(resp{code, message + ":" + detail, ""})
+	if err != nil {
+		response, _ = json.Marshal(responseError{Error: err.Error()})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(response)
+
+	// RespondWithJSON(w, code, responseError{Error: message, Detail: detail})
 }
 
 func RespondWithCode(w http.ResponseWriter, code int) {
-	w.WriteHeader(code)
+	RespondWithJSON(w, code, "")
+
 }

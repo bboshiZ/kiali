@@ -1,0 +1,76 @@
+0 info it worked if it ends with ok
+1 verbose cli [ '/usr/local/bin/node', '/usr/bin/npm', 'install', 'npm', '-g' ]
+2 info using npm@3.10.10
+3 info using node@v16.11.1
+4 silly loadCurrentTree Starting
+5 silly install loadCurrentTree
+6 silly install readGlobalPackageData
+7 silly fetchPackageMetaData npm
+8 silly fetchNamedPackageData npm
+9 silly mapToRegistry name npm
+10 silly mapToRegistry using default registry
+11 silly mapToRegistry registry https://registry.npmjs.org/
+12 silly mapToRegistry data Result {
+12 silly mapToRegistry   raw: 'npm',
+12 silly mapToRegistry   scope: null,
+12 silly mapToRegistry   escapedName: 'npm',
+12 silly mapToRegistry   name: 'npm',
+12 silly mapToRegistry   rawSpec: '',
+12 silly mapToRegistry   spec: 'latest',
+12 silly mapToRegistry   type: 'tag'
+12 silly mapToRegistry }
+13 silly mapToRegistry uri https://registry.npmjs.org/npm
+14 verbose request uri https://registry.npmjs.org/npm
+15 verbose request no auth needed
+16 info attempt registry request try #1 at 7:05:29 AM
+17 verbose request id e5c42258a336f8cf
+18 verbose etag W/"dad754317fbce9dc2fdf7fd406b0a478"
+19 verbose lastModified Mon, 18 Oct 2021 17:36:31 GMT
+20 http request GET https://registry.npmjs.org/npm
+21 http 304 https://registry.npmjs.org/npm
+22 verbose headers {
+22 verbose headers   date: 'Tue, 19 Oct 2021 07:05:29 GMT',
+22 verbose headers   connection: 'keep-alive',
+22 verbose headers   'cf-ray': '6a08288718b2e23b-SIN',
+22 verbose headers   age: '131',
+22 verbose headers   'cache-control': 'public, max-age=300',
+22 verbose headers   etag: '"dad754317fbce9dc2fdf7fd406b0a478"',
+22 verbose headers   'last-modified': 'Mon, 18 Oct 2021 17:36:31 GMT',
+22 verbose headers   vary: 'Accept-Encoding',
+22 verbose headers   'cf-cache-status': 'HIT',
+22 verbose headers   'expect-ct': 'max-age=604800, report-uri="https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct"',
+22 verbose headers   'x-amz-replication-status': 'COMPLETED',
+22 verbose headers   server: 'cloudflare'
+22 verbose headers }
+23 silly get cb [
+23 silly get   304,
+23 silly get   {
+23 silly get     date: 'Tue, 19 Oct 2021 07:05:29 GMT',
+23 silly get     connection: 'keep-alive',
+23 silly get     'cf-ray': '6a08288718b2e23b-SIN',
+23 silly get     age: '131',
+23 silly get     'cache-control': 'public, max-age=300',
+23 silly get     etag: '"dad754317fbce9dc2fdf7fd406b0a478"',
+23 silly get     'last-modified': 'Mon, 18 Oct 2021 17:36:31 GMT',
+23 silly get     vary: 'Accept-Encoding',
+23 silly get     'cf-cache-status': 'HIT',
+23 silly get     'expect-ct': 'max-age=604800, report-uri="https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct"',
+23 silly get     'x-amz-replication-status': 'COMPLETED',
+23 silly get     server: 'cloudflare'
+23 silly get   }
+23 silly get ]
+24 verbose etag https://registry.npmjs.org/npm from cache
+25 verbose get saving npm to /root/.npm/registry.npmjs.org/npm/.cache.json
+26 verbose correctMkdir /root/.npm correctMkdir not in flight; initializing
+27 verbose stack TypeError: cb.apply is not a function
+27 verbose stack     at /usr/lib/node_modules/npm/node_modules.bundled/graceful-fs/polyfills.js:267:18
+27 verbose stack     at FSReqCallback.oncomplete (node:fs:199:5)
+28 verbose cwd /data/code/kiali
+29 error Linux 3.10.0-862.14.1.5.h428.eulerosv2r7.x86_64
+30 error argv "/usr/local/bin/node" "/usr/bin/npm" "install" "npm" "-g"
+31 error node v16.11.1
+32 error npm  v3.10.10
+33 error cb.apply is not a function
+34 error If you need help, you may report this error at:
+34 error     <https://github.com/npm/npm/issues>
+35 verbose exit [ 1, true ]

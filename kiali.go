@@ -1,6 +1,6 @@
-// Kiali
+// IstioConfig
 //
-// Kiali project, observability for the Istio service mesh
+// IstioConfig project, observability for the Istio service mesh
 //
 //     Schemes: http, https
 //     BasePath: /api

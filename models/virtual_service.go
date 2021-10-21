@@ -4,23 +4,11 @@ import (
 	"github.com/kiali/kiali/kubernetes"
 )
 
-// VirtualServices virtualServices
-//
-// This type is used for returning an array of VirtualServices with some permission flags
-//
-// swagger:model virtualServices
-// An array of virtualService
-// swagger:allOf
 type VirtualServices struct {
 	Permissions ResourcePermissions `json:"permissions"`
 	Items       []VirtualService    `json:"items"`
 }
 
-// VirtualService virtualService
-//
-// This type is used for returning a VirtualService
-//
-// swagger:model virtualService
 type VirtualService struct {
 	IstioBase
 	Spec struct {

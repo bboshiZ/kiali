@@ -4,20 +4,8 @@ import (
 	"github.com/kiali/kiali/kubernetes"
 )
 
-// WorkloadEntries workloadEntries
-//
-// This is used for returning an array of WorkloadEntry
-//
-// swagger:model workloadEntries
-// An array of workloadEntry
-// swagger:allOf
 type WorkloadEntries []WorkloadEntry
 
-// WorkloadEntry workloadEntry
-//
-// This is used for returning an WorkloadEntry
-//
-// swagger:model workloadEntry
 type WorkloadEntry struct {
 	IstioBase
 	Spec struct {

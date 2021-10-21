@@ -42,7 +42,7 @@ deployment:
   version_label: v1.38.0
   view_only_mode: false
 kubernetes_config:
-  cache_enabled: true
+  cache_enabled: false
 external_services:
   custom_dashboards:
     enabled: true
@@ -62,5 +62,5 @@ server:
   metrics_enabled: true
   metrics_port: 9090
   port: 20001
-  web_root: /kiali
+  web_root: /istio
 

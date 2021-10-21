@@ -7,14 +7,27 @@ import (
 
 	"github.com/gorilla/mux"
 
+	"github.com/kiali/kiali/business"
 	"github.com/kiali/kiali/models"
 	"github.com/kiali/kiali/util"
 )
 
 // ServiceList is the API handler to fetch the list of services in a given namespace
 func ServiceList(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
+	resp := RespList{
+		// TotalCount:  10,
+		// PageCount:   1,
+		// CurrentPage: 1,
+		// PageSize:    10,
+		Data: []interface{}{},
+	}
 
+	params := mux.Vars(r)
+	cluster := r.URL.Query().Get("cluster")
+	if _, ok := business.ClusterMap[cluster]; !ok {
+		RespondWithJSON(w, http.StatusOK, resp)
+		return
+	}
 	// Get business layer
 	business, err := getBusiness(r)
 	if err != nil {
@@ -24,13 +37,20 @@ func ServiceList(w http.ResponseWriter, r *http.Request) {
 	namespace := params["namespace"]
 
 	// Fetch and build services
-	serviceList, err := business.Svc.GetServiceList(namespace, true)
+	serviceList, err := business.Svc.GetServiceList(cluster, namespace, true)
 	if err != nil {
 		handleErrorResponse(w, err)
 		return
 	}
 
-	RespondWithJSON(w, http.StatusOK, serviceList)
+	resp.CurrentPage = 1
+	resp.PageCount = 1
+	resp.PageSize = 20
+	resp.TotalCount = len(serviceList.Services)
+
+	resp.Data = serviceList
+
+	RespondWithJSON(w, http.StatusOK, resp)
 }
 
 // ServiceDetails is the API handler to fetch full details of an specific service

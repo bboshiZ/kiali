@@ -26,7 +26,7 @@ type SvcService struct {
 }
 
 // GetServiceList returns a list of all services for a given Namespace
-func (in *SvcService) GetServiceList(namespace string, linkIstioResources bool) (*models.ServiceList, error) {
+func (in *SvcService) GetServiceList(cluster, namespace string, linkIstioResources bool) (*models.ServiceList, error) {
 	var svcs []core_v1.Service
 	var pods []core_v1.Pod
 	var deployments []apps_v1.Deployment
@@ -55,7 +55,7 @@ func (in *SvcService) GetServiceList(namespace string, linkIstioResources bool) 
 			svcs, err2 = kialiCache.GetServices(namespace, nil)
 		} else {
 			// svcs, err2 = in.k8s.GetServices(namespace, nil)
-			svcs, err2 = remoteIstioClusters[defaultClusterID].K8s.GetServices(namespace, nil)
+			svcs, err2 = remoteIstioClusters[cluster].K8s.GetServices(namespace, nil)
 
 		}
 		if err2 != nil {
@@ -73,7 +73,7 @@ func (in *SvcService) GetServiceList(namespace string, linkIstioResources bool) 
 			pods, err2 = kialiCache.GetPods(namespace, "")
 		} else {
 			// pods, err2 = in.k8s.GetPods(namespace, "")
-			pods, err2 = remoteIstioClusters[defaultClusterID].K8s.GetPods(namespace, "")
+			pods, err2 = remoteIstioClusters[cluster].K8s.GetPods(namespace, "")
 		}
 		if err2 != nil {
 			log.Errorf("Error fetching Pods per namespace %s: %s", namespace, err2)
@@ -90,7 +90,7 @@ func (in *SvcService) GetServiceList(namespace string, linkIstioResources bool) 
 			deployments, err2 = kialiCache.GetDeployments(namespace)
 		} else {
 			// deployments, err2 = in.k8s.GetDeployments(namespace)
-			deployments, err2 = remoteIstioClusters[defaultClusterID].K8s.GetDeployments(namespace)
+			deployments, err2 = remoteIstioClusters[cluster].K8s.GetDeployments(namespace)
 		}
 		if err2 != nil {
 			log.Errorf("Error fetching Deployments per namespace %s: %s", namespace, err2)
@@ -115,7 +115,7 @@ func (in *SvcService) GetServiceList(namespace string, linkIstioResources bool) 
 					*dest, err2 = kialiCache.GetIstioObjects(namespace, resourceType, "")
 				} else {
 					// *dest, err2 = in.k8s.GetIstioObjects(namespace, resourceType, "")
-					*dest, err2 = remoteIstioClusters[defaultClusterID].K8s.GetIstioObjects(namespace, resourceType, "")
+					*dest, err2 = remoteIstioClusters[cluster].K8s.GetIstioObjects(namespace, resourceType, "")
 				}
 				if err2 != nil {
 					log.Errorf("Error fetching Istio %s per namespace %s: %s", resourceType, namespace, err2)

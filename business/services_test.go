@@ -24,7 +24,7 @@ func TestServiceListParsing(t *testing.T) {
 	config.Set(conf)
 	svc := SvcService{k8s: k8s, businessLayer: NewWithBackends(k8s, nil, nil)}
 
-	serviceList, _ := svc.GetServiceList("Namespace", false)
+	serviceList, _ := svc.GetServiceList("aa", "Namespace", false)
 
 	assert.Equal("Namespace", serviceList.Namespace.Name)
 	assert.Len(serviceList.Services, 2)

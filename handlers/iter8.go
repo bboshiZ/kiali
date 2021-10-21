@@ -87,7 +87,7 @@ func Iter8ExperimentGet(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	} else {
-		serviceList, err := business.Svc.GetServiceList(namespace, false)
+		serviceList, err := business.Svc.GetServiceList("aa", namespace, false)
 		if err != nil {
 			handleErrorResponse(w, err)
 			return

@@ -82,8 +82,23 @@ func IstioConfigList(w http.ResponseWriter, r *http.Request) {
 		handleErrorResponse(w, err)
 		return
 	}
+	resp := RespList{
+		TotalCount:  10,
+		PageCount:   1,
+		CurrentPage: 1,
+		PageSize:    10,
+		Data:        istioConfig,
+	}
 
-	RespondWithJSON(w, http.StatusOK, istioConfig)
+	RespondWithJSON(w, http.StatusOK, resp)
+}
+
+type RespList struct {
+	TotalCount  int         `json:"total_count"`
+	PageCount   int         `json:"page_count"`
+	CurrentPage int         `json:"current_page"`
+	PageSize    int         `json:"page_size"`
+	Data        interface{} `json:"data"`
 }
 
 func IstioConfigDetails(w http.ResponseWriter, r *http.Request) {
@@ -144,6 +159,34 @@ func IstioConfigDetails(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, istioConfigDetails)
 }
 
+func IstioVirtualServiceDelete(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	namespace := params["namespace"]
+	objectType := "virtualservices"
+	object := params["object"]
+
+	api := business.GetIstioAPI(objectType)
+	if api == "" {
+		RespondWithError(w, http.StatusBadRequest, "Object type not managed: "+objectType)
+		return
+	}
+
+	// Get business layer
+	business, err := getBusiness(r)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
+		return
+	}
+	err = business.IstioConfig.DeleteIstioConfigDetail(api, namespace, objectType, object)
+	if err != nil {
+		handleErrorResponse(w, err)
+		return
+	} else {
+		audit(r, "DELETE on Namespace: "+namespace+" Type: "+objectType+" Name: "+object)
+		RespondWithCode(w, http.StatusOK)
+	}
+
+}
 func IstioConfigDelete(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	namespace := params["namespace"]
@@ -170,6 +213,40 @@ func IstioConfigDelete(w http.ResponseWriter, r *http.Request) {
 		audit(r, "DELETE on Namespace: "+namespace+" Type: "+objectType+" Name: "+object)
 		RespondWithCode(w, http.StatusOK)
 	}
+}
+
+func IstioVirtualServiceUpdate(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	namespace := params["namespace"]
+	objectType := "virtualservices"
+	object := params["object"]
+	api := business.GetIstioAPI(objectType)
+	if api == "" {
+		RespondWithError(w, http.StatusBadRequest, "Object type not managed: "+objectType)
+		return
+	}
+
+	// Get business layer
+	business, err := getBusiness(r)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
+		return
+	}
+
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, "Update request with bad update patch: "+err.Error())
+	}
+	jsonPatch := string(body)
+	updatedConfigDetails, err := business.IstioConfig.UpdateIstioConfigDetail(api, namespace, objectType, object, jsonPatch)
+
+	if err != nil {
+		handleErrorResponse(w, err)
+		return
+	}
+
+	audit(r, "UPDATE on Namespace: "+namespace+" Type: "+objectType+" Name: "+object+" Patch: "+jsonPatch)
+	RespondWithJSON(w, http.StatusOK, updatedConfigDetails)
 }
 
 func IstioConfigUpdate(w http.ResponseWriter, r *http.Request) {

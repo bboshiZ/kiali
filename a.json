@@ -1,700 +1,2039 @@
-swagger: "2.0"
-info:
-  description: "This is a sample server Petstore server.  You can find out more about     Swagger at [http://swagger.io](http://swagger.io) or on [irc.freenode.net, #swagger](http://swagger.io/irc/).      For this sample, you can use the api key `special-key` to test the authorization     filters."
-  version: "1.0.0"
-  title: "Swagger Petstore"
-  termsOfService: "http://swagger.io/terms/"
-  contact:
-    email: "apiteam@swagger.io"
-  license:
-    name: "Apache 2.0"
-    url: "http://www.apache.org/licenses/LICENSE-2.0.html"
-host: "petstore.swagger.io"
-basePath: "/v2"
-tags:
-- name: "pet"
-  description: "Everything about your Pets"
-  externalDocs:
-    description: "Find out more"
-    url: "http://swagger.io"
-- name: "store"
-  description: "Access to Petstore orders"
-- name: "user"
-  description: "Operations about user"
-  externalDocs:
-    description: "Find out more about our store"
-    url: "http://swagger.io"
-schemes:
-- "https"
-- "http"
-paths:
-  /pet:
-    post:
-      tags:
-      - "pet"
-      summary: "Add a new pet to the store"
-      description: ""
-      operationId: "addPet"
-      consumes:
-      - "application/json"
-      - "application/xml"
-      produces:
-      - "application/xml"
-      - "application/json"
-      parameters:
-      - in: "body"
-        name: "body"
-        description: "Pet object that needs to be added to the store"
-        required: true
-        schema:
-          $ref: "#/definitions/Pet"
-      responses:
-        "405":
-          description: "Invalid input"
-      security:
-      - petstore_auth:
-        - "write:pets"
-        - "read:pets"
-    put:
-      tags:
-      - "pet"
-      summary: "Update an existing pet"
-      description: ""
-      operationId: "updatePet"
-      consumes:
-      - "application/json"
-      - "application/xml"
-      produces:
-      - "application/xml"
-      - "application/json"
-      parameters:
-      - in: "body"
-        name: "body"
-        description: "Pet object that needs to be added to the store"
-        required: true
-        schema:
-          $ref: "#/definitions/Pet"
-      responses:
-        "400":
-          description: "Invalid ID supplied"
-        "404":
-          description: "Pet not found"
-        "405":
-          description: "Validation exception"
-      security:
-      - petstore_auth:
-        - "write:pets"
-        - "read:pets"
-  /pet/findByStatus:
-    get:
-      tags:
-      - "pet"
-      summary: "Finds Pets by status"
-      description: "Multiple status values can be provided with comma separated strings"
-      operationId: "findPetsByStatus"
-      produces:
-      - "application/xml"
-      - "application/json"
-      parameters:
-      - name: "status"
-        in: "query"
-        description: "Status values that need to be considered for filter"
-        required: true
-        type: "array"
-        items:
-          type: "string"
-          enum:
-          - "available"
-          - "pending"
-          - "sold"
-          default: "available"
-        collectionFormat: "multi"
-      responses:
-        "200":
-          description: "successful operation"
-          schema:
-            type: "array"
-            items:
-              $ref: "#/definitions/Pet"
-        "400":
-          description: "Invalid status value"
-      security:
-      - petstore_auth:
-        - "write:pets"
-        - "read:pets"
-  /pet/findByTags:
-    get:
-      tags:
-      - "pet"
-      summary: "Finds Pets by tags"
-      description: "Muliple tags can be provided with comma separated strings. Use         tag1, tag2, tag3 for testing."
-      operationId: "findPetsByTags"
-      produces:
-      - "application/xml"
-      - "application/json"
-      parameters:
-      - name: "tags"
-        in: "query"
-        description: "Tags to filter by"
-        required: true
-        type: "array"
-        items:
-          type: "string"
-        collectionFormat: "multi"
-      responses:
-        "200":
-          description: "successful operation"
-          schema:
-            type: "array"
-            items:
-              $ref: "#/definitions/Pet"
-        "400":
-          description: "Invalid tag value"
-      security:
-      - petstore_auth:
-        - "write:pets"
-        - "read:pets"
-      deprecated: true
-  /pet/{petId}:
-    get:
-      tags:
-      - "pet"
-      summary: "Find pet by ID"
-      description: "Returns a single pet"
-      operationId: "getPetById"
-      produces:
-      - "application/xml"
-      - "application/json"
-      parameters:
-      - name: "petId"
-        in: "path"
-        description: "ID of pet to return"
-        required: true
-        type: "integer"
-        format: "int64"
-      responses:
-        "200":
-          description: "successful operation"
-          schema:
-            $ref: "#/definitions/Pet"
-        "400":
-          description: "Invalid ID supplied"
-        "404":
-          description: "Pet not found"
-      security:
-      - api_key: []
-    post:
-      tags:
-      - "pet"
-      summary: "Updates a pet in the store with form data"
-      description: ""
-      operationId: "updatePetWithForm"
-      consumes:
-      - "application/x-www-form-urlencoded"
-      produces:
-      - "application/xml"
-      - "application/json"
-      parameters:
-      - name: "petId"
-        in: "path"
-        description: "ID of pet that needs to be updated"
-        required: true
-        type: "integer"
-        format: "int64"
-      - name: "name"
-        in: "formData"
-        description: "Updated name of the pet"
-        required: false
-        type: "string"
-      - name: "status"
-        in: "formData"
-        description: "Updated status of the pet"
-        required: false
-        type: "string"
-      responses:
-        "405":
-          description: "Invalid input"
-      security:
-      - petstore_auth:
-        - "write:pets"
-        - "read:pets"
-    delete:
-      tags:
-      - "pet"
-      summary: "Deletes a pet"
-      description: ""
-      operationId: "deletePet"
-      produces:
-      - "application/xml"
-      - "application/json"
-      parameters:
-      - name: "api_key"
-        in: "header"
-        required: false
-        type: "string"
-      - name: "petId"
-        in: "path"
-        description: "Pet id to delete"
-        required: true
-        type: "integer"
-        format: "int64"
-      responses:
-        "400":
-          description: "Invalid ID supplied"
-        "404":
-          description: "Pet not found"
-      security:
-      - petstore_auth:
-        - "write:pets"
-        - "read:pets"
-  /pet/{petId}/uploadImage:
-    post:
-      tags:
-      - "pet"
-      summary: "uploads an image"
-      description: ""
-      operationId: "uploadFile"
-      consumes:
-      - "multipart/form-data"
-      produces:
-      - "application/json"
-      parameters:
-      - name: "petId"
-        in: "path"
-        description: "ID of pet to update"
-        required: true
-        type: "integer"
-        format: "int64"
-      - name: "additionalMetadata"
-        in: "formData"
-        description: "Additional data to pass to server"
-        required: false
-        type: "string"
-      - name: "file"
-        in: "formData"
-        description: "file to upload"
-        required: false
-        type: "file"
-      responses:
-        "200":
-          description: "successful operation"
-          schema:
-            $ref: "#/definitions/ApiResponse"
-      security:
-      - petstore_auth:
-        - "write:pets"
-        - "read:pets"
-  /store/inventory:
-    get:
-      tags:
-      - "store"
-      summary: "Returns pet inventories by status"
-      description: "Returns a map of status codes to quantities"
-      operationId: "getInventory"
-      produces:
-      - "application/json"
-      parameters: []
-      responses:
-        "200":
-          description: "successful operation"
-          schema:
-            type: "object"
-            additionalProperties:
-              type: "integer"
-              format: "int32"
-      security:
-      - api_key: []
-  /store/order:
-    post:
-      tags:
-      - "store"
-      summary: "Place an order for a pet"
-      description: ""
-      operationId: "placeOrder"
-      produces:
-      - "application/xml"
-      - "application/json"
-      parameters:
-      - in: "body"
-        name: "body"
-        description: "order placed for purchasing the pet"
-        required: true
-        schema:
-          $ref: "#/definitions/Order"
-      responses:
-        "200":
-          description: "successful operation"
-          schema:
-            $ref: "#/definitions/Order"
-        "400":
-          description: "Invalid Order"
-  /store/order/{orderId}:
-    get:
-      tags:
-      - "store"
-      summary: "Find purchase order by ID"
-      description: "For valid response try integer IDs with value >= 1 and <= 10.         Other values will generated exceptions"
-      operationId: "getOrderById"
-      produces:
-      - "application/xml"
-      - "application/json"
-      parameters:
-      - name: "orderId"
-        in: "path"
-        description: "ID of pet that needs to be fetched"
-        required: true
-        type: "integer"
-        maximum: 10.0
-        minimum: 1.0
-        format: "int64"
-      responses:
-        "200":
-          description: "successful operation"
-          schema:
-            $ref: "#/definitions/Order"
-        "400":
-          description: "Invalid ID supplied"
-        "404":
-          description: "Order not found"
-    delete:
-      tags:
-      - "store"
-      summary: "Delete purchase order by ID"
-      description: "For valid response try integer IDs with positive integer value.         Negative or non-integer values will generate API errors"
-      operationId: "deleteOrder"
-      produces:
-      - "application/xml"
-      - "application/json"
-      parameters:
-      - name: "orderId"
-        in: "path"
-        description: "ID of the order that needs to be deleted"
-        required: true
-        type: "integer"
-        minimum: 1.0
-        format: "int64"
-      responses:
-        "400":
-          description: "Invalid ID supplied"
-        "404":
-          description: "Order not found"
-  /user:
-    post:
-      tags:
-      - "user"
-      summary: "Create user"
-      description: "This can only be done by the logged in user."
-      operationId: "createUser"
-      produces:
-      - "application/xml"
-      - "application/json"
-      parameters:
-      - in: "body"
-        name: "body"
-        description: "Created user object"
-        required: true
-        schema:
-          $ref: "#/definitions/User"
-      responses:
-        default:
-          description: "successful operation"
-  /user/createWithArray:
-    post:
-      tags:
-      - "user"
-      summary: "Creates list of users with given input array"
-      description: ""
-      operationId: "createUsersWithArrayInput"
-      produces:
-      - "application/xml"
-      - "application/json"
-      parameters:
-      - in: "body"
-        name: "body"
-        description: "List of user object"
-        required: true
-        schema:
-          type: "array"
-          items:
-            $ref: "#/definitions/User"
-      responses:
-        default:
-          description: "successful operation"
-  /user/createWithList:
-    post:
-      tags:
-      - "user"
-      summary: "Creates list of users with given input array"
-      description: ""
-      operationId: "createUsersWithListInput"
-      produces:
-      - "application/xml"
-      - "application/json"
-      parameters:
-      - in: "body"
-        name: "body"
-        description: "List of user object"
-        required: true
-        schema:
-          type: "array"
-          items:
-            $ref: "#/definitions/User"
-      responses:
-        default:
-          description: "successful operation"
-  /user/login:
-    get:
-      tags:
-      - "user"
-      summary: "Logs user into the system"
-      description: ""
-      operationId: "loginUser"
-      produces:
-      - "application/xml"
-      - "application/json"
-      parameters:
-      - name: "username"
-        in: "query"
-        description: "The user name for login"
-        required: true
-        type: "string"
-      - name: "password"
-        in: "query"
-        description: "The password for login in clear text"
-        required: true
-        type: "string"
-      responses:
-        "200":
-          description: "successful operation"
-          schema:
-            type: "string"
-          headers:
-            X-Rate-Limit:
-              type: "integer"
-              format: "int32"
-              description: "calls per hour allowed by the user"
-            X-Expires-After:
-              type: "string"
-              format: "date-time"
-              description: "date in UTC when token expires"
-        "400":
-          description: "Invalid username/password supplied"
-  /user/logout:
-    get:
-      tags:
-      - "user"
-      summary: "Logs out current logged in user session"
-      description: ""
-      operationId: "logoutUser"
-      produces:
-      - "application/xml"
-      - "application/json"
-      parameters: []
-      responses:
-        default:
-          description: "successful operation"
-  /user/{username}:
-    get:
-      tags:
-      - "user"
-      summary: "Get user by user name"
-      description: ""
-      operationId: "getUserByName"
-      produces:
-      - "application/xml"
-      - "application/json"
-      parameters:
-      - name: "username"
-        in: "path"
-        description: "The name that needs to be fetched. Use user1 for testing. "
-        required: true
-        type: "string"
-      responses:
-        "200":
-          description: "successful operation"
-          schema:
-            $ref: "#/definitions/User"
-        "400":
-          description: "Invalid username supplied"
-        "404":
-          description: "User not found"
-    put:
-      tags:
-      - "user"
-      summary: "Updated user"
-      description: "This can only be done by the logged in user."
-      operationId: "updateUser"
-      produces:
-      - "application/xml"
-      - "application/json"
-      parameters:
-      - name: "username"
-        in: "path"
-        description: "name that need to be updated"
-        required: true
-        type: "string"
-      - in: "body"
-        name: "body"
-        description: "Updated user object"
-        required: true
-        schema:
-          $ref: "#/definitions/User"
-      responses:
-        "400":
-          description: "Invalid user supplied"
-        "404":
-          description: "User not found"
-    delete:
-      tags:
-      - "user"
-      summary: "Delete user"
-      description: "This can only be done by the logged in user."
-      operationId: "deleteUser"
-      produces:
-      - "application/xml"
-      - "application/json"
-      parameters:
-      - name: "username"
-        in: "path"
-        description: "The name that needs to be deleted"
-        required: true
-        type: "string"
-      responses:
-        "400":
-          description: "Invalid username supplied"
-        "404":
-          description: "User not found"
-securityDefinitions:
-  petstore_auth:
-    type: "oauth2"
-    authorizationUrl: "http://petstore.swagger.io/oauth/dialog"
-    flow: "implicit"
-    scopes:
-      write:pets: "modify pets in your account"
-      read:pets: "read your pets"
-  api_key:
-    type: "apiKey"
-    name: "api_key"
-    in: "header"
-definitions:
-  Order:
-    type: "object"
-    properties:
-      id:
-        type: "integer"
-        format: "int64"
-      petId:
-        type: "integer"
-        format: "int64"
-      quantity:
-        type: "integer"
-        format: "int32"
-      shipDate:
-        type: "string"
-        format: "date-time"
-      status:
-        type: "string"
-        description: "Order Status"
-        enum:
-        - "placed"
-        - "approved"
-        - "delivered"
-      complete:
-        type: "boolean"
-        default: false
-    xml:
-      name: "Order"
-  Category:
-    type: "object"
-    properties:
-      id:
-        type: "integer"
-        format: "int64"
-      name:
-        type: "string"
-    xml:
-      name: "Category"
-  User:
-    type: "object"
-    properties:
-      id:
-        type: "integer"
-        format: "int64"
-      username:
-        type: "string"
-      firstName:
-        type: "string"
-      lastName:
-        type: "string"
-      email:
-        type: "string"
-      password:
-        type: "string"
-      phone:
-        type: "string"
-      userStatus:
-        type: "integer"
-        format: "int32"
-        description: "User Status"
-    xml:
-      name: "User"
-  Tag:
-    type: "object"
-    properties:
-      id:
-        type: "integer"
-        format: "int64"
-      name:
-        type: "string"
-    xml:
-      name: "Tag"
-  Pet:
-    type: "object"
-    required:
-    - "name"
-    - "photoUrls"
-    properties:
-      id:
-        type: "integer"
-        format: "int64"
-      category:
-        $ref: "#/definitions/Category"
-      name:
-        type: "string"
-        example: "doggie"
-      photoUrls:
-        type: "array"
-        xml:
-          name: "photoUrl"
-          wrapped: true
-        items:
-          type: "string"
-      tags:
-        type: "array"
-        xml:
-          name: "tag"
-          wrapped: true
-        items:
-          $ref: "#/definitions/Tag"
-      status:
-        type: "string"
-        description: "pet status in the store"
-        enum:
-        - "available"
-        - "pending"
-        - "sold"
-    xml:
-      name: "Pet"
-  ApiResponse:
-    type: "object"
-    properties:
-      code:
-        type: "integer"
-        format: "int32"
-      type:
-        type: "string"
-      message:
-        type: "string"
-externalDocs:
-  description: "Find out more about Swagger"
-  url: "http://swagger.io"
+{
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "swagger": "2.0",
+  "info": {
+    "description": "IstioConfig project, observability for the Istio service mesh",
+    "title": "IstioConfig",
+    "version": "_"
+  },
+  "basePath": "/api",
+  "paths": {
+    "/namespaces/{namespace}/istio/destinationrules": {
+      "post": {
+        "description": "创建destinationrules接口",
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "tags": [
+          "config"
+        ],
+        "operationId": "istioDestinationruleCreate",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "Name",
+            "description": "k8s 命令空间",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "流量策略配置",
+            "name": "Body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DestinationRule"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/commonResponse"
+          }
+        }
+      }
+    },
+    "/namespaces/{namespace}/istio/virtualservices": {
+      "post": {
+        "description": "创建virtualservices接口",
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "tags": [
+          "config"
+        ],
+        "operationId": "istioVirtualserviceCreate",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "Name",
+            "description": "k8s 命令空间",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "服务路由规则配置",
+            "name": "Body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/VirtualService"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/commonResponse"
+          }
+        }
+      }
+    },
+    "/namespaces/{namespace}/services": {
+      "get": {
+        "description": "Endpoint to get the details of a given service",
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "tags": [
+          "services"
+        ],
+        "operationId": "serviceList",
+        "parameters": [
+          {
+            "type": "string",
+            "x-go-name": "Name",
+            "description": "k8s 命令空间",
+            "name": "namespace",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/serviceListResponse"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "AdditionalItem": {
+      "type": "object",
+      "properties": {
+        "icon": {
+          "type": "string",
+          "x-go-name": "Icon"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        },
+        "value": {
+          "type": "string",
+          "x-go-name": "Value"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "Address": {
+      "type": "object",
+      "properties": {
+        "ip": {
+          "type": "string",
+          "x-go-name": "IP"
+        },
+        "kind": {
+          "type": "string",
+          "x-go-name": "Kind"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "Addresses": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Address"
+      },
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "ComponentStatus": {
+      "type": "object",
+      "required": [
+        "name",
+        "status",
+        "is_core"
+      ],
+      "properties": {
+        "is_core": {
+          "description": "When true, the component is necessary for Istio to function. Otherwise, it is an addon",
+          "type": "boolean",
+          "x-go-name": "IsCore",
+          "example": true
+        },
+        "name": {
+          "description": "The app label value of the Istio component",
+          "type": "string",
+          "x-go-name": "Name",
+          "example": "istio-ingressgateway"
+        },
+        "status": {
+          "description": "The status of a Istio component",
+          "type": "string",
+          "x-go-name": "Status",
+          "example": "Not Found"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali/business"
+    },
+    "ConnectionPoolSettings": {
+      "type": "object",
+      "properties": {
+        "http": {
+          "$ref": "#/definitions/ConnectionPoolSettings_HTTPSettings"
+        },
+        "tcp": {
+          "$ref": "#/definitions/ConnectionPoolSettings_TCPSettings"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali"
+    },
+    "ConnectionPoolSettings_HTTPSettings": {
+      "type": "object",
+      "title": "Settings applicable to HTTP1.1/HTTP2/GRPC connections.",
+      "properties": {
+        "http1_max_pending_requests": {
+          "description": "最大等待HTTP请求数，默认1024",
+          "type": "integer",
+          "format": "int32",
+          "x-go-name": "Http1MaxPendingRequests"
+        },
+        "http2_max_requests": {
+          "description": "HTTP2最大连接数",
+          "type": "integer",
+          "format": "int32",
+          "x-go-name": "Http2MaxRequests"
+        },
+        "idleTimeout": {
+          "description": "一个连接idle状态的最大时长,默认1h （1h/1m/10s）",
+          "type": "string",
+          "x-go-name": "IdleTimeout"
+        },
+        "max_requests_per_connection": {
+          "description": "每个连接最大请求数",
+          "type": "integer",
+          "format": "int32",
+          "x-go-name": "MaxRequestsPerConnection"
+        },
+        "max_retries": {
+          "description": "最大重试次数",
+          "type": "integer",
+          "format": "int32",
+          "x-go-name": "MaxRetries"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali"
+    },
+    "ConnectionPoolSettings_TCPSettings": {
+      "type": "object",
+      "title": "Settings common to both HTTP and TCP upstream connections.",
+      "properties": {
+        "connect_timeout": {
+          "description": "TCP连接超时时间 （1h/1m/1s/1ms. MUST BE \u003e=1ms. Default is 10s）",
+          "type": "string",
+          "x-go-name": "ConnectTimeout"
+        },
+        "max_connections": {
+          "description": "Envoy为上游集群建立的最大连接数",
+          "type": "integer",
+          "format": "int32",
+          "x-go-name": "MaxConnections"
+        },
+        "tcp_keepalive": {
+          "$ref": "#/definitions/ConnectionPoolSettings_TCPSettings_TcpKeepalive"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali"
+    },
+    "ConnectionPoolSettings_TCPSettings_TcpKeepalive": {
+      "type": "object",
+      "title": "TCP keepalive.",
+      "properties": {
+        "interval": {
+          "description": "The time duration between keep-alive probes.\nDefault is to use the OS level configuration\n(unless overridden, Linux defaults to 75s.)",
+          "type": "string",
+          "x-go-name": "Interval"
+        },
+        "probes": {
+          "description": "Maximum number of keepalive probes to send without response before\ndeciding the connection is dead. Default is to use the OS level configuration\n(unless overridden, Linux defaults to 9.)",
+          "type": "integer",
+          "format": "uint32",
+          "x-go-name": "Probes"
+        },
+        "time": {
+          "description": "The time duration a connection needs to be idle before keep-alive\nprobes start being sent. Default is to use the OS level configuration\n(unless overridden, Linux defaults to 7200s (ie 2 hours.)",
+          "type": "string",
+          "x-go-name": "Time"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali"
+    },
+    "Destination": {
+      "type": "object",
+      "properties": {
+        "host": {
+          "description": "服务名",
+          "type": "string",
+          "x-go-name": "Host"
+        },
+        "subset": {
+          "description": "服务版本",
+          "type": "string",
+          "x-go-name": "Subset"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali"
+    },
+    "DestinationRule": {
+      "description": "example:{\"metadata\":{\"namespace\":\"sample\",\"name\":\"helloworld\"},\"spec\":{\"host\":\"helloworld.sample.svc.cluster.local\",\"subsets\":[{\"name\":\"v1\",\"labels\":{\"version\":\"v1\"}},{\"name\":\"v2\",\"labels\":{\"version\":\"v2\"}}],\"trafficPolicy\":{\"loadBalancer\":{\"simple\":null,\"consistentHash\":{\"httpHeaderName\":\"xiaoming\",\"httpCookie\":{\"name\":\"xiaoming\",\"ttl\":\"10s\"},\"useSourceIp\":true}},\"connectionPool\":{\"tcp\":{\"maxConnections\":123},\"http\":{\"http1MaxPendingRequests\":123}},\"outlierDetection\":{\"consecutiveErrors\":111}}}}",
+      "type": "object",
+      "properties": {
+        "metadata": {
+          "$ref": "#/definitions/ObjectMeta"
+        },
+        "spec": {
+          "$ref": "#/definitions/DestinationSpec"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali"
+    },
+    "DestinationRules": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DestinationRule"
+          },
+          "x-go-name": "Items"
+        },
+        "permissions": {
+          "$ref": "#/definitions/ResourcePermissions"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "DestinationSpec": {
+      "type": "object",
+      "properties": {
+        "host": {
+          "description": "目的主机名",
+          "type": "string",
+          "x-go-name": "Host"
+        },
+        "subsets": {
+          "description": "服务版本",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Subset"
+          },
+          "x-go-name": "Subsets"
+        },
+        "traffic_policy": {
+          "$ref": "#/definitions/TrafficPolicy"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali"
+    },
+    "Endpoint": {
+      "type": "object",
+      "properties": {
+        "addresses": {
+          "$ref": "#/definitions/Addresses"
+        },
+        "ports": {
+          "$ref": "#/definitions/Ports"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "Endpoints": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Endpoint"
+      },
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "Gateway": {
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "description": "APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources\n+optional",
+          "type": "string",
+          "x-go-name": "APIVersion"
+        },
+        "kind": {
+          "description": "Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds\n+optional",
+          "type": "string",
+          "x-go-name": "Kind"
+        },
+        "metadata": {
+          "$ref": "#/definitions/ObjectMeta"
+        },
+        "spec": {
+          "type": "object",
+          "properties": {
+            "selector": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              },
+              "x-go-name": "Selector"
+            },
+            "servers": {
+              "type": "object",
+              "x-go-name": "Servers"
+            }
+          },
+          "x-go-name": "Spec"
+        },
+        "status": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          },
+          "x-go-name": "Status"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "Gateways": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Gateway"
+      },
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "HTTPFaultInjection": {
+      "type": "object",
+      "properties": {
+        "abort": {
+          "description": "流量丢弃配置",
+          "type": "object",
+          "required": [
+            "percentage",
+            "httpStatus"
+          ],
+          "properties": {
+            "httpStatus": {
+              "description": "http 响应码",
+              "type": "integer",
+              "format": "int32",
+              "x-go-name": "HttpStatus",
+              "example": 404
+            },
+            "percentage": {
+              "description": "流量百分值（1-100）",
+              "type": "object",
+              "required": [
+                "value"
+              ],
+              "properties": {
+                "value": {
+                  "description": "流量百分值（1-100）",
+                  "type": "integer",
+                  "format": "int64",
+                  "x-go-name": "Value",
+                  "example": 40
+                }
+              },
+              "x-go-name": "Percentage"
+            }
+          },
+          "x-go-name": "Abort"
+        },
+        "delay": {
+          "description": "请求延时响应配置",
+          "type": "object",
+          "required": [
+            "percentage",
+            "fixedDelay"
+          ],
+          "properties": {
+            "fixedDelay": {
+              "description": "延时响应时间（5s）",
+              "type": "string",
+              "x-go-name": "FixedDelay"
+            },
+            "percentage": {
+              "description": "流量百分值（1-100）",
+              "type": "object",
+              "required": [
+                "value"
+              ],
+              "properties": {
+                "value": {
+                  "description": "流量百分值（1-100）",
+                  "type": "integer",
+                  "format": "int64",
+                  "x-go-name": "Value",
+                  "example": 40
+                }
+              },
+              "x-go-name": "Percentage"
+            }
+          },
+          "x-go-name": "Delay"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali"
+    },
+    "HTTPMatchRequest": {
+      "type": "object",
+      "properties": {
+        "headers": {
+          "description": "http请求头匹配规则",
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "x-go-name": "Headers",
+          "example": {
+            "user": {
+              "exact": "xiaoming",
+              "prefix": "xiao",
+              "regex": "^.*$"
+            }
+          }
+        },
+        "uri": {
+          "description": "uri匹配规则, key只能为prefix，exact，regex中一个",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "Uri",
+          "example": {
+            "exact": "/v2/user",
+            "prefix": "/v1",
+            "regex": "/v3/.*?/user"
+          }
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali"
+    },
+    "HTTPRetry": {
+      "type": "object",
+      "properties": {
+        "attempts": {
+          "description": "重试次数",
+          "type": "integer",
+          "format": "int32",
+          "x-go-name": "Attempts"
+        },
+        "perTryTimeout": {
+          "description": "每次重试超时时间",
+          "type": "string",
+          "x-go-name": "PerTryTimeout"
+        },
+        "retry_on": {
+          "description": "重试条件，可选5xx，gateway-error，reset，connect-failure",
+          "type": "string",
+          "x-go-name": "RetryOn"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali"
+    },
+    "HTTPRoute": {
+      "type": "object",
+      "properties": {
+        "fault": {
+          "$ref": "#/definitions/HTTPFaultInjection"
+        },
+        "match": {
+          "description": "匹配规则",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/HTTPMatchRequest"
+          },
+          "x-go-name": "Match"
+        },
+        "retries": {
+          "$ref": "#/definitions/HTTPRetry"
+        },
+        "route": {
+          "description": "路由配置",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/HTTPRouteDestination"
+          },
+          "x-go-name": "Route"
+        },
+        "timeout": {
+          "description": "请求超时配置",
+          "type": "string",
+          "x-go-name": "Timeout",
+          "example": "10s"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali"
+    },
+    "HTTPRouteDestination": {
+      "type": "object",
+      "properties": {
+        "destination": {
+          "$ref": "#/definitions/Destination"
+        },
+        "weight": {
+          "description": "流量权重 (0-100)",
+          "type": "integer",
+          "format": "int32",
+          "x-go-name": "Weight"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali"
+    },
+    "IstioComponentStatus": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/ComponentStatus"
+      },
+      "x-go-package": "github.com/kiali/kiali/business"
+    },
+    "IstioConfigList": {
+      "description": "This type is used for returning a response of IstioConfigList",
+      "type": "object",
+      "title": "IstioConfigList istioConfigList",
+      "required": [
+        "namespace"
+      ],
+      "properties": {
+        "authorizationPolicies": {
+          "$ref": "#/definitions/authorizationPolicies"
+        },
+        "destinationRules": {
+          "$ref": "#/definitions/DestinationRules"
+        },
+        "envoyFilters": {
+          "$ref": "#/definitions/envoyFilters"
+        },
+        "gateways": {
+          "$ref": "#/definitions/Gateways"
+        },
+        "namespace": {
+          "$ref": "#/definitions/namespace"
+        },
+        "peerAuthentications": {
+          "$ref": "#/definitions/peerAuthentications"
+        },
+        "requestAuthentications": {
+          "$ref": "#/definitions/requestAuthentications"
+        },
+        "serviceEntries": {
+          "$ref": "#/definitions/ServiceEntries"
+        },
+        "sidecars": {
+          "$ref": "#/definitions/Sidecars"
+        },
+        "validations": {
+          "$ref": "#/definitions/IstioValidations"
+        },
+        "virtualServices": {
+          "$ref": "#/definitions/VirtualServices"
+        },
+        "workloadEntries": {
+          "$ref": "#/definitions/WorkloadEntries"
+        },
+        "workloadGroups": {
+          "$ref": "#/definitions/workloadGroups"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "IstioValidationKey": {
+      "type": "object",
+      "title": "IstioValidationKey is the key value composed of an Istio ObjectType and Name.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "namespace": {
+          "type": "string",
+          "x-go-name": "Namespace"
+        },
+        "objectType": {
+          "type": "string",
+          "x-go-name": "ObjectType"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "IstioValidations": {
+      "title": "IstioValidations represents a set of IstioValidation grouped by IstioValidationKey.",
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "LoadBalancerSettings": {
+      "description": "负载均衡策略，simple和consistentHash只能选择一个",
+      "type": "object",
+      "properties": {
+        "consistent_hash": {
+          "$ref": "#/definitions/LoadBalancerSettings_ConsistentHashLB"
+        },
+        "simple": {
+          "type": "string",
+          "x-go-name": "Simple",
+          "example": "可选值ROUND_ROBIN LEAST_CONN RANDOM PASSTHROUGH"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali"
+    },
+    "LoadBalancerSettings_ConsistentHashLB": {
+      "type": "object",
+      "properties": {
+        "httpCookie": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "x-go-name": "Name"
+            },
+            "path": {
+              "type": "string",
+              "x-go-name": "Path"
+            },
+            "ttl": {
+              "type": "string",
+              "x-go-name": "Ttl"
+            }
+          },
+          "x-go-name": "HttpCookie"
+        },
+        "httpHeaderName": {
+          "type": "string",
+          "x-go-name": "HttpHeaderName"
+        },
+        "httpQueryParameterName": {
+          "type": "string",
+          "x-go-name": "HttpQueryParameterName"
+        },
+        "minimumRingSize": {
+          "type": "integer",
+          "format": "uint64",
+          "x-go-name": "MinimumRingSize"
+        },
+        "useSourceIp": {
+          "type": "boolean",
+          "x-go-name": "UseSourceIp"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali"
+    },
+    "MTLSStatus": {
+      "description": "MTLSStatus describes the current mTLS status of a mesh entity",
+      "type": "object",
+      "required": [
+        "status"
+      ],
+      "properties": {
+        "status": {
+          "description": "mTLS status: MTLS_ENABLED, MTLS_PARTIALLY_ENABLED, MTLS_NOT_ENABLED",
+          "type": "string",
+          "x-go-name": "Status",
+          "example": "MTLS_ENABLED"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "ObjectMeta": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "名称",
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "namespace": {
+          "description": "k8s 命名空间",
+          "type": "string",
+          "x-go-name": "Namespace"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali"
+    },
+    "OutlierDetection": {
+      "type": "object",
+      "properties": {
+        "base_ejection_time": {
+          "description": "最小驱逐时间。驱逐时间会随着错误次数增加而增加。即错误次数*最小驱逐时间",
+          "type": "string",
+          "x-go-name": "BaseEjectionTime"
+        },
+        "consecutive_5xx_errors": {
+          "$ref": "#/definitions/UInt32Value"
+        },
+        "consecutive_errors": {
+          "description": "连续错误次数。对于HTTP服务，502、503、504会被认为异常，TPC服务，连接超时即异常",
+          "type": "integer",
+          "format": "int32",
+          "x-go-name": "ConsecutiveErrors"
+        },
+        "consecutive_gateway_errors": {
+          "$ref": "#/definitions/UInt32Value"
+        },
+        "interval": {
+          "description": "扫描分析周期，（1h/1m/1s/1ms）",
+          "type": "string",
+          "x-go-name": "Interval"
+        },
+        "max_ejection_percent": {
+          "description": "负载均衡池中可以被驱逐的实例的最大比例。以免某个接口瞬时不可用，导致太多实例被驱逐，进而导致服务整体全部不可用。",
+          "type": "integer",
+          "format": "int32",
+          "x-go-name": "MaxEjectionPercent"
+        },
+        "min_health_percent": {
+          "type": "integer",
+          "format": "int32",
+          "x-go-name": "MinHealthPercent"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali"
+    },
+    "Port": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "port": {
+          "type": "integer",
+          "format": "int32",
+          "x-go-name": "Port"
+        },
+        "protocol": {
+          "type": "string",
+          "x-go-name": "Protocol"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "Ports": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Port"
+      },
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "RequestHealth": {
+      "description": "RequestHealth holds several stats about recent request errors\nInbound//Outbound are the rates of requests by protocol and status_code.\nExample:   Inbound: { \"http\": {\"200\": 1.5, \"400\": 2.3}, \"grpc\": {\"1\": 1.2} }",
+      "type": "object",
+      "properties": {
+        "healthAnnotations": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "HealthAnnotations"
+        },
+        "inbound": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          "x-go-name": "Inbound"
+        },
+        "outbound": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          "x-go-name": "Outbound"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "ResourcePermissions": {
+      "description": "ResourcePermissions holds permission flags for an object type\nTrue means allowed.",
+      "type": "object",
+      "properties": {
+        "create": {
+          "type": "boolean",
+          "x-go-name": "Create"
+        },
+        "delete": {
+          "type": "boolean",
+          "x-go-name": "Delete"
+        },
+        "update": {
+          "type": "boolean",
+          "x-go-name": "Update"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "Service": {
+      "type": "object",
+      "properties": {
+        "createdAt": {
+          "type": "string",
+          "x-go-name": "CreatedAt"
+        },
+        "externalName": {
+          "type": "string",
+          "x-go-name": "ExternalName"
+        },
+        "healthAnnotations": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "HealthAnnotations"
+        },
+        "ip": {
+          "type": "string",
+          "x-go-name": "Ip"
+        },
+        "labels": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "Labels"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "namespace": {
+          "$ref": "#/definitions/namespace"
+        },
+        "ports": {
+          "$ref": "#/definitions/Ports"
+        },
+        "resourceVersion": {
+          "type": "string",
+          "x-go-name": "ResourceVersion"
+        },
+        "selectors": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "Selectors"
+        },
+        "type": {
+          "type": "string",
+          "x-go-name": "Type"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "ServiceDetails": {
+      "type": "object",
+      "properties": {
+        "additionalDetails": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/AdditionalItem"
+          },
+          "x-go-name": "AdditionalDetails"
+        },
+        "destinationRules": {
+          "$ref": "#/definitions/DestinationRules"
+        },
+        "endpoints": {
+          "$ref": "#/definitions/Endpoints"
+        },
+        "health": {
+          "$ref": "#/definitions/ServiceHealth"
+        },
+        "istioSidecar": {
+          "type": "boolean",
+          "x-go-name": "IstioSidecar"
+        },
+        "namespaceMTLS": {
+          "$ref": "#/definitions/MTLSStatus"
+        },
+        "service": {
+          "$ref": "#/definitions/Service"
+        },
+        "validations": {
+          "$ref": "#/definitions/IstioValidations"
+        },
+        "virtualServices": {
+          "$ref": "#/definitions/VirtualServices"
+        },
+        "workloads": {
+          "$ref": "#/definitions/WorkloadOverviews"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "ServiceEntries": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/ServiceEntry"
+      },
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "ServiceEntry": {
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "description": "APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources\n+optional",
+          "type": "string",
+          "x-go-name": "APIVersion"
+        },
+        "kind": {
+          "description": "Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds\n+optional",
+          "type": "string",
+          "x-go-name": "Kind"
+        },
+        "metadata": {
+          "$ref": "#/definitions/ObjectMeta"
+        },
+        "spec": {
+          "type": "object",
+          "properties": {
+            "addresses": {
+              "type": "object",
+              "x-go-name": "Addresses"
+            },
+            "endpoints": {
+              "type": "object",
+              "x-go-name": "Endpoints"
+            },
+            "exportTo": {
+              "type": "object",
+              "x-go-name": "ExportTo"
+            },
+            "hosts": {
+              "type": "object",
+              "x-go-name": "Hosts"
+            },
+            "location": {
+              "type": "object",
+              "x-go-name": "Location"
+            },
+            "ports": {
+              "type": "object",
+              "x-go-name": "Ports"
+            },
+            "resolution": {
+              "type": "object",
+              "x-go-name": "Resolution"
+            },
+            "subjectAltNames": {
+              "type": "object",
+              "x-go-name": "SubjectAltNames"
+            },
+            "workloadSelector": {
+              "type": "object",
+              "x-go-name": "WorkloadSelector"
+            }
+          },
+          "x-go-name": "Spec"
+        },
+        "status": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          },
+          "x-go-name": "Status"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "ServiceHealth": {
+      "description": "ServiceHealth contains aggregated health from various sources, for a given service",
+      "type": "object",
+      "properties": {
+        "requests": {
+          "$ref": "#/definitions/RequestHealth"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "ServiceListInfo": {
+      "type": "object",
+      "properties": {
+        "namespace": {
+          "$ref": "#/definitions/namespace"
+        },
+        "services": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ServiceOverview"
+          },
+          "x-go-name": "Services"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali"
+    },
+    "ServiceOverview": {
+      "type": "object",
+      "required": [
+        "name",
+        "istioSidecar",
+        "appLabel"
+      ],
+      "properties": {
+        "appLabel": {
+          "description": "Has label app",
+          "type": "boolean",
+          "x-go-name": "AppLabel",
+          "example": true
+        },
+        "istioSidecar": {
+          "description": "Define if Pods related to this Service has an IstioSidecar deployed",
+          "type": "boolean",
+          "x-go-name": "IstioSidecar",
+          "example": true
+        },
+        "name": {
+          "description": "Name of the Service",
+          "type": "string",
+          "x-go-name": "Name",
+          "example": "reviews-v1"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali"
+    },
+    "Sidecar": {
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "description": "APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources\n+optional",
+          "type": "string",
+          "x-go-name": "APIVersion"
+        },
+        "kind": {
+          "description": "Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds\n+optional",
+          "type": "string",
+          "x-go-name": "Kind"
+        },
+        "metadata": {
+          "$ref": "#/definitions/ObjectMeta"
+        },
+        "spec": {
+          "type": "object",
+          "properties": {
+            "egress": {
+              "type": "object",
+              "x-go-name": "Egress"
+            },
+            "ingress": {
+              "type": "object",
+              "x-go-name": "Ingress"
+            },
+            "localhost": {
+              "type": "object",
+              "x-go-name": "Localhost"
+            },
+            "outboundTrafficPolicy": {
+              "type": "object",
+              "x-go-name": "OutboundTrafficPolicy"
+            },
+            "workloadSelector": {
+              "type": "object",
+              "x-go-name": "WorkloadSelector"
+            }
+          },
+          "x-go-name": "Spec"
+        },
+        "status": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          },
+          "x-go-name": "Status"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "Sidecars": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Sidecar"
+      },
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "StatusInfo": {
+      "description": "This is used for returning a response of Kiali Status",
+      "type": "object",
+      "title": "StatusInfo statusInfo",
+      "required": [
+        "status",
+        "externalServices"
+      ],
+      "properties": {
+        "externalServices": {
+          "description": "An array of external services installed",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/externalServiceInfo"
+          },
+          "x-go-name": "ExternalServices"
+        },
+        "status": {
+          "description": "The state of Kiali\nA hash of key,values with versions of Kiali and state",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "Status"
+        },
+        "warningMessages": {
+          "description": "An array of warningMessages",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "example": "Istio version 0.7.1 is not supported, the version should be 0.8.0"
+          },
+          "x-go-name": "WarningMessages"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali/status"
+    },
+    "Subset": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "traffic_policy": {
+          "$ref": "#/definitions/TrafficPolicy"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali"
+    },
+    "TrafficPolicy": {
+      "type": "object",
+      "properties": {
+        "connection_pool": {
+          "$ref": "#/definitions/ConnectionPoolSettings"
+        },
+        "load_balancer": {
+          "$ref": "#/definitions/LoadBalancerSettings"
+        },
+        "outlier_detection": {
+          "$ref": "#/definitions/OutlierDetection"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali"
+    },
+    "UInt32Value": {
+      "description": "The JSON representation for `UInt32Value` is JSON number.",
+      "type": "object",
+      "title": "Wrapper message for `uint32`.",
+      "properties": {
+        "value": {
+          "description": "The uint32 value.",
+          "type": "integer",
+          "format": "uint32",
+          "x-go-name": "Value"
+        }
+      },
+      "x-go-package": "github.com/gogo/protobuf/types"
+    },
+    "VirtualService": {
+      "description": "example: `{\"metadata\":{\"namespace\":\"sample\",\"name\":\"helloworld\"},\"spec\":{\"hosts\":[\"helloworld.sample.svc.cluster.local\"],\"http\":[{\"route\":[{\"destination\":{\"host\":\"helloworld.sample.svc.cluster.local\",\"subset\":\"v1\"},\"weight\":50},{\"destination\":{\"host\":\"helloworld.sample.svc.cluster.local\",\"subset\":\"v2\"},\"weight\":50}],\"match\":[{\"headers\":{\"aabb\":{\"regex\":\"^.*$\"}},\"uri\":{\"prefix\":\"/api/v1\"}}]}],\"fault\":{\"delay\":{\"percentage\":{\"value\":100},\"fixedDelay\":\"5s\"},\"abort\":{\"percentage\":{\"value\":11},\"httpStatus\":503}},\"timeout\":\"2s\",\"retries\":{\"attempts\":3,\"perTryTimeout\":\"2s\",\"retryOn\":\"gateway-error,connect-failure,refused-stream\"},\"gateways\":null}}`",
+      "type": "object",
+      "properties": {
+        "metadata": {
+          "$ref": "#/definitions/ObjectMeta"
+        },
+        "spec": {
+          "$ref": "#/definitions/VirtualServiceSpec"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali"
+    },
+    "VirtualServiceSpec": {
+      "type": "object",
+      "properties": {
+        "hosts": {
+          "description": "域名",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Hosts"
+        },
+        "http": {
+          "description": "路由配置",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/HTTPRoute"
+          },
+          "x-go-name": "Http"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali"
+    },
+    "VirtualServices": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/VirtualService"
+          },
+          "x-go-name": "Items"
+        },
+        "permissions": {
+          "$ref": "#/definitions/ResourcePermissions"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "WorkloadEntries": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/WorkloadEntry"
+      },
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "WorkloadEntry": {
+      "type": "object",
+      "properties": {
+        "apiVersion": {
+          "description": "APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources\n+optional",
+          "type": "string",
+          "x-go-name": "APIVersion"
+        },
+        "kind": {
+          "description": "Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds\n+optional",
+          "type": "string",
+          "x-go-name": "Kind"
+        },
+        "metadata": {
+          "$ref": "#/definitions/ObjectMeta"
+        },
+        "spec": {
+          "type": "object",
+          "properties": {
+            "address": {
+              "type": "object",
+              "x-go-name": "Address"
+            },
+            "labels": {
+              "type": "object",
+              "x-go-name": "Labels"
+            },
+            "locality": {
+              "type": "object",
+              "x-go-name": "Locality"
+            },
+            "network": {
+              "type": "object",
+              "x-go-name": "Network"
+            },
+            "ports": {
+              "type": "object",
+              "x-go-name": "Ports"
+            },
+            "serviceAccount": {
+              "type": "object",
+              "x-go-name": "ServiceAccount"
+            },
+            "weight": {
+              "type": "object",
+              "x-go-name": "Weight"
+            }
+          },
+          "x-go-name": "Spec"
+        },
+        "status": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          },
+          "x-go-name": "Status"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "WorkloadListItem": {
+      "description": "WorkloadListItem has the necessary information to display the console workload list",
+      "type": "object",
+      "required": [
+        "name",
+        "type",
+        "createdAt",
+        "resourceVersion",
+        "istioSidecar",
+        "appLabel",
+        "versionLabel",
+        "podCount"
+      ],
+      "properties": {
+        "additionalDetailSample": {
+          "$ref": "#/definitions/AdditionalItem"
+        },
+        "appLabel": {
+          "description": "Define if Pods related to this Workload has the label App",
+          "type": "boolean",
+          "x-go-name": "AppLabel",
+          "example": true
+        },
+        "createdAt": {
+          "description": "Creation timestamp (in RFC3339 format)",
+          "type": "string",
+          "x-go-name": "CreatedAt",
+          "example": "2018-07-31T12:24:17Z"
+        },
+        "dashboardAnnotations": {
+          "description": "Dashboard annotations",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "DashboardAnnotations"
+        },
+        "healthAnnotations": {
+          "description": "HealthAnnotations",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "HealthAnnotations"
+        },
+        "istioInjectionAnnotation": {
+          "description": "Define if Workload has an explicit Istio policy annotation\nIt's mapped as a pointer to show three values nil, true, false",
+          "type": "boolean",
+          "x-go-name": "IstioInjectionAnnotation"
+        },
+        "istioReferences": {
+          "description": "Istio References",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/IstioValidationKey"
+          },
+          "x-go-name": "IstioReferences"
+        },
+        "istioSidecar": {
+          "description": "Define if Pods related to this Workload has an IstioSidecar deployed",
+          "type": "boolean",
+          "x-go-name": "IstioSidecar",
+          "example": true
+        },
+        "labels": {
+          "description": "Workload labels",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "Labels"
+        },
+        "name": {
+          "description": "Name of the workload",
+          "type": "string",
+          "x-go-name": "Name",
+          "example": "reviews-v1"
+        },
+        "podCount": {
+          "description": "Number of current workload pods",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "PodCount",
+          "example": 1
+        },
+        "resourceVersion": {
+          "description": "Kubernetes ResourceVersion",
+          "type": "string",
+          "x-go-name": "ResourceVersion",
+          "example": "192892127"
+        },
+        "type": {
+          "description": "Type of the workload",
+          "type": "string",
+          "x-go-name": "Type",
+          "example": "deployment"
+        },
+        "versionLabel": {
+          "description": "Define if Pods related to this Workload has the label Version",
+          "type": "boolean",
+          "x-go-name": "VersionLabel",
+          "example": true
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "WorkloadOverviews": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/WorkloadListItem"
+      },
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "authorizationPolicies": {
+      "description": "This is used for returning an array of AuthorizationPolicies",
+      "type": "array",
+      "title": "AuthorizationPolicies authorizationPolicies",
+      "items": {
+        "$ref": "#/definitions/authorizationPolicy"
+      },
+      "x-go-name": "AuthorizationPolicies",
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "authorizationPolicy": {
+      "description": "This is used for returning an AuthorizationPolicy",
+      "type": "object",
+      "title": "AuthorizationPolicy authorizationPolicy",
+      "properties": {
+        "apiVersion": {
+          "description": "APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources\n+optional",
+          "type": "string",
+          "x-go-name": "APIVersion"
+        },
+        "kind": {
+          "description": "Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds\n+optional",
+          "type": "string",
+          "x-go-name": "Kind"
+        },
+        "metadata": {
+          "$ref": "#/definitions/ObjectMeta"
+        },
+        "spec": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "object",
+              "x-go-name": "Action"
+            },
+            "rules": {
+              "type": "object",
+              "x-go-name": "Rules"
+            },
+            "selector": {
+              "type": "object",
+              "x-go-name": "Selector"
+            }
+          },
+          "x-go-name": "Spec"
+        },
+        "status": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          },
+          "x-go-name": "Status"
+        }
+      },
+      "x-go-name": "AuthorizationPolicy",
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "envoyFilter": {
+      "description": "This is used for returning an EnvoyFilter",
+      "type": "object",
+      "title": "EnvoyFilter envoyFilter",
+      "properties": {
+        "apiVersion": {
+          "description": "APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources\n+optional",
+          "type": "string",
+          "x-go-name": "APIVersion"
+        },
+        "kind": {
+          "description": "Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds\n+optional",
+          "type": "string",
+          "x-go-name": "Kind"
+        },
+        "metadata": {
+          "$ref": "#/definitions/ObjectMeta"
+        },
+        "spec": {
+          "type": "object",
+          "properties": {
+            "configPatches": {
+              "type": "object",
+              "x-go-name": "ConfigPatches"
+            },
+            "workloadSelector": {
+              "type": "object",
+              "x-go-name": "WorkloadSelector"
+            }
+          },
+          "x-go-name": "Spec"
+        },
+        "status": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          },
+          "x-go-name": "Status"
+        }
+      },
+      "x-go-name": "EnvoyFilter",
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "envoyFilters": {
+      "description": "This is used for returning an array of EnvoyFilter",
+      "type": "array",
+      "title": "EnvoyFilters envoyFilters",
+      "items": {
+        "$ref": "#/definitions/envoyFilter"
+      },
+      "x-go-name": "EnvoyFilters",
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "externalServiceInfo": {
+      "description": "This is used for returning a response of Kiali Status",
+      "type": "object",
+      "title": "Status response model",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "description": "The name of the service",
+          "type": "string",
+          "x-go-name": "Name",
+          "example": "Istio"
+        },
+        "url": {
+          "description": "The service url",
+          "type": "string",
+          "x-go-name": "Url",
+          "example": "jaeger-query-istio-system.127.0.0.1.nip.io"
+        },
+        "version": {
+          "description": "The installed version of the service",
+          "type": "string",
+          "x-go-name": "Version",
+          "example": "0.8.0"
+        }
+      },
+      "x-go-name": "ExternalServiceInfo",
+      "x-go-package": "github.com/kiali/kiali/status"
+    },
+    "namespace": {
+      "description": "A Namespace provide a scope for names\nThis type is used to describe a set of objects.",
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "annotations": {
+          "description": "Specific annotations used in Kiali",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "Annotations"
+        },
+        "labels": {
+          "description": "Labels for Namespace",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "Labels"
+        },
+        "name": {
+          "description": "The id of the namespace.",
+          "type": "string",
+          "x-go-name": "Name",
+          "example": "istio-system"
+        }
+      },
+      "x-go-name": "Namespace",
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "peerAuthentication": {
+      "description": "This is used for returning an PeerAuthentication",
+      "type": "object",
+      "title": "PeerAuthentication peerAuthentication",
+      "properties": {
+        "apiVersion": {
+          "description": "APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources\n+optional",
+          "type": "string",
+          "x-go-name": "APIVersion"
+        },
+        "kind": {
+          "description": "Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds\n+optional",
+          "type": "string",
+          "x-go-name": "Kind"
+        },
+        "metadata": {
+          "$ref": "#/definitions/ObjectMeta"
+        },
+        "spec": {
+          "type": "object",
+          "properties": {
+            "mtls": {
+              "type": "object",
+              "x-go-name": "Mtls"
+            },
+            "portLevelMtls": {
+              "type": "object",
+              "x-go-name": "PortLevelMtls"
+            },
+            "selector": {
+              "type": "object",
+              "x-go-name": "Selector"
+            }
+          },
+          "x-go-name": "Spec"
+        },
+        "status": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          },
+          "x-go-name": "Status"
+        }
+      },
+      "x-go-name": "PeerAuthentication",
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "peerAuthentications": {
+      "description": "This is used for returning an array of PeerAuthentication",
+      "type": "array",
+      "title": "PeerAuthentications peerAuthentications",
+      "items": {
+        "$ref": "#/definitions/peerAuthentication"
+      },
+      "x-go-name": "PeerAuthentications",
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "requestAuthentication": {
+      "description": "This is used for returning an RequestAuthentication",
+      "type": "object",
+      "title": "RequestAuthentication requestAuthentication",
+      "properties": {
+        "apiVersion": {
+          "description": "APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources\n+optional",
+          "type": "string",
+          "x-go-name": "APIVersion"
+        },
+        "kind": {
+          "description": "Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds\n+optional",
+          "type": "string",
+          "x-go-name": "Kind"
+        },
+        "metadata": {
+          "$ref": "#/definitions/ObjectMeta"
+        },
+        "spec": {
+          "type": "object",
+          "properties": {
+            "jwtRules": {
+              "type": "object",
+              "x-go-name": "JwtRules"
+            },
+            "selector": {
+              "type": "object",
+              "x-go-name": "Selector"
+            }
+          },
+          "x-go-name": "Spec"
+        },
+        "status": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          },
+          "x-go-name": "Status"
+        }
+      },
+      "x-go-name": "RequestAuthentication",
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "requestAuthentications": {
+      "description": "This is used for returning an array of RequestAuthentication",
+      "type": "array",
+      "title": "RequestAuthentications requestAuthentications",
+      "items": {
+        "$ref": "#/definitions/requestAuthentication"
+      },
+      "x-go-name": "RequestAuthentications",
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "workloadGroup": {
+      "description": "This is used for returning a WorkloadGroup",
+      "type": "object",
+      "title": "WorkloadGroup workloadGroup",
+      "properties": {
+        "apiVersion": {
+          "description": "APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources\n+optional",
+          "type": "string",
+          "x-go-name": "APIVersion"
+        },
+        "kind": {
+          "description": "Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds\n+optional",
+          "type": "string",
+          "x-go-name": "Kind"
+        },
+        "metadata": {
+          "$ref": "#/definitions/ObjectMeta"
+        },
+        "spec": {
+          "type": "object",
+          "properties": {
+            "metadata": {
+              "description": "This is not an error, the WorkloadGroup has a Metadata inside the Spec\nhttps://istio.io/latest/docs/reference/config/networking/workload-group/#WorkloadGroup",
+              "type": "object",
+              "x-go-name": "Metadata"
+            },
+            "probe": {
+              "type": "object",
+              "x-go-name": "Probe"
+            },
+            "template": {
+              "type": "object",
+              "x-go-name": "Template"
+            }
+          },
+          "x-go-name": "Spec"
+        },
+        "status": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          },
+          "x-go-name": "Status"
+        }
+      },
+      "x-go-name": "WorkloadGroup",
+      "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "workloadGroups": {
+      "description": "This is used for returning an array of WorkloadGroup",
+      "type": "array",
+      "title": "WorkloadGroups workloadGroups",
+      "items": {
+        "$ref": "#/definitions/workloadGroup"
+      },
+      "x-go-name": "WorkloadGroups",
+      "x-go-package": "github.com/kiali/kiali/models"
+    }
+  },
+  "responses": {
+    "badRequestError": {
+      "description": "BadRequestError: the client request is incorrect",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "description": "HTTP status code",
+            "type": "integer",
+            "format": "int32",
+            "default": 400,
+            "x-go-name": "Code",
+            "example": 400
+          },
+          "message": {
+            "type": "string",
+            "x-go-name": "Message"
+          }
+        }
+      }
+    },
+    "commonResponse": {
+      "description": "操作结果返回",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "description": "自定义状态码",
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "Code"
+          },
+          "message": {
+            "description": "操作信息",
+            "type": "string",
+            "x-go-name": "Message"
+          }
+        }
+      }
+    },
+    "internalError": {
+      "description": "内部操作错误",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "description": "HTTP status code",
+            "type": "integer",
+            "format": "int32",
+            "default": 500,
+            "x-go-name": "Code",
+            "example": 500
+          },
+          "message": {
+            "type": "string",
+            "x-go-name": "Message"
+          }
+        }
+      }
+    },
+    "istioConfigList": {
+      "description": "HTTP status code 200 and IstioConfigList model in data",
+      "schema": {
+        "$ref": "#/definitions/IstioConfigList"
+      }
+    },
+    "istioStatusResponse": {
+      "description": "Return a list of Istio components along its status",
+      "schema": {
+        "$ref": "#/definitions/IstioComponentStatus"
+      }
+    },
+    "namespaceList": {
+      "description": "List of Namespaces",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/namespace"
+        }
+      }
+    },
+    "noContent": {
+      "description": "NoContent: the response is empty",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "description": "HTTP status code",
+            "type": "integer",
+            "format": "int32",
+            "default": 204,
+            "x-go-name": "Code",
+            "example": 204
+          },
+          "message": {
+            "type": "string",
+            "x-go-name": "Message"
+          }
+        }
+      }
+    },
+    "notAcceptableError": {
+      "description": "A NotAcceptable is the error message that means request can't be accepted",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "description": "HTTP status code",
+            "type": "integer",
+            "format": "int32",
+            "default": 404,
+            "x-go-name": "Code",
+            "example": 404
+          },
+          "message": {
+            "type": "string",
+            "x-go-name": "Message"
+          }
+        }
+      }
+    },
+    "notFoundError": {
+      "description": "A NotFoundError is the error message that is generated when server could not find what was requested.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "description": "HTTP status code",
+            "type": "integer",
+            "format": "int32",
+            "default": 404,
+            "x-go-name": "Code",
+            "example": 404
+          },
+          "message": {
+            "type": "string",
+            "x-go-name": "Message"
+          }
+        }
+      }
+    },
+    "serviceDetailsResponse": {
+      "description": "Listing all the information related to a workload",
+      "schema": {
+        "$ref": "#/definitions/ServiceDetails"
+      }
+    },
+    "serviceListResponse": {
+      "description": "获取服务列表",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "description": "HTTP status code",
+            "type": "integer",
+            "format": "int32",
+            "default": 200,
+            "x-go-name": "Code",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "x-go-name": "Message"
+          },
+          "result": {
+            "$ref": "#/definitions/ServiceListInfo"
+          }
+        }
+      }
+    },
+    "serviceUnavailableError": {
+      "description": "A Internal is the error message that means something has gone wrong",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "description": "HTTP status code",
+            "type": "integer",
+            "format": "int32",
+            "default": 503,
+            "x-go-name": "Code",
+            "example": 503
+          },
+          "message": {
+            "type": "string",
+            "x-go-name": "Message"
+          }
+        }
+      }
+    },
+    "statusInfo": {
+      "description": "HTTP status code 200 and statusInfo model in data",
+      "schema": {
+        "$ref": "#/definitions/StatusInfo"
+      }
+    }
+  }
+}

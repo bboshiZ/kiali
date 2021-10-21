@@ -7,6 +7,7 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c // indirect
 	github.com/go-openapi/spec v0.19.3 // indirect
+	github.com/gogo/protobuf v1.3.2
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/gophercloud/gophercloud v0.0.0-20190126172459-c818fa66e4c8 // indirect
 	github.com/gorilla/mux v1.7.4
@@ -25,9 +26,10 @@ require (
 	github.com/uber/jaeger-lib v2.4.0+incompatible // indirect
 	golang.org/x/oauth2 v0.0.0-20201109201403-9fd604954f58 // indirect
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
-	google.golang.org/grpc v1.33.1
+	google.golang.org/grpc v1.35.0
 	gopkg.in/square/go-jose.v2 v2.5.1
 	gopkg.in/yaml.v2 v2.4.0
+	istio.io/api v0.0.0-20211014155006-ff03a60b156c
 	k8s.io/api v0.22.2
 	k8s.io/apimachinery v0.22.2
 	k8s.io/cli-runtime v0.22.2 // indirect

@@ -36,6 +36,7 @@ type RemoteCluster struct {
 var (
 	remoteIstioClusters = map[string]RemoteCluster{}
 	defaultClusterID    = "shareit-cce-test"
+	ClusterMap          = map[string]bool{}
 )
 
 func InitRemoteCluster() (clusterID string) {
@@ -70,7 +71,6 @@ func InitRemoteCluster() (clusterID string) {
 		if !ok {
 			continue
 		}
-
 		remoteSecret, parseErr := kubernetes.ParseRemoteSecretBytes(kubeconfigFile)
 		if parseErr != nil {
 			continue
@@ -110,6 +110,7 @@ func InitRemoteCluster() (clusterID string) {
 			ApiEndpoint: remoteSecret.Clusters[0].Cluster.Server,
 			K8s:         remoteClientSet,
 		}
+
 		k8sClient, _ := kubernetes.NewClientFromConfig(restConfig)
 		cache.RemoteK8S = k8sClient
 
@@ -122,6 +123,7 @@ func InitRemoteCluster() (clusterID string) {
 
 		defaultClusterID = secret.Annotations["istio/remoteCluster"]
 		clusterID = defaultClusterID
+		ClusterMap[secret.Annotations["istio/remoteCluster"]] = true
 		remoteIstioClusters[secret.Annotations["istio/remoteCluster"]] = meshCluster
 	}
 
