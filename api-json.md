@@ -66,7 +66,7 @@
             }
         },
         "timeout":"2s",  //选填，超时控制
-        "retries":{  //必填，默认 attempts写0，其他字段不写
+        "retries":{  //必填，默认值 attempts写0，其他字段不写
             "attempts":3,
             "perTryTimeout":"2s",
             "retryOn":"gateway-error,connect-failure,refused-stream" //多选，用","组合成字符串
