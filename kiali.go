@@ -3,7 +3,7 @@
 // IstioConfig project, observability for the Istio service mesh
 //
 //     Schemes: http, https
-//     BasePath: /api
+//     BasePath: /istio/api
 //     Version: _
 //
 //     Consumes:

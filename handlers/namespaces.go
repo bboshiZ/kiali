@@ -6,11 +6,26 @@ import (
 
 	"github.com/gorilla/mux"
 
+	"github.com/kiali/kiali/business"
 	"github.com/kiali/kiali/log"
 	"github.com/kiali/kiali/models"
 )
 
 func NamespaceList(w http.ResponseWriter, r *http.Request) {
+	resp := RespList{
+		// TotalCount:  10,
+		// PageCount:   1,
+		// CurrentPage: 1,
+		// PageSize:    10,
+		Data: []interface{}{},
+	}
+
+	cluster := r.URL.Query().Get("cluster")
+	if _, ok := business.ClusterMap[cluster]; !ok {
+		RespondWithJSON(w, http.StatusOK, resp)
+		return
+	}
+
 	business, err := getBusiness(r)
 	if err != nil {
 		log.Error(err)
@@ -18,12 +33,19 @@ func NamespaceList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	namespaces, err := business.Namespace.GetNamespaces()
+	namespaces, err := business.Namespace.GetRemoteNamespaces(cluster)
 	if err != nil {
 		log.Error(err)
 		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+
+	resp.CurrentPage = 1
+	resp.PageCount = 1
+	resp.PageSize = 20
+	resp.TotalCount = len(namespaces)
+
+	resp.Data = namespaces
 
 	RespondWithJSON(w, http.StatusOK, namespaces)
 }

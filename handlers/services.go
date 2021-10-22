@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"sync"
@@ -11,6 +12,74 @@ import (
 	"github.com/kiali/kiali/models"
 	"github.com/kiali/kiali/util"
 )
+
+func ServiceInject(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	service := params["service"]
+	business, err := getBusiness(r)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Workloads initialization error: "+err.Error())
+		return
+	}
+
+	namespace := params["namespace"]
+	workloadType := "Deployment"
+
+	serviceDetails, err := business.Svc.GetService(namespace, service, defaultHealthRateInterval, util.Clock.Now())
+	if err != nil {
+		handleErrorResponse(w, err)
+		return
+	}
+	jsonPatch := string(`{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/inject":"true"}}}}}`)
+	for _, deploy := range serviceDetails.Workloads {
+		_, err1 := business.Workload.UpdateWorkload(namespace, deploy.Name, workloadType, true, jsonPatch)
+		if err1 != nil {
+			err = errors.New(err.Error() + err1.Error())
+		}
+	}
+
+	if err != nil {
+		handleErrorResponse(w, err)
+		return
+	}
+
+	audit(r, "UPDATE on Namespace: "+namespace+" Service name: "+service+" Patch: "+jsonPatch)
+	RespondWithJSON(w, http.StatusOK, "")
+}
+
+func ServiceUnInject(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	service := params["service"]
+	business, err := getBusiness(r)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Workloads initialization error: "+err.Error())
+		return
+	}
+
+	namespace := params["namespace"]
+	workloadType := "Deployment"
+
+	serviceDetails, err := business.Svc.GetService(namespace, service, defaultHealthRateInterval, util.Clock.Now())
+	if err != nil {
+		handleErrorResponse(w, err)
+		return
+	}
+	jsonPatch := string(`{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/inject":"false"}}}}}`)
+	for _, deploy := range serviceDetails.Workloads {
+		_, err1 := business.Workload.UpdateWorkload(namespace, deploy.Name, workloadType, true, jsonPatch)
+		if err1 != nil {
+			err = errors.New(err.Error() + err1.Error())
+		}
+	}
+
+	if err != nil {
+		handleErrorResponse(w, err)
+		return
+	}
+
+	audit(r, "UPDATE on Namespace: "+namespace+" Service name: "+service+" Patch: "+jsonPatch)
+	RespondWithJSON(w, http.StatusOK, "")
+}
 
 // ServiceList is the API handler to fetch the list of services in a given namespace
 func ServiceList(w http.ResponseWriter, r *http.Request) {

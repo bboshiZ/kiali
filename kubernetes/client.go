@@ -22,9 +22,9 @@ import (
 	"github.com/kiali/kiali/log"
 )
 
-// const RemoteSecretData = "/data/code/kiali/secret/sgt-mesh-sg2-prod"
+const RemoteSecretData = "/data/code/kiali/secret/sgt-mesh-sg2-prod"
 
-const RemoteSecretData = "/data/code/kiali/secret/shareit-cce-dev"
+// const RemoteSecretData = "/data/code/kiali/secret/shareit-cce-dev"
 
 var (
 	emptyListOptions = meta_v1.ListOptions{}

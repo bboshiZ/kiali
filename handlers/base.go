@@ -19,7 +19,7 @@ type resp struct {
 
 func RespondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	// response, err := json.Marshal(payload)
-	response, err := json.Marshal(resp{code, "", payload})
+	response, err := json.Marshal(resp{code, "status ok", payload})
 	if err != nil {
 		response, _ = json.Marshal(responseError{Error: err.Error()})
 		// code = http.StatusInternalServerError
@@ -44,7 +44,7 @@ func RespondWithJSONIndent(w http.ResponseWriter, code int, payload interface{})
 
 func RespondWithError(w http.ResponseWriter, code int, message string) {
 
-	response, err := json.Marshal(resp{code, message, ""})
+	response, err := json.Marshal(resp{10000 + code, message, ""})
 	if err != nil {
 		response, _ = json.Marshal(responseError{Error: err.Error()})
 	}

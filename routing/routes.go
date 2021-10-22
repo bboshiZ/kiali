@@ -26,6 +26,253 @@ func NewRoutes() (r *Routes) {
 	r = new(Routes)
 
 	r.Routes = []Route{
+
+		{
+			"NamespaceList",
+			"GET",
+			"/api/namespaces",
+			handlers.NamespaceList,
+			true,
+		},
+
+		{
+			"NamespaceUpdate",
+			"PATCH",
+			"/api/namespaces/{namespace}",
+			handlers.NamespaceUpdate,
+			true,
+		},
+
+		// swagger:route GET /namespaces/{namespace}/services k8s服务 serviceList
+		// ---
+		// 获取service接口
+		//
+		//     Produces:
+		//     - application/json
+		//
+		//     Schemes: http, https
+		//
+		// responses:
+		//      200: serviceListResponse
+		//
+		{
+			"ServiceList",
+			"GET",
+			"/api/namespaces/{namespace}/services",
+			handlers.ServiceList,
+			true,
+		},
+
+		// swagger:route GET /namespaces/{namespace}/services/{service} k8s服务 serviceDetail
+		// ---
+		// Endpoint to get the details of a given service
+		//
+		//     Produces:
+		//     - application/json
+		//
+		//     Schemes: http, https
+		//
+		// responses:
+		//      200: serviceDetailsResponse
+		//
+		{
+			"ServiceDetails",
+			"GET",
+			"/api/namespaces/{namespace}/services/{service}",
+			handlers.ServiceDetails,
+			true,
+		},
+
+		// swagger:route POST /api/namespaces/{namespace}/services/{service}/inject k8s服务 istioInject
+		// ---
+		// 开启服务的serviceMesh
+		//
+		//     Produces:
+		//     - application/json
+		//
+		//     Schemes: http, https
+		//
+		// responses:
+		//      200: commonResponse
+
+		{
+			"ServiceInject",
+			"POST",
+			"/api/namespaces/{namespace}/services/{service}/inject",
+			handlers.ServiceInject,
+			true,
+		},
+
+		// swagger:route POST /api/namespaces/{namespace}/services/{service}/unInject k8s服务 istioUnInject
+		// ---
+		// 取消服务的serviceMesh
+		//
+		//     Produces:
+		//     - application/json
+		//
+		//     Schemes: http, https
+		//
+		// responses:
+		//      200: commonResponse
+		{
+			"ServiceDisInject",
+			"POST",
+			"/api/namespaces/{namespace}/services/{service}/unInject",
+			handlers.ServiceUnInject,
+			true,
+		},
+
+		// swagger:route POST /namespaces/{namespace}/istio/virtualservices istio管理 istioVirtualServiceCreate
+		// ---
+		// 创建virtualservices接口
+		//
+		//     Produces:
+		//     - application/json
+		//
+		//     Schemes: http, https
+		//
+		// responses:
+		//      200: commonResponse
+
+		// swagger:route POST /namespaces/{namespace}/istio/destinationrules istio管理 istioDestinationCreate
+		// ---
+		// 创建destinationrules接口
+		//
+		//     Produces:
+		//     - application/json
+		//
+		//     Schemes: http, https
+		//
+		// responses:
+		//      200: commonResponse
+
+		{
+			"IstioConfigCreate",
+			"POST",
+			"/api/namespaces/{namespace}/{object_type}",
+			handlers.IstioConfigCreate,
+			true,
+		},
+		// swagger:route DELETE /namespaces/{namespace}/istio/virtualservices/{object} istio管理 istioVirtualServiceDelete
+		// ---
+		// 删除virtualservices接口
+		//
+		//     Produces:
+		//     - application/json
+		//
+		//     Schemes: http, https
+		//
+		// responses:
+		//      200: commonResponse
+		//
+
+		// swagger:route DELETE /namespaces/{namespace}/istio/destinationrules/{object} istio管理 istioDestinationDelete
+		// ---
+		// 删除destinationrules接口
+		//
+		//     Produces:
+		//     - application/json
+		//
+		//     Schemes: http, https
+		//
+		// responses:
+		//      200: commonResponse
+		//
+
+		{
+			"IstioConfigDelete",
+			"DELETE",
+			"/api/namespaces/{namespace}/{object_type}/{object}",
+			handlers.IstioConfigDelete,
+			true,
+		},
+
+		// swagger:route PUT /namespaces/{namespace}/istio/virtualservices/{object} istio管理 istioVirtualServiceUpdate
+		// ---
+		// 修改virtualservices接口
+		//
+		//     Produces:
+		//     - application/json
+		//
+		//     Schemes: http, https
+		//
+		// responses:
+		//      200: commonResponse
+
+		// swagger:route PUT /namespaces/{namespace}/istio/destinationrules/{object} istio管理 istioDestinationUpdate
+		// ---
+		// 修改destinationrules接口
+		//
+		//     Produces:
+		//     - application/json
+		//
+		//     Schemes: http, https
+		//
+		// responses:
+		//      200: commonResponse
+
+		{
+			"IstioConfigUpdate",
+			"PUT",
+			"/api/namespaces/{namespace}/{object_type}/{object}",
+			handlers.IstioConfigUpdate,
+			true,
+		},
+
+		// swagger:route GET /namespaces/{namespace}/config istio管理 istioConfigList
+		// ---
+		// 获取virtualservices destinationrules 接口
+		//
+		//     Produces:
+		//     - application/json
+		//
+		//     Schemes: http, https
+		//
+		// responses:
+		//      200: istioConfigList
+		//
+		{
+			"IstioConfigList",
+			"GET",
+			"/api/namespaces/{namespace}/config",
+			handlers.IstioConfigList,
+			true,
+		},
+
+		// swagger:route GET /namespaces/{namespace}/services/{service}/traces 链路追踪 serviceTraces
+		// ---
+		// 获取服务链路追踪信息接口
+		//
+		//     Produces:
+		//     - application/json
+		//
+		//     Schemes: http, https
+		//
+		// responses:
+		//      200: traceDetailsResponse
+		//
+
+		// swagger:route GET /namespaces/{namespace}/services/{service}/graph 流量图 graphServiceSmple
+		// ---
+		// 服务流量图
+		//
+		//     Produces:
+		//     - application/json
+		//
+		//     Schemes: http, https
+		//
+		// responses:
+		//      200: graphResponse
+		//
+
+		{
+			"GraphService",
+			"GET",
+			"/api/namespaces/{namespace}/services/{service}/graph",
+			handlers.GraphService,
+			true,
+		},
+
 		{
 			"Healthz",
 			"GET",
@@ -106,132 +353,10 @@ func NewRoutes() (r *Routes) {
 		},
 
 		{
-			"IstioConfigList",
-			"GET",
-			"/api/namespaces/{namespace}/config",
-			handlers.IstioConfigList,
-			true,
-		},
-
-		{
 			"IstioConfigDetails",
 			"GET",
 			"/api/namespaces/{namespace}/{object_type}/{object}",
 			handlers.IstioConfigDetails,
-			true,
-		},
-
-		{
-			"IstioConfigDelete",
-			"DELETE",
-			"/api/namespaces/{namespace}/{object_type}/{object}",
-			handlers.IstioConfigDelete,
-			true,
-		},
-
-		{
-			"IstioConfigUpdate",
-			"PUT",
-			"/api/namespaces/{namespace}/{object_type}/{object}",
-			handlers.IstioConfigUpdate,
-			true,
-		},
-
-		{
-			"IstioConfigCreate",
-			"POST",
-			"/api/namespaces/{namespace}/{object_type}",
-			handlers.IstioConfigCreate,
-			true,
-		},
-
-		// swagger:route POST /namespaces/{namespace}/istio/virtualservices config istioVirtualserviceCreate
-		// ---
-		// 创建virtualservices接口
-		//
-		//     Produces:
-		//     - application/json
-		//
-		//     Schemes: http, https
-		//
-		// responses:
-		//      200: commonResponse
-		// {
-		// 	"IstioVirtualServiceCreate",
-		// 	"POST",
-		// 	"/api/namespaces/{namespace}/virtualservices",
-		// 	handlers.IstioVirtualServiceCreate,
-		// 	true,
-		// },
-
-		// {
-		// 	"IstioVirtualServiceDelete",
-		// 	"DELETE",
-		// 	"/api/namespaces/{namespace}/virtualservices/{object}",
-		// 	handlers.IstioVirtualServiceDelete,
-		// 	true,
-		// },
-
-		// {
-		// 	"IstioVirtualServiceUpdate",
-		// 	"PUT",
-		// 	"/api/namespaces/{namespace}/virtualservices/{object}",
-		// 	handlers.IstioVirtualServiceUpdate,
-		// 	true,
-		// },
-
-		// {
-		// 	"IstioConfigList",
-		// 	"GET",
-		// 	"/api/namespaces/{namespace}/config",
-		// 	handlers.IstioConfigList,
-		// 	true,
-		// },
-
-		// swagger:route POST /namespaces/{namespace}/istio/destinationrules config istioDestinationruleCreate
-		// ---
-		// 创建destinationrules接口
-		//
-		//     Produces:
-		//     - application/json
-		//
-		//     Schemes: http, https
-		//
-		// responses:
-		//      200: commonResponse
-		{
-			"IstioConfigCreate",
-			"POST",
-			"/api/namespaces/{namespace}/destinationrules",
-			handlers.IstioDestinationruleCreate,
-			true,
-		},
-
-		// swagger:route GET /namespaces/{namespace}/services services serviceList
-		// ---
-		// Endpoint to get the details of a given service
-		//
-		//     Produces:
-		//     - application/json
-		//
-		//     Schemes: http, https
-		//
-		// responses:
-		//      200: serviceListResponse
-		//
-		{
-			"ServiceList",
-			"GET",
-			"/api/namespaces/{namespace}/services",
-			handlers.ServiceList,
-			true,
-		},
-
-		{
-			"ServiceDetails",
-			"GET",
-			"/api/namespaces/{namespace}/services/{service}",
-			handlers.ServiceDetails,
 			true,
 		},
 
@@ -540,14 +665,6 @@ func NewRoutes() (r *Routes) {
 			"GraphApp",
 			"GET",
 			"/api/namespaces/{namespace}/applications/{app}/graph",
-			handlers.GraphNode,
-			true,
-		},
-
-		{
-			"GraphService",
-			"GET",
-			"/api/namespaces/{namespace}/services/{service}/graph",
 			handlers.GraphNode,
 			true,
 		},

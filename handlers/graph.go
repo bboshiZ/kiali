@@ -33,8 +33,12 @@ import (
 	"fmt"
 	"net/http"
 	"runtime/debug"
+	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/kiali/kiali/graph"
+	"github.com/prometheus/common/model"
+
 	"github.com/kiali/kiali/graph/api"
 	"github.com/kiali/kiali/log"
 )
@@ -49,6 +53,32 @@ func GraphNamespaces(w http.ResponseWriter, r *http.Request) {
 	graph.CheckError(err)
 
 	code, payload := api.GraphNamespaces(business, o)
+	respond(w, code, payload)
+}
+
+func GraphService(w http.ResponseWriter, r *http.Request) {
+	defer handlePanic(w)
+
+	params := r.URL.Query()
+	durationString := params.Get("duration")
+	r.URL.RawQuery = "duration=300s&graphType=versionedApp&includeIdleEdges=false&injectServiceNodes=true&boxBy=app&responseTime=95&throughputType=request&appenders=deadNode,sidecarsCheck,serviceEntry,istio,healthConfig,securityPolicy,responseTime,throughput&rateGrpc=requests&rateHttp=requests&rateTcp=sent"
+	o := graph.NewOptions(r)
+	vars := mux.Vars(r)
+	app := vars["service"]
+	o.App = app
+	o.Service = ""
+
+	duration, durationErr := model.ParseDuration(durationString)
+	if durationErr != nil {
+		o.ConfigOptions.Duration = time.Second * 5 * 60
+	} else {
+		o.ConfigOptions.Duration = time.Duration(duration)
+	}
+
+	business, err := getBusiness(r)
+	graph.CheckError(err)
+
+	code, payload := api.GraphNode(business, o)
 	respond(w, code, payload)
 }
 

@@ -11,7 +11,7 @@ type ServiceOverview struct {
 	// required: true
 	// example: reviews-v1
 	Name string `json:"name"`
-	// Define if Pods related to this Service has an IstioSidecar deployed
+	// 服务是否开启serviceMesh
 	// required: true
 	// example: true
 	IstioSidecar bool `json:"istioSidecar"`

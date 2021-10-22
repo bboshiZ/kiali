@@ -1,9 +1,12 @@
 package main
 
 import (
+	jaegerModels "github.com/jaegertracing/jaeger/model/json"
+
 	"github.com/gogo/protobuf/types"
 
 	"github.com/kiali/kiali/business"
+	"github.com/kiali/kiali/graph/config/cytoscape"
 	"github.com/kiali/kiali/models"
 	"github.com/kiali/kiali/status"
 )
@@ -20,6 +23,15 @@ type AppVersionParam struct {
 	// in: path
 	// required: false
 	Name string `json:"version"`
+}
+
+// swagger:parameters istioConfigList
+type ObjectsParam struct {
+	// 对象名称, 可选值[virtualservices,destinationrules]
+	//
+	// in: query
+	// required: true
+	Name string `json:"objects"`
 }
 
 // swagger:parameters graphAggregate graphAggregateByService graphApp graphAppVersion graphService graphWorkload
@@ -40,7 +52,7 @@ type ContainerParam struct {
 	Name string `json:"container"`
 }
 
-// swagger:parameters istioConfigList workloadList workloadDetails workloadUpdate serviceDetails serviceUpdate appSpans serviceSpans workloadSpans appTraces serviceTraces workloadTraces errorTraces workloadValidations appList serviceMetrics aggregateMetrics appMetrics workloadMetrics istioConfigDetails istioConfigDetailsSubtype istioConfigDelete istioConfigDeleteSubtype istioConfigUpdate istioConfigUpdateSubtype serviceList appDetails graphAggregate graphAggregateByService graphApp graphAppVersion graphNamespace graphService graphWorkload namespaceMetrics customDashboard appDashboard serviceDashboard workloadDashboard istioConfigCreate istioConfigCreateSubtype namespaceUpdate namespaceTls podDetails podLogs namespaceValidations getIter8Experiments postIter8Experiments patchIter8Experiments deleteIter8Experiments podProxyDump podProxyResource istioVirtualserviceCreate istioDestinationruleCreate
+// swagger:parameters graphServiceSmple istioConfigList workloadList workloadDetails workloadUpdate serviceDetail istioInject istioUnInject serviceUpdate appSpans serviceSpans workloadSpans appTraces serviceTraces workloadTraces errorTraces workloadValidations appList serviceMetrics aggregateMetrics appMetrics workloadMetrics istioConfigDetails istioConfigDetailsSubtype istioConfigDelete istioConfigDeleteSubtype istioConfigUpdate istioConfigUpdateSubtype serviceList appDetails graphAggregate graphAggregateByService graphApp graphAppVersion graphNamespace graphService graphWorkload namespaceMetrics customDashboard appDashboard serviceDashboard workloadDashboard istioConfigCreate istioConfigCreateSubtype namespaceUpdate namespaceTls podDetails podLogs namespaceValidations getIter8Experiments postIter8Experiments patchIter8Experiments deleteIter8Experiments podProxyDump podProxyResource istioVirtualServiceCreate istioDestinationCreate istioVirtualServiceUpdate istioDestinationUpdate istioVirtualServiceDelete istioDestinationDelete
 type NamespaceParam struct {
 	// k8s 命令空间
 	//
@@ -58,9 +70,9 @@ type NameParam struct {
 	Name string `json:"name"`
 }
 
-// swagger:parameters istioConfigDetails istioConfigDetailsSubtype istioConfigDelete istioConfigDeleteSubtype istioConfigUpdate istioConfigUpdateSubtype
+// swagger:parameters istioConfigDetails istioConfigDetailsSubtype istioConfigDelete istioConfigDeleteSubtype istioConfigUpdate istioConfigUpdateSubtype istioVirtualServiceDelete istioDestinationDelete istioVirtualServiceUpdate istioDestinationUpdate
 type ObjectNameParam struct {
-	// The Istio object name.
+	// istio 流量规则名称
 	//
 	// in: path
 	// required: true
@@ -95,9 +107,9 @@ type ResourceParam struct {
 	Name string `json:"resource"`
 }
 
-// swagger:parameters serviceDetails serviceUpdate serviceMetrics graphService graphAggregateByService serviceDashboard serviceSpans serviceTraces
+// swagger:parameters graphServiceSmple serviceDetail istioInject istioUnInject serviceUpdate serviceMetrics graphService graphAggregateByService serviceDashboard serviceSpans serviceTraces
 type ServiceParam struct {
-	// The service name.
+	// 服务名称
 	//
 	// in: path
 	// required: true
@@ -115,8 +127,7 @@ type SinceTimeParam struct {
 
 // swagger:parameters podLogs
 type DurationLogParam struct {
-	// Query time-range duration (Golang string duration). Duration starts on
-	// `sinceTime` if set, or the time for the first log message if not set.
+	// 持续时间
 	//
 	// in: query
 	// required: false
@@ -157,9 +168,9 @@ type BoxByParam struct {
 	Name string `json:"boxBy"`
 }
 
-// swagger:parameters graphApp graphAppVersion graphNamespaces graphService graphWorkload
+// swagger:parameters graphServiceSmple graphApp graphAppVersion graphNamespaces graphService graphWorkload
 type DurationGraphParam struct {
-	// Query time-range duration (Golang string duration).
+	// 持续时间
 	//
 	// in: query
 	// required: false
@@ -413,6 +424,34 @@ type VersionParam struct {
 // SWAGGER RESPONSES
 /////////////////////
 
+// 服务流量图请求返回值
+// swagger:response graphResponse
+type GraphResponse struct {
+	// in:body
+	Body struct {
+		// HTTP status code
+		// example: 503
+		// default: 503
+		Code    int32            `json:"code"`
+		Message error            `json:"message"`
+		Result  cytoscape.Config `json:"result"`
+	} `json:"body"`
+}
+
+// 链路追踪请求返回值
+// swagger:response traceDetailsResponse
+type TraceDetailsResponse struct {
+	// in:body
+	Body struct {
+		// HTTP status code
+		// example: 503
+		// default: 503
+		Code    int32                `json:"code"`
+		Message error                `json:"message"`
+		Result  []jaegerModels.Trace `json:"result"`
+	} `json:"body"`
+}
+
 // NoContent: the response is empty
 // swagger:response noContent
 type NoContent struct {
@@ -507,7 +546,35 @@ type swaggStatusInfoResp struct {
 // swagger:response istioConfigList
 type IstioConfigResponse struct {
 	// in:body
-	Body models.IstioConfigList
+	Body struct {
+		// HTTP status code
+		// example: 503
+		// default: 503
+		Code    int32        `json:"code"`
+		Message error        `json:"message"`
+		Result  IstioCfgList `json:"result"`
+	} `json:"body"`
+}
+
+type VirtualServices struct {
+	Items []VirtualService `json:"items"`
+}
+type DestinationRules struct {
+	Items []DestinationRule `json:"items"`
+}
+
+// IstioConfigList istioConfigList
+//
+// This type is used for returning a response of IstioConfigList
+//
+// swagger:model IstioConfigList
+type IstioCfgList struct {
+	// The namespace of istioConfiglist
+	//
+	// required: true
+	Namespace        Namespace        `json:"namespace"`
+	VirtualServices  VirtualServices  `json:"virtualServices"`
+	DestinationRules DestinationRules `json:"destinationRules"`
 }
 
 // 获取服务列表
@@ -528,7 +595,14 @@ type ServiceListResponse struct {
 // swagger:response serviceDetailsResponse
 type ServiceDetailsResponse struct {
 	// in:body
-	Body models.ServiceDetails
+	Body struct {
+		// HTTP status code
+		// example: 200
+		// default: 200
+		Code    int32                 `json:"code"`
+		Message error                 `json:"message"`
+		Result  models.ServiceDetails `json:"result"`
+	} `json:"body"`
 }
 
 // 操作结果返回
@@ -573,7 +647,7 @@ type IstioStatusResponse struct {
 }
 
 // Posted parameters for virtualservice
-// swagger:parameters istioVirtualserviceCreate
+// swagger:parameters istioVirtualServiceCreate
 type VirtualServiceQueryBody struct {
 	// 服务路由规则配置
 	//
@@ -583,7 +657,7 @@ type VirtualServiceQueryBody struct {
 }
 
 // Posted parameters for destinationrule
-// swagger:parameters istioDestinationruleCreate
+// swagger:parameters istioDestinationCreate
 type DestinationRuleQueryBody struct {
 	// 流量策略配置
 	//
@@ -592,7 +666,7 @@ type DestinationRuleQueryBody struct {
 	Body DestinationRule
 }
 
-//example:{"metadata":{"namespace":"sample","name":"helloworld"},"spec":{"host":"helloworld.sample.svc.cluster.local","subsets":[{"name":"v1","labels":{"version":"v1"}},{"name":"v2","labels":{"version":"v2"}}],"trafficPolicy":{"loadBalancer":{"simple":null,"consistentHash":{"httpHeaderName":"xiaoming","httpCookie":{"name":"xiaoming","ttl":"10s"},"useSourceIp":true}},"connectionPool":{"tcp":{"maxConnections":123},"http":{"http1MaxPendingRequests":123}},"outlierDetection":{"consecutiveErrors":111}}}}
+//json example:`{"metadata":{"namespace":"sample","name":"helloworld"},"spec":{"host":"helloworld.sample.svc.cluster.local","subsets":[{"name":"v1","labels":{"version":"v1"}},{"name":"v2","labels":{"version":"v2"}}],"trafficPolicy":{"loadBalancer":{"simple":null,"consistentHash":{"httpHeaderName":"xiaoming","httpCookie":{"name":"xiaoming","ttl":"10s"},"useSourceIp":true}},"connectionPool":{"tcp":{"maxConnections":123},"http":{"http1MaxPendingRequests":123}},"outlierDetection":{"consecutiveErrors":111}}}}`
 type DestinationRule struct {
 	IstioBase
 	Spec DestinationSpec `json:"spec"`
@@ -603,7 +677,7 @@ type DestinationRule struct {
 //
 // swagger:model namespace
 type Namespace struct {
-	// The id of the namespace.
+	// k8s命名空间
 	//
 	// example:  istio-system
 	// required: true
@@ -611,15 +685,15 @@ type Namespace struct {
 }
 
 type ServiceOverview struct {
-	// Name of the Service
+	// 服务名称
 	// required: true
 	// example: reviews-v1
 	Name string `json:"name"`
-	// Define if Pods related to this Service has an IstioSidecar deployed
+	// 服务是否开启serviceMesh
 	// required: true
 	// example: true
 	IstioSidecar bool `json:"istioSidecar"`
-	// Has label app
+	// 服务标签
 	// required: true
 	// example: true
 	AppLabel bool `json:"appLabel"`
@@ -660,29 +734,31 @@ type TrafficPolicy struct {
 
 type OutlierDetection struct {
 	//连续错误次数。对于HTTP服务，502、503、504会被认为异常，TPC服务，连接超时即异常
+	//example: 5
 	ConsecutiveErrors int32 `protobuf:"varint,1,opt,name=consecutive_errors,json=consecutiveErrors,proto3" json:"consecutive_errors,omitempty"` // Deprecated: Do not use.
 
-	// SplitExternalLocalOriginErrors bool `protobuf:"varint,8,opt,name=split_external_local_origin_errors,json=splitExternalLocalOriginErrors,proto3" json:"split_external_local_origin_errors,omitempty"`
-
-	// ConsecutiveLocalOriginFailures *types.UInt32Value `protobuf:"bytes,9,opt,name=consecutive_local_origin_failures,json=consecutiveLocalOriginFailures,proto3" json:"consecutive_local_origin_failures,omitempty"`
 	//连续网关故障
 	ConsecutiveGatewayErrors *types.UInt32Value `protobuf:"bytes,6,opt,name=consecutive_gateway_errors,json=consecutiveGatewayErrors,proto3" json:"consecutive_gateway_errors,omitempty"`
 	//连续 5xx 响应
 	Consecutive_5XxErrors *types.UInt32Value `protobuf:"bytes,7,opt,name=consecutive_5xx_errors,json=consecutive5xxErrors,proto3" json:"consecutive_5xx_errors,omitempty"`
 
 	//扫描分析周期，（1h/1m/1s/1ms）
+	//default:  10s
 	Interval string `protobuf:"bytes,2,opt,name=interval,proto3" json:"interval,omitempty"`
 
 	//最小驱逐时间。驱逐时间会随着错误次数增加而增加。即错误次数*最小驱逐时间
+	//example:  1h/1m/1s/1ms
+	//default:  30s
 	BaseEjectionTime string `protobuf:"bytes,3,opt,name=base_ejection_time,json=baseEjectionTime,proto3" json:"base_ejection_time,omitempty"`
 
 	//负载均衡池中可以被驱逐的实例的最大比例。以免某个接口瞬时不可用，导致太多实例被驱逐，进而导致服务整体全部不可用。
+	//default: 10
+	//example: 50
 	MaxEjectionPercent int32 `protobuf:"varint,4,opt,name=max_ejection_percent,json=maxEjectionPercent,proto3" json:"max_ejection_percent,omitempty"`
-
-	MinHealthPercent     int32    `protobuf:"varint,5,opt,name=min_health_percent,json=minHealthPercent,proto3" json:"min_health_percent,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+	//最小健康实例比例
+	//default: 0
+	//example: 50
+	MinHealthPercent int32 `protobuf:"varint,5,opt,name=min_health_percent,json=minHealthPercent,proto3" json:"min_health_percent,omitempty"`
 }
 
 type ConnectionPoolSettings struct {
@@ -800,25 +876,27 @@ type LoadBalancerSettings struct {
 type Subset struct {
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Labels               map[string]string `protobuf:"bytes,2,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	TrafficPolicy        *TrafficPolicy `protobuf:"bytes,3,opt,name=traffic_policy,json=trafficPolicy,proto3" json:"traffic_policy,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
-	XXX_unrecognized     []byte         `json:"-"`
-	XXX_sizecache        int32          `json:"-"`
+	TrafficPolicy *TrafficPolicy `protobuf:"bytes,3,opt,name=traffic_policy,json=trafficPolicy,proto3" json:"traffic_policy,omitempty"`
 }
 
 type ObjectMeta struct {
 	//名称
+	//example: helloworld
 	Name string `json:"name"`
 	//k8s 命名空间
+	//example: sgt
 	Namespace string `json:"namespace,omitempty" protobuf:"bytes,3,opt,name=namespace"`
 	// Labels      map[string]string `json:"labels,omitempty" protobuf:"bytes,11,rep,name=labels"`
 	// Annotations map[string]string `json:"annotations,omitempty" protobuf:"bytes,12,rep,name=annotations"`
 }
+
 type IstioBase struct {
+	// name信息
+	// required: true
 	Metadata ObjectMeta `json:"metadata"`
 }
 
-//example: `{"metadata":{"namespace":"sample","name":"helloworld"},"spec":{"hosts":["helloworld.sample.svc.cluster.local"],"http":[{"route":[{"destination":{"host":"helloworld.sample.svc.cluster.local","subset":"v1"},"weight":50},{"destination":{"host":"helloworld.sample.svc.cluster.local","subset":"v2"},"weight":50}],"match":[{"headers":{"aabb":{"regex":"^.*$"}},"uri":{"prefix":"/api/v1"}}]}],"fault":{"delay":{"percentage":{"value":100},"fixedDelay":"5s"},"abort":{"percentage":{"value":11},"httpStatus":503}},"timeout":"2s","retries":{"attempts":3,"perTryTimeout":"2s","retryOn":"gateway-error,connect-failure,refused-stream"},"gateways":null}}`
+//json example: `{"metadata":{"namespace":"sample","name":"helloworld"},"spec":{"hosts":["helloworld.sample.svc.cluster.local"],"http":[{"route":[{"destination":{"host":"helloworld.sample.svc.cluster.local","subset":"v1"},"weight":50},{"destination":{"host":"helloworld.sample.svc.cluster.local","subset":"v2"},"weight":50}],"match":[{"headers":{"aabb":{"regex":"^.*$"}},"uri":{"prefix":"/api/v1"}}]}],"fault":{"delay":{"percentage":{"value":100},"fixedDelay":"5s"},"abort":{"percentage":{"value":11},"httpStatus":503}},"timeout":"2s","retries":{"attempts":3,"perTryTimeout":"2s","retryOn":"gateway-error,connect-failure,refused-stream"},"gateways":null}}`
 type VirtualService struct {
 	IstioBase
 	Spec VirtualServiceSpec `json:"spec"`
@@ -847,7 +925,7 @@ type HTTPMatchRequest struct {
 	//uri匹配规则, key只能为prefix，exact，regex中一个
 	//example: {"prefix":"/v1","exact":"/v2/user","regex":"/v3/.*?/user"}
 	Uri map[string]string ` json:"uri,omitempty"`
-	// http请求头匹配规则
+	// http请求头匹配规则，只能选prefix，exact，regex中一个
 	//example:{"user":{"exact":"xiaoming","prefix":"xiao","regex":"^.*$"}}
 	Headers map[string]map[string]string `protobuf:"bytes,5,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }
