@@ -76,7 +76,6 @@
 }
 ```
 
-
 #####创建或修改请求destaination json body示例
 ```
 {
@@ -131,6 +130,137 @@
                 "Interval":"2m",
                 "maxEjectionPercent":10,
                 "minHealthPercent":10
+            }
+        }
+    }
+}
+```
+
+###获取virtualService或destaination列表接口
+```
+{
+    "code": 200,
+    "message": "status ok",
+    "result": {
+        "total_count": 10,
+        "page_count": 1,
+        "current_page": 1,
+        "page_size": 10,
+        "data": {
+            "namespace": {
+                "name": "sample",
+                "labels": null,
+                "annotations": null
+            },
+            "gateways": [],
+            "virtualServices": {
+                "permissions": {
+                    "create": false,
+                    "update": false,
+                    "delete": false
+                },
+                "items": [
+                    {
+                        "kind": "VirtualService",
+                        "apiVersion": "networking.istio.io/v1alpha3",
+                        "metadata": {
+                            "name": "helloworld",
+                            "namespace": "sample"
+                        },
+                        "spec": {
+                            "hosts": [
+                                "helloworld.sample.svc.cluster.local"
+                            ],
+                            "http": [
+                                {
+                                    "match": [
+                                        {
+                                            "uri": {
+                                                "prefix": "/api/v1"
+                                            }
+                                        }
+                                    ],
+                                    "route": [
+                                        {
+                                            "destination": {
+                                                "host": "helloworld.sample.svc.cluster.local",
+                                                "subset": "v1"
+                                            },
+                                            "weight": 1
+                                        },
+                                        {
+                                            "destination": {
+                                                "host": "helloworld.sample.svc.cluster.local",
+                                                "subset": "v2"
+                                            },
+                                            "weight": 99
+                                        }
+                                    ]
+                                },
+                                {
+                                    "route": [
+                                        {
+                                            "destination": {
+                                                "host": "helloworld.sample.svc.cluster.local",
+                                                "subset": "v1"
+                                            },
+                                            "weight": 50
+                                        },
+                                        {
+                                            "destination": {
+                                                "host": "helloworld.sample.svc.cluster.local",
+                                                "subset": "v2"
+                                            },
+                                            "weight": 50
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "destinationRules": {
+                "permissions": {
+                    "create": false,
+                    "update": false,
+                    "delete": false
+                },
+                "items": [
+                    {
+                        "kind": "DestinationRule",
+                        "apiVersion": "networking.istio.io/v1alpha3",
+                        "metadata": {
+                            "name": "helloworld",
+                            "namespace": "sample"
+                        },
+                        "spec": {
+                            "host": "helloworld.sample.svc.cluster.local",
+                            "trafficPolicy": {
+                                "loadBalancer": {
+                                    "consistentHash": {
+                                        "httpHeaderName": "abcd",
+                                        "useSourceIp": true
+                                    }
+                                }
+                            },
+                            "subsets": [
+                                {
+                                    "labels": {
+                                        "version": "v1"
+                                    },
+                                    "name": "v1"
+                                },
+                                {
+                                    "labels": {
+                                        "version": "v2"
+                                    },
+                                    "name": "v2"
+                                }
+                            ]
+                        }
+                    }
+                ]
             }
         }
     }
