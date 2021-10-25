@@ -43,6 +43,33 @@ type ClusterParam struct {
 	Name string `json:"container"`
 }
 
+// swagger:parameters serviceList serviceDetail istioInject istioUnInject
+type K8sClusterParam struct {
+	// k8s集群名
+	//
+	// in: query
+	// required: true
+	Name string `json:"cluster"`
+}
+
+// swagger:parameters serviceList serviceDetail istioInject istioUnInject
+type PageLimit struct {
+	// 每页数量限制
+	//
+	// in: query
+	// required: false
+	Name string `json:"limit"`
+}
+
+// swagger:parameters serviceList istioConfigList
+type PageNum struct {
+	// 分页页号
+	//
+	// in: query
+	// required: false
+	Name string `json:"page"`
+}
+
 // swagger:parameters podLogs
 type ContainerParam struct {
 	// The pod container name. Optional for single-container pod. Otherwise required.
@@ -52,7 +79,7 @@ type ContainerParam struct {
 	Name string `json:"container"`
 }
 
-// swagger:parameters graphServiceSmple istioConfigList workloadList workloadDetails workloadUpdate serviceDetail istioInject istioUnInject serviceUpdate appSpans serviceSpans workloadSpans appTraces serviceTraces workloadTraces errorTraces workloadValidations appList serviceMetrics aggregateMetrics appMetrics workloadMetrics istioConfigDetails istioConfigDetailsSubtype istioConfigDelete istioConfigDeleteSubtype istioConfigUpdate istioConfigUpdateSubtype serviceList appDetails graphAggregate graphAggregateByService graphApp graphAppVersion graphNamespace graphService graphWorkload namespaceMetrics customDashboard appDashboard serviceDashboard workloadDashboard istioConfigCreate istioConfigCreateSubtype namespaceUpdate namespaceTls podDetails podLogs namespaceValidations getIter8Experiments postIter8Experiments patchIter8Experiments deleteIter8Experiments podProxyDump podProxyResource istioVirtualServiceCreate istioDestinationCreate istioVirtualServiceUpdate istioDestinationUpdate istioVirtualServiceDelete istioDestinationDelete
+// swagger:parameters graphServiceSmple istioConfigList workloadList workloadDetails workloadUpdate serviceDetail istioInject istioUnInject serviceUpdate appSpans serviceSpans workloadSpans appTraces serviceTraces workloadTraces errorTraces workloadValidations appList serviceMetrics aggregateMetrics appMetrics workloadMetrics istioConfigDetail istioConfigDetailsSubtype istioConfigDelete istioConfigDeleteSubtype istioConfigUpdate istioConfigUpdateSubtype serviceList appDetails graphAggregate graphAggregateByService graphApp graphAppVersion graphNamespace graphService graphWorkload namespaceMetrics customDashboard appDashboard serviceDashboard workloadDashboard istioConfigCreate istioConfigCreateSubtype namespaceUpdate namespaceTls podDetails podLogs namespaceValidations getIter8Experiments postIter8Experiments patchIter8Experiments deleteIter8Experiments podProxyDump podProxyResource istioVirtualServiceCreate istioDestinationCreate istioVirtualServiceUpdate istioDestinationUpdate istioVirtualServiceDelete istioDestinationDelete
 type NamespaceParam struct {
 	// k8s 命令空间
 	//
@@ -70,7 +97,7 @@ type NameParam struct {
 	Name string `json:"name"`
 }
 
-// swagger:parameters istioConfigDetails istioConfigDetailsSubtype istioConfigDelete istioConfigDeleteSubtype istioConfigUpdate istioConfigUpdateSubtype istioVirtualServiceDelete istioDestinationDelete istioVirtualServiceUpdate istioDestinationUpdate
+// swagger:parameters istioConfigDetail istioConfigDetailsSubtype istioConfigDelete istioConfigDeleteSubtype istioConfigUpdate istioConfigUpdateSubtype istioVirtualServiceDelete istioDestinationDelete istioVirtualServiceUpdate istioDestinationUpdate
 type ObjectNameParam struct {
 	// istio 流量规则名称
 	//
@@ -79,9 +106,9 @@ type ObjectNameParam struct {
 	Name string `json:"object"`
 }
 
-// swagger:parameters istioConfigDetails istioConfigDetailsSubtype istioConfigDelete istioConfigDeleteSubtype istioConfigUpdate istioConfigUpdateSubtype istioConfigCreate istioConfigCreateSubtype
+// swagger:parameters istioConfigDetail istioConfigDetailsSubtype istioConfigDelete istioConfigDeleteSubtype istioConfigUpdate istioConfigUpdateSubtype istioConfigCreate istioConfigCreateSubtype
 type ObjectTypeParam struct {
-	// The Istio object type.
+	// istio对象类型，可选值 （virtualservices，destinationrules）
 	//
 	// in: path
 	// required: true
@@ -452,6 +479,34 @@ type TraceDetailsResponse struct {
 	} `json:"body"`
 }
 
+// istio对象列表
+// swagger:response istioConfigList
+type IstioConfigResponse struct {
+	// in:body
+	Body struct {
+		// HTTP status code
+		// example: 503
+		// default: 503
+		Code    int32        `json:"code"`
+		Message error        `json:"message"`
+		Result  IstioCfgList `json:"result"`
+	} `json:"body"`
+}
+
+// isito对象详细信息
+// swagger:response istioConfigDetailsResponse
+type IstioConfigDetailsResponse struct {
+	// in:body
+	Body struct {
+		// HTTP status code
+		// example: 503
+		// default: 503
+		Code    int32                     `json:"code"`
+		Message error                     `json:"message"`
+		Result  models.IstioConfigDetails `json:"result"`
+	} `json:"body"`
+}
+
 // NoContent: the response is empty
 // swagger:response noContent
 type NoContent struct {
@@ -540,20 +595,6 @@ type serviceUnavailableError struct {
 type swaggStatusInfoResp struct {
 	// in:body
 	Body status.StatusInfo
-}
-
-// HTTP status code 200 and IstioConfigList model in data
-// swagger:response istioConfigList
-type IstioConfigResponse struct {
-	// in:body
-	Body struct {
-		// HTTP status code
-		// example: 503
-		// default: 503
-		Code    int32        `json:"code"`
-		Message error        `json:"message"`
-		Result  IstioCfgList `json:"result"`
-	} `json:"body"`
 }
 
 type VirtualServices struct {

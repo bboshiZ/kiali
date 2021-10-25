@@ -218,6 +218,86 @@ func (in *WorkloadService) GetWorkload(namespace string, workloadName string, wo
 	return workload, nil
 }
 
+func updateRemoteWorkload(layer *Layer, cluster, namespace string, workloadName string, workloadType string, jsonPatch string) error {
+	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
+	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
+	if _, err := layer.Namespace.GetNamespace(namespace); err != nil {
+		return err
+	}
+
+	workloadTypes := []string{
+		kubernetes.DeploymentType,
+		kubernetes.ReplicaSetType,
+		kubernetes.ReplicationControllerType,
+		kubernetes.DeploymentConfigType,
+		kubernetes.StatefulSetType,
+		kubernetes.JobType,
+		kubernetes.CronJobType,
+		kubernetes.PodType,
+		kubernetes.DaemonSetType,
+	}
+
+	// workloadType is an optional parameter used to optimize the workload type fetch
+	// By default workloads use only the "name" but not the pair "name,type".
+	if workloadType != "" {
+		found := false
+		for _, wt := range workloadTypes {
+			if workloadType == wt {
+				found = true
+				break
+			}
+		}
+		if found {
+			workloadTypes = []string{workloadType}
+		}
+	}
+
+	wg := sync.WaitGroup{}
+	wg.Add(len(workloadTypes))
+	errChan := make(chan error, len(workloadTypes))
+
+	for _, workloadType := range workloadTypes {
+		go func(wkType string) {
+			defer wg.Done()
+			var err error
+			if isWorkloadIncluded(wkType) {
+				err = remoteIstioClusters[cluster].K8s.UpdateWorkload(namespace, workloadName, wkType, jsonPatch)
+				// err = layer.k8s.UpdateWorkload(namespace, workloadName, wkType, jsonPatch)
+			}
+			if err != nil {
+				if !errors.IsNotFound(err) {
+					log.Errorf("Error fetching %s per namespace %s and name %s: %s", wkType, namespace, workloadName, err)
+					errChan <- err
+				}
+			}
+		}(workloadType)
+	}
+
+	wg.Wait()
+	if len(errChan) != 0 {
+		err := <-errChan
+		return err
+	}
+
+	return nil
+}
+
+func (in *WorkloadService) UpdateRemoteWorkload(cluster, namespace string, workloadName string, workloadType string, includeServices bool, jsonPatch string) (*models.Workload, error) {
+	// Identify controller and apply patch to workload
+	err := updateRemoteWorkload(in.businessLayer, cluster, namespace, workloadName, workloadType, jsonPatch)
+	if err != nil {
+		return nil, err
+	}
+
+	// Cache is stopped after a Create/Update/Delete operation to force a refresh
+	if kialiCache != nil && err == nil {
+		kialiCache.RefreshNamespace(namespace)
+	}
+
+	// After the update we fetch the whole workload
+	return in.GetWorkload(namespace, workloadName, workloadType, includeServices)
+}
+
 func (in *WorkloadService) UpdateWorkload(namespace string, workloadName string, workloadType string, includeServices bool, jsonPatch string) (*models.Workload, error) {
 	// Identify controller and apply patch to workload
 	err := updateWorkload(in.businessLayer, namespace, workloadName, workloadType, jsonPatch)

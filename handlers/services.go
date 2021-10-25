@@ -15,6 +15,12 @@ import (
 
 func ServiceInject(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
+	cluster := r.URL.Query().Get("cluster")
+	if _, ok := business.ClusterMap[cluster]; !ok {
+		RespondWithJSON(w, http.StatusOK, "")
+		return
+	}
+
 	service := params["service"]
 	business, err := getBusiness(r)
 	if err != nil {
@@ -32,7 +38,7 @@ func ServiceInject(w http.ResponseWriter, r *http.Request) {
 	}
 	jsonPatch := string(`{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/inject":"true"}}}}}`)
 	for _, deploy := range serviceDetails.Workloads {
-		_, err1 := business.Workload.UpdateWorkload(namespace, deploy.Name, workloadType, true, jsonPatch)
+		_, err1 := business.Workload.UpdateRemoteWorkload(cluster, namespace, deploy.Name, workloadType, true, jsonPatch)
 		if err1 != nil {
 			err = errors.New(err.Error() + err1.Error())
 		}
@@ -49,6 +55,12 @@ func ServiceInject(w http.ResponseWriter, r *http.Request) {
 
 func ServiceUnInject(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
+	cluster := r.URL.Query().Get("cluster")
+	if _, ok := business.ClusterMap[cluster]; !ok {
+		RespondWithJSON(w, http.StatusOK, "")
+		return
+	}
+
 	service := params["service"]
 	business, err := getBusiness(r)
 	if err != nil {
@@ -66,7 +78,7 @@ func ServiceUnInject(w http.ResponseWriter, r *http.Request) {
 	}
 	jsonPatch := string(`{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/inject":"false"}}}}}`)
 	for _, deploy := range serviceDetails.Workloads {
-		_, err1 := business.Workload.UpdateWorkload(namespace, deploy.Name, workloadType, true, jsonPatch)
+		_, err1 := business.Workload.UpdateRemoteWorkload(cluster, namespace, deploy.Name, workloadType, true, jsonPatch)
 		if err1 != nil {
 			err = errors.New(err.Error() + err1.Error())
 		}

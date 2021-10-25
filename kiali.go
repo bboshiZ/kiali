@@ -1,6 +1,6 @@
-// IstioConfig
+// IstioManager
 //
-// IstioConfig project, observability for the Istio service mesh
+// IstioManager project, observability for the Istio service mesh
 //
 //     Schemes: http, https
 //     BasePath: /istio/api

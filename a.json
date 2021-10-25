@@ -1,0 +1,416 @@
+{
+    "code": 100200,
+    "message": "status ok",
+    "result": {
+        "timestamp": 1635132190,
+        "duration": 1800,
+        "graphType": "versionedApp",
+        "elements": {
+            "nodes": [
+                {
+                    "data": {
+                        "id": "735840c21949d68930349c66b9723ea3",
+                        "nodeType": "box",
+                        "cluster": "sgt-mesh-sg2-prod",
+                        "namespace": "sample",
+                        "app": "ratings",
+                        "isBox": "app"
+                    }
+                },
+                {
+                    "data": {
+                        "id": "e90757ecc78d09a4504d23b07048b54e",
+                        "nodeType": "box",
+                        "cluster": "sgt-mesh-sg2-prod",
+                        "namespace": "sample",
+                        "app": "reviews",
+                        "isBox": "app"
+                    }
+                },
+                {
+                    "data": {
+                        "id": "50849a4c963e5471a0027188f2c50bbd",
+                        "nodeType": "app",
+                        "cluster": "sgt-mesh-sg2-prod",
+                        "namespace": "sample",
+                        "workload": "productpage-v1",
+                        "app": "productpage",
+                        "version": "v1",
+                        "traffic": [
+                            {
+                                "protocol": "http",
+                                "rates": {
+                                    "httpOut": "0.007"
+                                }
+                            }
+                        ],
+                        "isRoot": true
+                    }
+                },
+                {
+                    "data": {
+                        "id": "d647647cbac61c45875acc2a79dd09c3",
+                        "parent": "735840c21949d68930349c66b9723ea3",
+                        "nodeType": "service",
+                        "cluster": "sgt-mesh-sg2-prod",
+                        "namespace": "sample",
+                        "app": "ratings",
+                        "service": "ratings",
+                        "destServices": [
+                            {
+                                "cluster": "sgt-mesh-sg2-prod",
+                                "namespace": "sample",
+                                "name": "ratings"
+                            }
+                        ],
+                        "traffic": [
+                            {
+                                "protocol": "http",
+                                "rates": {
+                                    "httpIn": "0.004",
+                                    "httpOut": "0.004"
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    "data": {
+                        "id": "c666285f732b48a35b63557349caf4ee",
+                        "parent": "735840c21949d68930349c66b9723ea3",
+                        "nodeType": "app",
+                        "cluster": "sgt-mesh-sg2-prod",
+                        "namespace": "sample",
+                        "workload": "ratings-v1",
+                        "app": "ratings",
+                        "version": "v1",
+                        "destServices": [
+                            {
+                                "cluster": "sgt-mesh-sg2-prod",
+                                "namespace": "sample",
+                                "name": "ratings"
+                            }
+                        ],
+                        "traffic": [
+                            {
+                                "protocol": "http",
+                                "rates": {
+                                    "httpIn": "0.004"
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    "data": {
+                        "id": "1ae755149c28ac39f378dc975dbac95b",
+                        "parent": "e90757ecc78d09a4504d23b07048b54e",
+                        "nodeType": "service",
+                        "cluster": "sgt-mesh-sg2-prod",
+                        "namespace": "sample",
+                        "app": "reviews",
+                        "service": "reviews",
+                        "destServices": [
+                            {
+                                "cluster": "sgt-mesh-sg2-prod",
+                                "namespace": "sample",
+                                "name": "reviews"
+                            }
+                        ],
+                        "traffic": [
+                            {
+                                "protocol": "http",
+                                "rates": {
+                                    "httpIn": "0.007",
+                                    "httpOut": "0.007"
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    "data": {
+                        "id": "f075cbcd822192f29dd54c392e637565",
+                        "parent": "e90757ecc78d09a4504d23b07048b54e",
+                        "nodeType": "app",
+                        "cluster": "sgt-mesh-sg2-prod",
+                        "namespace": "sample",
+                        "workload": "reviews-v1",
+                        "app": "reviews",
+                        "version": "v1",
+                        "destServices": [
+                            {
+                                "cluster": "sgt-mesh-sg2-prod",
+                                "namespace": "sample",
+                                "name": "reviews"
+                            }
+                        ],
+                        "traffic": [
+                            {
+                                "protocol": "http",
+                                "rates": {
+                                    "httpIn": "0.003"
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    "data": {
+                        "id": "5bbc6cd1f63cbd88faf7ef4bc1ede6c7",
+                        "parent": "e90757ecc78d09a4504d23b07048b54e",
+                        "nodeType": "app",
+                        "cluster": "sgt-mesh-sg2-prod",
+                        "namespace": "sample",
+                        "workload": "reviews-v2",
+                        "app": "reviews",
+                        "version": "v2",
+                        "destServices": [
+                            {
+                                "cluster": "sgt-mesh-sg2-prod",
+                                "namespace": "sample",
+                                "name": "reviews"
+                            }
+                        ],
+                        "traffic": [
+                            {
+                                "protocol": "http",
+                                "rates": {
+                                    "httpIn": "0.002",
+                                    "httpOut": "0.002"
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    "data": {
+                        "id": "1b82aad95da1d48acbd4f9a2de873b2a",
+                        "parent": "e90757ecc78d09a4504d23b07048b54e",
+                        "nodeType": "app",
+                        "cluster": "sgt-mesh-sg2-prod",
+                        "namespace": "sample",
+                        "workload": "reviews-v3",
+                        "app": "reviews",
+                        "version": "v3",
+                        "destServices": [
+                            {
+                                "cluster": "sgt-mesh-sg2-prod",
+                                "namespace": "sample",
+                                "name": "reviews"
+                            }
+                        ],
+                        "traffic": [
+                            {
+                                "protocol": "http",
+                                "rates": {
+                                    "httpIn": "0.002",
+                                    "httpOut": "0.002"
+                                }
+                            }
+                        ]
+                    }
+                }
+            ],
+            "edges": [
+                {
+                    "data": {
+                        "id": "0286aec242a8d0a7508b6ed259e3dc00",
+                        "source": "1ae755149c28ac39f378dc975dbac95b",
+                        "target": "1b82aad95da1d48acbd4f9a2de873b2a",
+                        "destPrincipal": "spiffe://cluster.local/ns/sample/sa/bookinfo-reviews",
+                        "isMTLS": "100",
+                        "responseTime": "24",
+                        "sourcePrincipal": "spiffe://cluster.local/ns/sample/sa/bookinfo-productpage",
+                        "throughput": "5",
+                        "traffic": {
+                            "protocol": "http",
+                            "rates": {
+                                "http": "0.002",
+                                "httpPercentReq": "28.6"
+                            },
+                            "responses": {
+                                "200": {
+                                    "flags": {
+                                        "-": "100.0"
+                                    },
+                                    "hosts": {
+                                        "reviews.sample.svc.cluster.local": "100.0"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "data": {
+                        "id": "9358d6c427cdab1c39b47271173bf44a",
+                        "source": "1ae755149c28ac39f378dc975dbac95b",
+                        "target": "5bbc6cd1f63cbd88faf7ef4bc1ede6c7",
+                        "destPrincipal": "spiffe://cluster.local/ns/sample/sa/bookinfo-reviews",
+                        "isMTLS": "100",
+                        "responseTime": "24",
+                        "sourcePrincipal": "spiffe://cluster.local/ns/sample/sa/bookinfo-productpage",
+                        "throughput": "5",
+                        "traffic": {
+                            "protocol": "http",
+                            "rates": {
+                                "http": "0.002",
+                                "httpPercentReq": "28.6"
+                            },
+                            "responses": {
+                                "200": {
+                                    "flags": {
+                                        "-": "100.0"
+                                    },
+                                    "hosts": {
+                                        "reviews.sample.svc.cluster.local": "100.0"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "data": {
+                        "id": "e63e4456612c2326e96865644c8e053c",
+                        "source": "1ae755149c28ac39f378dc975dbac95b",
+                        "target": "f075cbcd822192f29dd54c392e637565",
+                        "destPrincipal": "spiffe://cluster.local/ns/sample/sa/bookinfo-reviews",
+                        "isMTLS": "100",
+                        "responseTime": "450",
+                        "sourcePrincipal": "spiffe://cluster.local/ns/sample/sa/bookinfo-productpage",
+                        "throughput": "3",
+                        "traffic": {
+                            "protocol": "http",
+                            "rates": {
+                                "http": "0.003",
+                                "httpPercentReq": "42.9"
+                            },
+                            "responses": {
+                                "200": {
+                                    "flags": {
+                                        "-": "100.0"
+                                    },
+                                    "hosts": {
+                                        "reviews.sample.svc.cluster.local": "100.0"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "data": {
+                        "id": "f2758b3da168400dbd17d0e512cc8c0e",
+                        "source": "1b82aad95da1d48acbd4f9a2de873b2a",
+                        "target": "d647647cbac61c45875acc2a79dd09c3",
+                        "destPrincipal": "spiffe://cluster.local/ns/sample/sa/bookinfo-ratings",
+                        "isMTLS": "100",
+                        "sourcePrincipal": "spiffe://cluster.local/ns/sample/sa/bookinfo-reviews",
+                        "traffic": {
+                            "protocol": "http",
+                            "rates": {
+                                "http": "0.002",
+                                "httpPercentReq": "100.0"
+                            },
+                            "responses": {
+                                "200": {
+                                    "flags": {
+                                        "-": "100.0"
+                                    },
+                                    "hosts": {
+                                        "ratings.sample.svc.cluster.local": "100.0"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "data": {
+                        "id": "bd46fd1d402624e5a28abdced3443f49",
+                        "source": "50849a4c963e5471a0027188f2c50bbd",
+                        "target": "1ae755149c28ac39f378dc975dbac95b",
+                        "destPrincipal": "spiffe://cluster.local/ns/sample/sa/bookinfo-reviews",
+                        "isMTLS": "100",
+                        "sourcePrincipal": "spiffe://cluster.local/ns/sample/sa/bookinfo-productpage",
+                        "traffic": {
+                            "protocol": "http",
+                            "rates": {
+                                "http": "0.007",
+                                "httpPercentReq": "100.0"
+                            },
+                            "responses": {
+                                "200": {
+                                    "flags": {
+                                        "-": "100.0"
+                                    },
+                                    "hosts": {
+                                        "reviews.sample.svc.cluster.local": "100.0"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "data": {
+                        "id": "f29b91dd192e526de4579c37db458c26",
+                        "source": "5bbc6cd1f63cbd88faf7ef4bc1ede6c7",
+                        "target": "d647647cbac61c45875acc2a79dd09c3",
+                        "destPrincipal": "spiffe://cluster.local/ns/sample/sa/bookinfo-ratings",
+                        "isMTLS": "100",
+                        "sourcePrincipal": "spiffe://cluster.local/ns/sample/sa/bookinfo-reviews",
+                        "traffic": {
+                            "protocol": "http",
+                            "rates": {
+                                "http": "0.002",
+                                "httpPercentReq": "100.0"
+                            },
+                            "responses": {
+                                "200": {
+                                    "flags": {
+                                        "-": "100.0"
+                                    },
+                                    "hosts": {
+                                        "ratings.sample.svc.cluster.local": "100.0"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "data": {
+                        "id": "4ec7f5e0edff2a19350e01279f94539c",
+                        "source": "d647647cbac61c45875acc2a79dd09c3",
+                        "target": "c666285f732b48a35b63557349caf4ee",
+                        "destPrincipal": "spiffe://cluster.local/ns/sample/sa/bookinfo-ratings",
+                        "isMTLS": "100",
+                        "responseTime": "5",
+                        "sourcePrincipal": "spiffe://cluster.local/ns/sample/sa/bookinfo-reviews",
+                        "throughput": "6",
+                        "traffic": {
+                            "protocol": "http",
+                            "rates": {
+                                "http": "0.004",
+                                "httpPercentReq": "100.0"
+                            },
+                            "responses": {
+                                "200": {
+                                    "flags": {
+                                        "-": "100.0"
+                                    },
+                                    "hosts": {
+                                        "ratings.sample.svc.cluster.local": "100.0"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        }
+    }
+}

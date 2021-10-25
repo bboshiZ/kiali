@@ -1,8 +1,8 @@
 
 
 
-# IstioConfig
-IstioConfig project, observability for the Istio service mesh
+# IstioManager
+IstioManager project, observability for the Istio service mesh
   
 
 ## Informations
@@ -29,6 +29,7 @@ _
 
 | Method  | URI     | Name   | Summary |
 |---------|---------|--------|---------|
+| GET | /istio/api/namespaces/{namespace}/istio/{object_type}/{object} | [istio config detail](#istio-config-detail) |  |
 | GET | /istio/api/namespaces/{namespace}/config | [istio config list](#istio-config-list) |  |
 | POST | /istio/api/namespaces/{namespace}/istio/destinationrules | [istio destination create](#istio-destination-create) |  |
 | DELETE | /istio/api/namespaces/{namespace}/istio/destinationrules/{object} | [istio destination delete](#istio-destination-delete) |  |
@@ -127,13 +128,72 @@ Status: OK
 
 
 
+### <span id="istio-config-detail"></span> istio config detail (*istioConfigDetail*)
+
+```
+GET /istio/api/namespaces/{namespace}/istio/{object_type}/{object}
+```
+
+获取virtualService，destination详情
+
+#### URI Schemes
+  * http
+  * https
+
+#### Produces
+  * application/json
+
+#### Parameters
+
+| Name | Source | Type | Go type | Separator | Required | Default | Description |
+|------|--------|------|---------|-----------| :------: |---------|-------------|
+| namespace | `path` | string | `string` |  | ✓ |  | k8s 命令空间 |
+| object | `path` | string | `string` |  | ✓ |  | istio 流量规则名称 |
+| object_type | `path` | string | `string` |  | ✓ |  | istio对象类型，可选值 （virtualservices，destinationrules） |
+
+#### All responses
+| Code | Status | Description | Has headers | Schema |
+|------|--------|-------------|:-----------:|--------|
+| [200](#istio-config-detail-200) | OK | isito对象详细信息 |  | [schema](#istio-config-detail-200-schema) |
+
+#### Responses
+
+
+##### <span id="istio-config-detail-200"></span> 200 - isito对象详细信息
+Status: OK
+
+###### <span id="istio-config-detail-200-schema"></span> Schema
+   
+  
+
+[IstioConfigDetailOKBody](#istio-config-detail-o-k-body)
+
+###### Inlined models
+
+**<span id="istio-config-detail-o-k-body"></span> IstioConfigDetailOKBody**
+
+
+  
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| Code | int32 (formatted integer)| `int32` |  | `503`| HTTP status code | `503` |
+| Message | string| `string` |  | |  |  |
+| result | [IstioConfigDetails](#istio-config-details)| `models.IstioConfigDetails` |  | |  |  |
+
+
+
 ### <span id="istio-config-list"></span> istio config list (*istioConfigList*)
 
 ```
 GET /istio/api/namespaces/{namespace}/config
 ```
 
-获取virtualservices destinationrules 接口
+获取virtualservices destinationrules 列表
 
 #### URI Schemes
   * http
@@ -148,16 +208,17 @@ GET /istio/api/namespaces/{namespace}/config
 |------|--------|------|---------|-----------| :------: |---------|-------------|
 | namespace | `path` | string | `string` |  | ✓ |  | k8s 命令空间 |
 | objects | `query` | string | `string` |  | ✓ |  | 对象名称, 可选值[virtualservices,destinationrules] |
+| page | `query` | string | `string` |  |  |  | 分页页号 |
 
 #### All responses
 | Code | Status | Description | Has headers | Schema |
 |------|--------|-------------|:-----------:|--------|
-| [200](#istio-config-list-200) | OK | HTTP status code 200 and IstioConfigList model in data |  | [schema](#istio-config-list-200-schema) |
+| [200](#istio-config-list-200) | OK | istio对象列表 |  | [schema](#istio-config-list-200-schema) |
 
 #### Responses
 
 
-##### <span id="istio-config-list-200"></span> 200 - HTTP status code 200 and IstioConfigList model in data
+##### <span id="istio-config-list-200"></span> 200 - istio对象列表
 Status: OK
 
 ###### <span id="istio-config-list-200-schema"></span> Schema
@@ -377,6 +438,8 @@ POST /istio/api/api/namespaces/{namespace}/services/{service}/inject
 |------|--------|------|---------|-----------| :------: |---------|-------------|
 | namespace | `path` | string | `string` |  | ✓ |  | k8s 命令空间 |
 | service | `path` | string | `string` |  | ✓ |  | 服务名称 |
+| cluster | `query` | string | `string` |  | ✓ |  | k8s集群名 |
+| limit | `query` | string | `string` |  |  |  | 每页数量限制 |
 
 #### All responses
 | Code | Status | Description | Has headers | Schema |
@@ -434,6 +497,8 @@ POST /istio/api/api/namespaces/{namespace}/services/{service}/unInject
 |------|--------|------|---------|-----------| :------: |---------|-------------|
 | namespace | `path` | string | `string` |  | ✓ |  | k8s 命令空间 |
 | service | `path` | string | `string` |  | ✓ |  | 服务名称 |
+| cluster | `query` | string | `string` |  | ✓ |  | k8s集群名 |
+| limit | `query` | string | `string` |  |  |  | 每页数量限制 |
 
 #### All responses
 | Code | Status | Description | Has headers | Schema |
@@ -662,6 +727,8 @@ Endpoint to get the details of a given service
 |------|--------|------|---------|-----------| :------: |---------|-------------|
 | namespace | `path` | string | `string` |  | ✓ |  | k8s 命令空间 |
 | service | `path` | string | `string` |  | ✓ |  | 服务名称 |
+| cluster | `query` | string | `string` |  | ✓ |  | k8s集群名 |
+| limit | `query` | string | `string` |  |  |  | 每页数量限制 |
 
 #### All responses
 | Code | Status | Description | Has headers | Schema |
@@ -719,6 +786,9 @@ GET /istio/api/namespaces/{namespace}/services
 | Name | Source | Type | Go type | Separator | Required | Default | Description |
 |------|--------|------|---------|-----------| :------: |---------|-------------|
 | namespace | `path` | string | `string` |  | ✓ |  | k8s 命令空间 |
+| cluster | `query` | string | `string` |  | ✓ |  | k8s集群名 |
+| limit | `query` | string | `string` |  |  |  | 每页数量限制 |
+| page | `query` | string | `string` |  |  |  | 分页页号 |
 
 #### All responses
 | Code | Status | Description | Has headers | Schema |
@@ -856,6 +926,56 @@ Status: OK
   
 
 [][Address](#address)
+
+### <span id="authorization-policy"></span> AuthorizationPolicy
+
+
+> This is used for returning an AuthorizationPolicy
+  
+
+
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| APIVersion | string| `string` |  | | APIVersion defines the versioned schema of this representation of an object.
+Servers should convert recognized schemas to the latest internal value, and
+may reject unrecognized values.
+More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
++optional |  |
+| Kind | string| `string` |  | | Kind is a string value representing the REST resource this object represents.
+Servers may infer this from the endpoint the client submits requests to.
+Cannot be updated.
+In CamelCase.
+More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
++optional |  |
+| Status | map of any | `map[string]interface{}` |  | |  |  |
+| metadata | [ObjectMeta](#object-meta)| `ObjectMeta` |  | |  |  |
+| spec | [Spec](#spec)| `Spec` |  | |  |  |
+
+
+
+#### Inlined models
+
+**<span id="spec"></span> Spec**
+
+
+  
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| Action | [interface{}](#interface)| `interface{}` |  | |  |  |
+| Rules | [interface{}](#interface)| `interface{}` |  | |  |  |
+| Selector | [interface{}](#interface)| `interface{}` |  | |  |  |
+
+
 
 ### <span id="component-status"></span> ComponentStatus
 
@@ -1115,6 +1235,55 @@ probes start being sent. Default is to use the OS level configuration
 
 [][Endpoint](#endpoint)
 
+### <span id="envoy-filter"></span> EnvoyFilter
+
+
+> This is used for returning an EnvoyFilter
+  
+
+
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| APIVersion | string| `string` |  | | APIVersion defines the versioned schema of this representation of an object.
+Servers should convert recognized schemas to the latest internal value, and
+may reject unrecognized values.
+More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
++optional |  |
+| Kind | string| `string` |  | | Kind is a string value representing the REST resource this object represents.
+Servers may infer this from the endpoint the client submits requests to.
+Cannot be updated.
+In CamelCase.
+More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
++optional |  |
+| Status | map of any | `map[string]interface{}` |  | |  |  |
+| metadata | [ObjectMeta](#object-meta)| `ObjectMeta` |  | |  |  |
+| spec | [Spec](#spec)| `Spec` |  | |  |  |
+
+
+
+#### Inlined models
+
+**<span id="spec"></span> Spec**
+
+
+  
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| ConfigPatches | [interface{}](#interface)| `interface{}` |  | |  |  |
+| WorkloadSelector | [interface{}](#interface)| `interface{}` |  | |  |  |
+
+
+
 ### <span id="external-service-info"></span> ExternalServiceInfo
 
 
@@ -1168,6 +1337,52 @@ probes start being sent. Default is to use the OS level configuration
 | Name | Type | Go type | Required | Default | Description | Example |
 |------|------|---------|:--------:| ------- |-------------|---------|
 | Hostnames | []string| `[]string` |  | | Hostnames is the list of hosts being served by the associated Istio gateways. |  |
+
+
+
+### <span id="gateway"></span> Gateway
+
+
+  
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| APIVersion | string| `string` |  | | APIVersion defines the versioned schema of this representation of an object.
+Servers should convert recognized schemas to the latest internal value, and
+may reject unrecognized values.
+More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
++optional |  |
+| Kind | string| `string` |  | | Kind is a string value representing the REST resource this object represents.
+Servers may infer this from the endpoint the client submits requests to.
+Cannot be updated.
+In CamelCase.
+More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
++optional |  |
+| Status | map of any | `map[string]interface{}` |  | |  |  |
+| metadata | [ObjectMeta](#object-meta)| `ObjectMeta` |  | |  |  |
+| spec | [Spec](#spec)| `Spec` |  | |  |  |
+
+
+
+#### Inlined models
+
+**<span id="spec"></span> Spec**
+
+
+  
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| Selector | map of string| `map[string]string` |  | |  |  |
+| Servers | [interface{}](#interface)| `interface{}` |  | |  |  |
 
 
 
@@ -1361,12 +1576,78 @@ probes start being sent. Default is to use the OS level configuration
 
 
 
+### <span id="istio-check"></span> IstioCheck
+
+
+  
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| Code | string| `string` | ✓ | | The check code used to identify a check | `KIA0001` |
+| Message | string| `string` | ✓ | | Description of the check | `Weight sum should be 100` |
+| Path | string| `string` |  | | String that describes where in the yaml file is the check located | `spec/http[0]/route` |
+| severity | [SeverityLevel](#severity-level)| `SeverityLevel` | ✓ | |  |  |
+
+
+
 ### <span id="istio-component-status"></span> IstioComponentStatus
 
 
   
 
 [][ComponentStatus](#component-status)
+
+### <span id="istio-config-details"></span> IstioConfigDetails
+
+
+  
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| ObjectType | string| `string` |  | |  |  |
+| authorizationPolicy | [AuthorizationPolicy](#authorization-policy)| `AuthorizationPolicy` |  | |  |  |
+| destinationRule | [DestinationRule](#destination-rule)| `DestinationRule` |  | |  |  |
+| envoyFilter | [EnvoyFilter](#envoy-filter)| `EnvoyFilter` |  | |  |  |
+| gateway | [Gateway](#gateway)| `Gateway` |  | |  |  |
+| namespace | [Namespace](#namespace)| `Namespace` |  | |  |  |
+| peerAuthentication | [PeerAuthentication](#peer-authentication)| `PeerAuthentication` |  | |  |  |
+| permissions | [ResourcePermissions](#resource-permissions)| `ResourcePermissions` |  | |  |  |
+| requestAuthentication | [RequestAuthentication](#request-authentication)| `RequestAuthentication` |  | |  |  |
+| serviceEntry | [ServiceEntry](#service-entry)| `ServiceEntry` |  | |  |  |
+| sidecar | [Sidecar](#sidecar)| `Sidecar` |  | |  |  |
+| validation | [IstioValidation](#istio-validation)| `IstioValidation` |  | |  |  |
+| virtualService | [VirtualService](#virtual-service)| `VirtualService` |  | |  |  |
+| workloadEntry | [WorkloadEntry](#workload-entry)| `WorkloadEntry` |  | |  |  |
+| workloadGroup | [WorkloadGroup](#workload-group)| `WorkloadGroup` |  | |  |  |
+
+
+
+### <span id="istio-validation"></span> IstioValidation
+
+
+  
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| Checks | [][IstioCheck](#istio-check)| `[]*IstioCheck` |  | | Array of checks. It might be empty. |  |
+| Name | string| `string` | ✓ | | Name of the object itself | `reviews` |
+| ObjectType | string| `string` | ✓ | | Type of the object | `virtualservice` |
+| References | [][IstioValidationKey](#istio-validation-key)| `[]*IstioValidationKey` |  | | Related objects (only validation errors) |  |
+| Valid | boolean| `bool` | ✓ | | Represents validity of the object: in case of warning, validity remains as true | `false` |
+
+
 
 ### <span id="istio-validation-key"></span> IstioValidationKey
 
@@ -1619,6 +1900,56 @@ This type is used to describe a set of objects.
 
 
 
+### <span id="peer-authentication"></span> PeerAuthentication
+
+
+> This is used for returning an PeerAuthentication
+  
+
+
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| APIVersion | string| `string` |  | | APIVersion defines the versioned schema of this representation of an object.
+Servers should convert recognized schemas to the latest internal value, and
+may reject unrecognized values.
+More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
++optional |  |
+| Kind | string| `string` |  | | Kind is a string value representing the REST resource this object represents.
+Servers may infer this from the endpoint the client submits requests to.
+Cannot be updated.
+In CamelCase.
+More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
++optional |  |
+| Status | map of any | `map[string]interface{}` |  | |  |  |
+| metadata | [ObjectMeta](#object-meta)| `ObjectMeta` |  | |  |  |
+| spec | [Spec](#spec)| `Spec` |  | |  |  |
+
+
+
+#### Inlined models
+
+**<span id="spec"></span> Spec**
+
+
+  
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| Mtls | [interface{}](#interface)| `interface{}` |  | |  |  |
+| PortLevelMtls | [interface{}](#interface)| `interface{}` |  | |  |  |
+| Selector | [interface{}](#interface)| `interface{}` |  | |  |  |
+
+
+
 ### <span id="port"></span> Port
 
 
@@ -1724,6 +2055,55 @@ This type is used to describe a set of objects.
 | Name | Type | Go type | Default | Description | Example |
 |------|------|---------| ------- |-------------|---------|
 | ReferenceType | string| string | | ReferenceType is the reference type of one span to another |  |
+
+
+
+### <span id="request-authentication"></span> RequestAuthentication
+
+
+> This is used for returning an RequestAuthentication
+  
+
+
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| APIVersion | string| `string` |  | | APIVersion defines the versioned schema of this representation of an object.
+Servers should convert recognized schemas to the latest internal value, and
+may reject unrecognized values.
+More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
++optional |  |
+| Kind | string| `string` |  | | Kind is a string value representing the REST resource this object represents.
+Servers may infer this from the endpoint the client submits requests to.
+Cannot be updated.
+In CamelCase.
+More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
++optional |  |
+| Status | map of any | `map[string]interface{}` |  | |  |  |
+| metadata | [ObjectMeta](#object-meta)| `ObjectMeta` |  | |  |  |
+| spec | [Spec](#spec)| `Spec` |  | |  |  |
+
+
+
+#### Inlined models
+
+**<span id="spec"></span> Spec**
+
+
+  
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| JwtRules | [interface{}](#interface)| `interface{}` |  | |  |  |
+| Selector | [interface{}](#interface)| `interface{}` |  | |  |  |
 
 
 
@@ -1892,6 +2272,59 @@ True means allowed.
 
 
 
+### <span id="service-entry"></span> ServiceEntry
+
+
+  
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| APIVersion | string| `string` |  | | APIVersion defines the versioned schema of this representation of an object.
+Servers should convert recognized schemas to the latest internal value, and
+may reject unrecognized values.
+More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
++optional |  |
+| Kind | string| `string` |  | | Kind is a string value representing the REST resource this object represents.
+Servers may infer this from the endpoint the client submits requests to.
+Cannot be updated.
+In CamelCase.
+More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
++optional |  |
+| Status | map of any | `map[string]interface{}` |  | |  |  |
+| metadata | [ObjectMeta](#object-meta)| `ObjectMeta` |  | |  |  |
+| spec | [Spec](#spec)| `Spec` |  | |  |  |
+
+
+
+#### Inlined models
+
+**<span id="spec"></span> Spec**
+
+
+  
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| Addresses | [interface{}](#interface)| `interface{}` |  | |  |  |
+| Endpoints | [interface{}](#interface)| `interface{}` |  | |  |  |
+| ExportTo | [interface{}](#interface)| `interface{}` |  | |  |  |
+| Hosts | [interface{}](#interface)| `interface{}` |  | |  |  |
+| Location | [interface{}](#interface)| `interface{}` |  | |  |  |
+| Ports | [interface{}](#interface)| `interface{}` |  | |  |  |
+| Resolution | [interface{}](#interface)| `interface{}` |  | |  |  |
+| SubjectAltNames | [interface{}](#interface)| `interface{}` |  | |  |  |
+| WorkloadSelector | [interface{}](#interface)| `interface{}` |  | |  |  |
+
+
+
 ### <span id="service-health"></span> ServiceHealth
 
 
@@ -1957,6 +2390,66 @@ True means allowed.
 | AppLabel | boolean| `bool` | ✓ | | 服务标签 | `true` |
 | IstioSidecar | boolean| `bool` | ✓ | | 服务是否开启serviceMesh | `true` |
 | Name | string| `string` | ✓ | | 服务名称 | `reviews-v1` |
+
+
+
+### <span id="severity-level"></span> SeverityLevel
+
+
+  
+
+| Name | Type | Go type | Default | Description | Example |
+|------|------|---------| ------- |-------------|---------|
+| SeverityLevel | string| string | |  |  |
+
+
+
+### <span id="sidecar"></span> Sidecar
+
+
+  
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| APIVersion | string| `string` |  | | APIVersion defines the versioned schema of this representation of an object.
+Servers should convert recognized schemas to the latest internal value, and
+may reject unrecognized values.
+More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
++optional |  |
+| Kind | string| `string` |  | | Kind is a string value representing the REST resource this object represents.
+Servers may infer this from the endpoint the client submits requests to.
+Cannot be updated.
+In CamelCase.
+More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
++optional |  |
+| Status | map of any | `map[string]interface{}` |  | |  |  |
+| metadata | [ObjectMeta](#object-meta)| `ObjectMeta` |  | |  |  |
+| spec | [Spec](#spec)| `Spec` |  | |  |  |
+
+
+
+#### Inlined models
+
+**<span id="spec"></span> Spec**
+
+
+  
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| Egress | [interface{}](#interface)| `interface{}` |  | |  |  |
+| Ingress | [interface{}](#interface)| `interface{}` |  | |  |  |
+| Localhost | [interface{}](#interface)| `interface{}` |  | |  |  |
+| OutboundTrafficPolicy | [interface{}](#interface)| `interface{}` |  | |  |  |
+| WorkloadSelector | [interface{}](#interface)| `interface{}` |  | |  |  |
 
 
 
@@ -2187,6 +2680,108 @@ A hash of key,values with versions of Kiali and state |  |
 |------|------|---------|:--------:| ------- |-------------|---------|
 | Items | [][VirtualService](#virtual-service)| `[]*VirtualService` |  | |  |  |
 | permissions | [ResourcePermissions](#resource-permissions)| `ResourcePermissions` |  | |  |  |
+
+
+
+### <span id="workload-entry"></span> WorkloadEntry
+
+
+  
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| APIVersion | string| `string` |  | | APIVersion defines the versioned schema of this representation of an object.
+Servers should convert recognized schemas to the latest internal value, and
+may reject unrecognized values.
+More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
++optional |  |
+| Kind | string| `string` |  | | Kind is a string value representing the REST resource this object represents.
+Servers may infer this from the endpoint the client submits requests to.
+Cannot be updated.
+In CamelCase.
+More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
++optional |  |
+| Status | map of any | `map[string]interface{}` |  | |  |  |
+| metadata | [ObjectMeta](#object-meta)| `ObjectMeta` |  | |  |  |
+| spec | [Spec](#spec)| `Spec` |  | |  |  |
+
+
+
+#### Inlined models
+
+**<span id="spec"></span> Spec**
+
+
+  
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| Address | [interface{}](#interface)| `interface{}` |  | |  |  |
+| Labels | [interface{}](#interface)| `interface{}` |  | |  |  |
+| Locality | [interface{}](#interface)| `interface{}` |  | |  |  |
+| Network | [interface{}](#interface)| `interface{}` |  | |  |  |
+| Ports | [interface{}](#interface)| `interface{}` |  | |  |  |
+| ServiceAccount | [interface{}](#interface)| `interface{}` |  | |  |  |
+| Weight | [interface{}](#interface)| `interface{}` |  | |  |  |
+
+
+
+### <span id="workload-group"></span> WorkloadGroup
+
+
+> This is used for returning a WorkloadGroup
+  
+
+
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| APIVersion | string| `string` |  | | APIVersion defines the versioned schema of this representation of an object.
+Servers should convert recognized schemas to the latest internal value, and
+may reject unrecognized values.
+More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
++optional |  |
+| Kind | string| `string` |  | | Kind is a string value representing the REST resource this object represents.
+Servers may infer this from the endpoint the client submits requests to.
+Cannot be updated.
+In CamelCase.
+More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
++optional |  |
+| Status | map of any | `map[string]interface{}` |  | |  |  |
+| metadata | [ObjectMeta](#object-meta)| `ObjectMeta` |  | |  |  |
+| spec | [Spec](#spec)| `Spec` |  | |  |  |
+
+
+
+#### Inlined models
+
+**<span id="spec"></span> Spec**
+
+
+  
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| Metadata | [interface{}](#interface)| `interface{}` |  | | This is not an error, the WorkloadGroup has a Metadata inside the Spec
+https://istio.io/latest/docs/reference/config/networking/workload-group/#WorkloadGroup |  |
+| Probe | [interface{}](#interface)| `interface{}` |  | |  |  |
+| Template | [interface{}](#interface)| `interface{}` |  | |  |  |
 
 
 

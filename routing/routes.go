@@ -221,7 +221,7 @@ func NewRoutes() (r *Routes) {
 
 		// swagger:route GET /namespaces/{namespace}/config istio管理 istioConfigList
 		// ---
-		// 获取virtualservices destinationrules 接口
+		// 获取virtualservices destinationrules 列表
 		//
 		//     Produces:
 		//     - application/json
@@ -236,6 +236,26 @@ func NewRoutes() (r *Routes) {
 			"GET",
 			"/api/namespaces/{namespace}/config",
 			handlers.IstioConfigList,
+			true,
+		},
+
+		// swagger:route GET /namespaces/{namespace}/istio/{object_type}/{object} istio管理 istioConfigDetail
+		// ---
+		// 获取virtualService，destination详情
+		//
+		//     Produces:
+		//     - application/json
+		//
+		//     Schemes: http, https
+		//
+		// responses:
+		//      200: istioConfigDetailsResponse
+		//
+		{
+			"IstioConfigDetails",
+			"GET",
+			"/api/namespaces/{namespace}/istio/{object_type}/{object}",
+			handlers.IstioConfigDetails,
 			true,
 		},
 
