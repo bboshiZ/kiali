@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -10,6 +12,7 @@ import (
 
 	"github.com/kiali/kiali/business"
 	"github.com/kiali/kiali/config"
+	"github.com/kiali/kiali/kubernetes"
 	"github.com/kiali/kiali/log"
 	"github.com/kiali/kiali/models"
 )
@@ -375,14 +378,60 @@ func IstioConfigCreate(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Create request could not be read: "+err.Error())
 	}
 
-	createdConfigDetails, err := business.IstioConfig.CreateIstioConfigDetail(api, namespace, objectType, body)
+	newBody, err := fixRequestBody(objectType, body)
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, "request body error: "+err.Error())
+	}
+
+	createdConfigDetails, err := business.IstioConfig.CreateIstioConfigDetail(api, namespace, objectType, newBody)
 	if err != nil {
 		handleErrorResponse(w, err)
 		return
 	}
 
-	audit(r, "CREATE on Namespace: "+namespace+" Type: "+objectType+" Object: "+string(body))
+	audit(r, "CREATE on Namespace: "+namespace+" Type: "+objectType+" Object: "+string(newBody))
 	RespondWithJSON(w, http.StatusOK, createdConfigDetails)
+}
+
+func fixRequestBody(objectType string, body []byte) (res []byte, err error) {
+
+	switch objectType {
+	case kubernetes.VirtualServices:
+		v := &models.VirtualServiceM{}
+		err = json.Unmarshal(body, v)
+		if err != nil {
+			log.Infof("err:[%s]", err)
+			return
+		}
+		v.Metadata.Namespace = "sample"
+
+		// for i, _ := range v.Spec.Http {
+		// 	for j, _ := range v.Spec.Http[i].Route {
+		// 		v.Spec.Http[i].Route[j].Destination.Host = v.Spec.Http[i].Route[j].Destination.Host + ".svc.cluster.local"
+		// 	}
+		// }
+		res, err = json.Marshal(v)
+		if err != nil {
+			log.Infof("err:[%s]", err)
+			return
+		}
+
+	case kubernetes.DestinationRules:
+		v := &models.DestinationRuleM{}
+		err = json.Unmarshal(body, v)
+		if err != nil {
+			log.Infof("err:[%s]", err)
+			return
+		}
+		v.Spec.Host = fmt.Sprintf("%s.%s.svc.cluster.local", v.Metadata.Name, v.Metadata.Namespace)
+		res, err = json.Marshal(v)
+		if err != nil {
+			log.Infof("err:[%s]", err)
+			return
+		}
+	}
+
+	return
 }
 
 func checkObjectType(objectType string) bool {

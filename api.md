@@ -44,8 +44,10 @@ _
 
 | Method  | URI     | Name   | Summary |
 |---------|---------|--------|---------|
+| GET | /istio/api/clusters | [cluster list](#cluster-list) |  |
 | POST | /istio/api/api/namespaces/{namespace}/services/{service}/inject | [istio inject](#istio-inject) |  |
 | POST | /istio/api/api/namespaces/{namespace}/services/{service}/unInject | [istio un inject](#istio-un-inject) |  |
+| GET | /istio/api/namespaces | [namespace list](#namespace-list) |  |
 | GET | /istio/api/namespaces/{namespace}/services/{service} | [service detail](#service-detail) |  |
 | GET | /istio/api/namespaces/{namespace}/services | [service list](#service-list) |  |
   
@@ -68,6 +70,57 @@ _
 
 
 ## Paths
+
+### <span id="cluster-list"></span> cluster list (*clusterList*)
+
+```
+GET /istio/api/clusters
+```
+
+获取集群列表
+
+#### URI Schemes
+  * http
+  * https
+
+#### Produces
+  * application/json
+
+#### All responses
+| Code | Status | Description | Has headers | Schema |
+|------|--------|-------------|:-----------:|--------|
+| [200](#cluster-list-200) | OK | List of Clusters |  | [schema](#cluster-list-200-schema) |
+
+#### Responses
+
+
+##### <span id="cluster-list-200"></span> 200 - List of Clusters
+Status: OK
+
+###### <span id="cluster-list-200-schema"></span> Schema
+   
+  
+
+[ClusterListOKBody](#cluster-list-o-k-body)
+
+###### Inlined models
+
+**<span id="cluster-list-o-k-body"></span> ClusterListOKBody**
+
+
+  
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| Code | int64 (formatted integer)| `int64` |  | | 自定义状态码 |  |
+| Message | string| `string` |  | | 操作信息 |  |
+| Result | [][ClusterM](#cluster-m)| `[]*models.ClusterM` |  | | 响应结果 |  |
+
+
 
 ### <span id="graph-service-smple"></span> graph service smple (*graphServiceSmple*)
 
@@ -706,6 +759,57 @@ Status: OK
 
 
 
+### <span id="namespace-list"></span> namespace list (*namespaceList*)
+
+```
+GET /istio/api/namespaces
+```
+
+获取集群里的命名空间列表
+
+#### URI Schemes
+  * http
+  * https
+
+#### Produces
+  * application/json
+
+#### All responses
+| Code | Status | Description | Has headers | Schema |
+|------|--------|-------------|:-----------:|--------|
+| [200](#namespace-list-200) | OK | List of Namespaces |  | [schema](#namespace-list-200-schema) |
+
+#### Responses
+
+
+##### <span id="namespace-list-200"></span> 200 - List of Namespaces
+Status: OK
+
+###### <span id="namespace-list-200-schema"></span> Schema
+   
+  
+
+[NamespaceListOKBody](#namespace-list-o-k-body)
+
+###### Inlined models
+
+**<span id="namespace-list-o-k-body"></span> NamespaceListOKBody**
+
+
+  
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| Code | int64 (formatted integer)| `int64` |  | | 自定义状态码 |  |
+| Message | string| `string` |  | | 操作信息 |  |
+| Result | [][Namespace](#namespace)| `[]*models.Namespace` |  | | 响应结果 |  |
+
+
+
 ### <span id="service-detail"></span> service detail (*serviceDetail*)
 
 ```
@@ -847,6 +951,7 @@ GET /istio/api/namespaces/{namespace}/services/{service}/traces
 |------|--------|------|---------|-----------| :------: |---------|-------------|
 | namespace | `path` | string | `string` |  | ✓ |  | k8s 命令空间 |
 | service | `path` | string | `string` |  | ✓ |  | 服务名称 |
+| cluster | `query` | string | `string` |  | ✓ |  | k8s集群名 |
 
 #### All responses
 | Code | Status | Description | Has headers | Schema |
@@ -974,6 +1079,22 @@ More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-
 | Action | [interface{}](#interface)| `interface{}` |  | |  |  |
 | Rules | [interface{}](#interface)| `interface{}` |  | |  |  |
 | Selector | [interface{}](#interface)| `interface{}` |  | |  |  |
+
+
+
+### <span id="cluster-m"></span> ClusterM
+
+
+  
+
+
+
+**Properties**
+
+| Name | Type | Go type | Required | Default | Description | Example |
+|------|------|---------|:--------:| ------- |-------------|---------|
+| Address | string| `string` |  | |  |  |
+| Name | string| `string` |  | |  |  |
 
 
 

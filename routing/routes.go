@@ -26,7 +26,38 @@ func NewRoutes() (r *Routes) {
 	r = new(Routes)
 
 	r.Routes = []Route{
+		// swagger:route GET /clusters k8s服务 clusterList
+		// ---
+		// 获取集群列表
+		//
+		//     Produces:
+		//     - application/json
+		//
+		//     Schemes: http, https
+		//
+		// responses:
+		//      200: clusterList
+		//
+		{
+			"ClusterList",
+			"GET",
+			"/api/clusters",
+			handlers.ClusterList,
+			true,
+		},
 
+		// swagger:route GET /namespaces k8s服务 namespaceList
+		// ---
+		// 获取集群里的命名空间列表
+		//
+		//     Produces:
+		//     - application/json
+		//
+		//     Schemes: http, https
+		//
+		// responses:
+		//      200: namespaceList
+		//
 		{
 			"NamespaceList",
 			"GET",
@@ -271,6 +302,13 @@ func NewRoutes() (r *Routes) {
 		// responses:
 		//      200: traceDetailsResponse
 		//
+		{
+			"ServiceTraces",
+			"GET",
+			"/api/namespaces/{namespace}/services/{service}/traces",
+			handlers.ServiceTraces,
+			true,
+		},
 
 		// swagger:route GET /namespaces/{namespace}/services/{service}/graph 流量图 graphServiceSmple
 		// ---
@@ -421,14 +459,6 @@ func NewRoutes() (r *Routes) {
 		},
 
 		{
-			"ServiceTraces",
-			"GET",
-			"/api/namespaces/{namespace}/services/{service}/traces",
-			handlers.ServiceTraces,
-			true,
-		},
-
-		{
 			"WorkloadTraces",
 			"GET",
 			"/api/namespaces/{namespace}/workloads/{workload}/traces",
@@ -491,14 +521,6 @@ func NewRoutes() (r *Routes) {
 			"GET",
 			"/api/namespaces/{namespace}/apps/{app}",
 			handlers.AppDetails,
-			true,
-		},
-
-		{
-			"NamespaceList",
-			"GET",
-			"/api/namespaces",
-			handlers.NamespaceList,
 			true,
 		},
 

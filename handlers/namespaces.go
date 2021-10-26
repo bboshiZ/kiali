@@ -11,6 +11,32 @@ import (
 	"github.com/kiali/kiali/models"
 )
 
+func ClusterList(w http.ResponseWriter, r *http.Request) {
+	resp := RespList{
+		// TotalCount:  10,
+		// PageCount:   1,
+		// CurrentPage: 1,
+		// PageSize:    10,
+		Data: []interface{}{},
+	}
+
+	var data []models.ClusterM
+	for c, _ := range business.ClusterMap {
+		d := models.ClusterM{
+			Name: c,
+		}
+		data = append(data, d)
+	}
+	resp.CurrentPage = 1
+	resp.PageCount = 1
+	resp.PageSize = 20
+	resp.TotalCount = len(data)
+
+	resp.Data = data
+
+	RespondWithJSON(w, http.StatusOK, data)
+}
+
 func NamespaceList(w http.ResponseWriter, r *http.Request) {
 	resp := RespList{
 		// TotalCount:  10,

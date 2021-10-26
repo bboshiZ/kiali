@@ -125,6 +125,48 @@
         }
       }
     },
+    "/clusters": {
+      "get": {
+        "description": "获取集群列表",
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "tags": [
+          "k8s服务"
+        ],
+        "operationId": "clusterList",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/clusterList"
+          }
+        }
+      }
+    },
+    "/namespaces": {
+      "get": {
+        "description": "获取集群里的命名空间列表",
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http",
+          "https"
+        ],
+        "tags": [
+          "k8s服务"
+        ],
+        "operationId": "namespaceList",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/namespaceList"
+          }
+        }
+      }
+    },
     "/namespaces/{namespace}/config": {
       "get": {
         "description": "获取virtualservices destinationrules 列表",
@@ -623,6 +665,14 @@
           {
             "type": "string",
             "x-go-name": "Name",
+            "description": "k8s集群名",
+            "name": "cluster",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "x-go-name": "Name",
             "description": "k8s 命令空间",
             "name": "namespace",
             "in": "path",
@@ -688,6 +738,20 @@
         "$ref": "#/definitions/Address"
       },
       "x-go-package": "github.com/kiali/kiali/models"
+    },
+    "ClusterM": {
+      "type": "object",
+      "properties": {
+        "address": {
+          "type": "string",
+          "x-go-name": "Address"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        }
+      },
+      "x-go-package": "github.com/kiali/kiali"
     },
     "ComponentStatus": {
       "type": "object",
@@ -2997,6 +3061,33 @@
         }
       }
     },
+    "clusterList": {
+      "description": "List of Clusters",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "description": "自定义状态码",
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "Code"
+          },
+          "message": {
+            "description": "操作信息",
+            "type": "string",
+            "x-go-name": "Message"
+          },
+          "reslut": {
+            "description": "响应结果",
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/ClusterM"
+            },
+            "x-go-name": "Result"
+          }
+        }
+      }
+    },
     "commonResponse": {
       "description": "操作结果返回",
       "schema": {
@@ -3114,9 +3205,27 @@
     "namespaceList": {
       "description": "List of Namespaces",
       "schema": {
-        "type": "array",
-        "items": {
-          "$ref": "#/definitions/namespace"
+        "type": "object",
+        "properties": {
+          "code": {
+            "description": "自定义状态码",
+            "type": "integer",
+            "format": "int64",
+            "x-go-name": "Code"
+          },
+          "message": {
+            "description": "操作信息",
+            "type": "string",
+            "x-go-name": "Message"
+          },
+          "reslut": {
+            "description": "响应结果",
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/namespace"
+            },
+            "x-go-name": "Result"
+          }
         }
       }
     },

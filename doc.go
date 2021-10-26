@@ -43,7 +43,7 @@ type ClusterParam struct {
 	Name string `json:"container"`
 }
 
-// swagger:parameters serviceList serviceDetail istioInject istioUnInject
+// swagger:parameters serviceTraces serviceList serviceDetail istioInject istioUnInject
 type K8sClusterParam struct {
 	// k8s集群名
 	//
@@ -660,20 +660,37 @@ type commonResponse struct {
 	}
 }
 
-// type Resp struct {
-// 	//自定义状态码
-// 	Code int `json:"code"`
-// 	//操作信息
-// 	Message string `json:"message"`
-// 	// //响应结果
-// 	// Result interface{} `json:"reslut"`
-// }
-
 // List of Namespaces
 // swagger:response namespaceList
 type NamespaceListResponse struct {
 	// in:body
-	Body []models.Namespace
+	Body struct {
+		//自定义状态码
+		Code int `json:"code"`
+		//操作信息
+		Message string `json:"message"`
+		// //响应结果
+		Result []models.Namespace `json:"reslut"`
+	}
+}
+
+// List of Clusters
+// swagger:response clusterList
+type ClusterListResponse struct {
+	// in:body
+	Body struct {
+		//自定义状态码
+		Code int `json:"code"`
+		//操作信息
+		Message string `json:"message"`
+		// //响应结果
+		Result []ClusterM `json:"reslut"`
+	}
+}
+
+type ClusterM struct {
+	Name    string `json:"name"`
+	Address string `json:"address"`
 }
 
 //////////////////

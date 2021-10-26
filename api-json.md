@@ -10,6 +10,49 @@ http://10.23.5.212:20001
 }
 ```
 
+
+#####请求获取集群列表
+```
+curl --location --request GET 'http://10.23.5.212:20001/istio/api/clusters'
+```
+```
+{
+    "code": 200,
+    "message": "status ok",
+    "result": [
+        {
+            "name": "shareit-cce-test",
+            "address": ""
+        }
+    ]
+}
+```
+
+
+#####请求获取集群的命名空间列表
+```
+curl --location --request GET 'http://10.23.5.212:20001/istio/api/namespaces?cluster=shareit-cce-test'
+```
+```
+{
+    "code": 200,
+    "message": "status ok",
+    "result": [
+        {
+            "name": "ads",
+            "labels": {
+                "gimbal-discovery": "true",
+                "project": "ads",
+                "shareit_source_from": "shareit"
+            },
+            "annotations": {}
+        }
+    ]
+}
+```
+
+
+
 #####请求获取服务列表serviceList
 
 ```
@@ -20,20 +63,16 @@ curl --location --request GET 'http://10.23.5.212:20001/istio/api/namespaces/sam
     "code":100200,
     "message":"status ok",
     "result":{
-        "namespace":{
+        "namespace":{  //k8s 命名空间信息
             "name":"sample",
             "labels":null,
             "annotations":null
         },
-        "services":[
+        "services":[  //服务列表
             {
-                "name":"helloworld",
-                "istioSidecar":true,
+                "name":"helloworld", //服务名称
+                "istioSidecar":true, //服务是否开启serviceMesh
                 "appLabel":true,
-                "additionalDetailSample":null,
-                "healthAnnotations":{
-
-                },
                 "labels":{
                     "app":"helloworld",
                     "service":"helloworld"
@@ -49,8 +88,7 @@ curl --location --request GET 'http://10.23.5.212:20001/istio/api/namespaces/sam
                         "name":"helloworld",
                         "namespace":"sample"
                     }
-                ],
-                "kialiWizard":"request_routing"
+                ]
             },
             {
                 "name":"httpbin",
@@ -66,67 +104,9 @@ curl --location --request GET 'http://10.23.5.212:20001/istio/api/namespaces/sam
                 },
                 "istioReferences":[
 
-                ],
-                "kialiWizard":""
-            },
-            {
-                "name":"sleep",
-                "istioSidecar":true,
-                "appLabel":true,
-                "additionalDetailSample":null,
-                "healthAnnotations":{
-
-                },
-                "labels":{
-                    "app":"sleep",
-                    "service":"sleep"
-                },
-                "istioReferences":[
-                    {
-                        "objectType":"VirtualService",
-                        "name":"sleep",
-                        "namespace":"sample"
-                    },
-                    {
-                        "objectType":"DestinationRule",
-                        "name":"sleep",
-                        "namespace":"sample"
-                    }
-                ],
-                "kialiWizard":"request_routing"
+                ]
             }
-        ],
-        "validations":{
-            "service":{
-                "helloworld":{
-                    "name":"helloworld",
-                    "objectType":"service",
-                    "valid":true,
-                    "checks":[
-
-                    ],
-                    "references":null
-                },
-                "httpbin":{
-                    "name":"httpbin",
-                    "objectType":"service",
-                    "valid":true,
-                    "checks":[
-
-                    ],
-                    "references":null
-                },
-                "sleep":{
-                    "name":"sleep",
-                    "objectType":"service",
-                    "valid":true,
-                    "checks":[
-
-                    ],
-                    "references":null
-                }
-            }
-        }
+        ]
     }
 }
 ```
@@ -139,8 +119,8 @@ curl --location --request GET 'http://10.23.5.212:20001/istio/api/namespaces/sam
     "code":100200,
     "message":"status ok",
     "result":{
-        "service":{  //service 信息
-            "name":"helloworld",
+        "service":{  //服务信息
+            "name":"helloworld", //服务名
             "namespace":{
                 "name":"sample",
                 "labels":null,
@@ -149,28 +129,14 @@ curl --location --request GET 'http://10.23.5.212:20001/istio/api/namespaces/sam
             "labels":{
                 "app":"helloworld",
                 "service":"helloworld"
-            },
-            "selectors":{
-                "app":"helloworld"
-            },
-            "type":"ClusterIP",
-            "ports":[
-                {
-                    "name":"http",
-                    "protocol":"TCP",
-                    "port":5000
-                }
-            ]
+            }
         },
         "istioSidecar":true, //service 是否启用服务网格
         "workloads":[  //此service下各个版本的Deployment
             {
                 "name":"helloworld-v1",
                 "type":"Deployment",
-                "createdAt":"2021-10-13T02:59:42Z",
-                "resourceVersion":"178060969",
                 "istioSidecar":true,
-                "additionalDetailSample":null,
                 "labels":{
                     "app":"helloworld",
                     "version":"v1"
@@ -189,10 +155,7 @@ curl --location --request GET 'http://10.23.5.212:20001/istio/api/namespaces/sam
             {
                 "name":"helloworld-v2",
                 "type":"Deployment",
-                "createdAt":"2021-10-13T02:59:42Z",
-                "resourceVersion":"178060974",
                 "istioSidecar":true,
-                "additionalDetailSample":null,
                 "labels":{
                     "app":"helloworld",
                     "version":"v2"
@@ -217,11 +180,6 @@ curl --location --request GET 'http://10.23.5.212:20001/istio/api/namespaces/sam
                     "metadata":{
                         "name":"helloworld",
                         "namespace":"sample",
-                        "selfLink":"/apis/networking.istio.io/v1alpha3/namespaces/sample/virtualservices/helloworld",
-                        "uid":"3b2de387-cd61-40af-970e-5909a4e5925c",
-                        "resourceVersion":"177514764",
-                        "generation":1,
-                        "creationTimestamp":"2021-10-20T08:33:47Z",
                         "labels":{
                             "kiali_wizard":"request_routing"
                         }
@@ -234,36 +192,37 @@ curl --location --request GET 'http://10.23.5.212:20001/istio/api/namespaces/sam
             "items":[
                 {
                     "kind":"DestinationRule",
-                    "apiVersion":"networking.istio.io/v1alpha3",
                     "metadata":{
-                        "name":"helloworld",
-                        "namespace":"sample",
-                        "selfLink":"/apis/networking.istio.io/v1alpha3/namespaces/sample/destinationrules/helloworld",
-                        "uid":"4cfe71d9-6045-4b2e-aadf-23ed7d6c7fe6",
-                        "resourceVersion":"177518259",
-                        "generation":3,
-                        "creationTimestamp":"2021-10-20T08:33:47Z",
-                        "labels":{
-                            "kiali_wizard":"request_routing"
-                        }
+                        "name":"helloworld", //destinationRules名称
+                        "namespace":"sample" 
                     },
                     "spec": {
                         "host": "helloworld.sample.svc.cluster.local",
                         "trafficPolicy": { // 流量配置
                             "connectionPool": { //连接池
-                                "http": {
-                                    "http1MaxPendingRequests": 100
+                                "http": {  //http 配置, 这个参数在页面中都用原名直接显示，不用中文说明
+                                    "http1MaxPendingRequests": 1000,
+                                    "maxRequestsPerConnection":10000，
+                                    "http2MaxRequests":1000,
+                                    "idleTimeout":"1h",
                                 },
-                                "tcp": {
-                                    "maxConnections": 100
+                                "tcp": { //tcp配置
+                                    "maxConnections": 100,
+                                    "connectTimeout": "30ms"
                                 }
                             },
-                            "loadBalancer": { //负载均衡配置
-                                "consistentHash": {
-                                    "httpHeaderName": "user"
+                            "loadBalancer": { //负载均衡配置,simple和consistentHash只会返回一个
+                                "simple":null,
+                                "consistentHash":{ //3个选项只会返回一种
+                                    "httpHeaderName":"xiaoming",
+                                    "httpCookie":{
+                                        "name":"xiaoming",
+                                        "ttl":"10s"
+                                    },
+                                    "useSourceIp":true
                                 }
                             },
-                            "outlierDetection": { //
+                            "outlierDetection": { 
                                 "consecutiveErrors": 10
                                 "consecutiveGatewayErrors":5,
                                 "consecutive_5XxErrors":5,
@@ -335,8 +294,7 @@ curl --location --request POST 'http://10.23.5.212:20001/istio/api/namespaces/sa
         "name":"helloworld"   //必填，服务名
     },
     "spec":{
-        "host":"helloworld.sample.svc.cluster.local", //格式为："服务名"+"."+"k8s命名空间"+"svc.cluster.local"
-        "subsets":[   //非必填，根据从service接口获取的数据，选择填写
+        "subsets":[   //非必填，根据从service详情接口获取的workloads，选择填写
             {
                 "name":"v1",
                 "labels":{
@@ -364,11 +322,11 @@ curl --location --request POST 'http://10.23.5.212:20001/istio/api/namespaces/sa
             },
             "connectionPool":{ //非必填，连接池管理
                 "tcp":{
-                    "maxConnections":123
-                    "connectTimeout":10s  
+                    "maxConnections":100
+                    "connectTimeout":"10s"  
                 },
                 "http":{
-                    "http1MaxPendingRequests":123
+                    "http1MaxPendingRequests":100
                     "http2MaxRequests":1000,
                     "maxRequestsPerConnection":10000
                     "idleTimeout":"1h",
@@ -415,20 +373,19 @@ curl --location --request GET 'http://10.23.5.212:20001/istio/api/namespaces/sam
             "apiVersion": "networking.istio.io/v1alpha3",
             "metadata": {
                 "name": "helloworld",
-                "namespace": "sample",
-                "selfLink": "/apis/networking.istio.io/v1alpha3/namespaces/sample/destinationrules/helloworld",
-                "uid": "5c8210dd-900e-4666-a83f-b54361157d67",
-                "resourceVersion": "178562970",
-                "generation": 7,
-                "creationTimestamp": "2021-10-22T09:09:58Z"
+                "namespace": "sample"
             },
             "spec": {
                 "host": "helloworld.sample.svc.cluster.local",
                 "trafficPolicy": {
                     "loadBalancer": {
-                        "consistentHash": {
-                            "httpHeaderName": "abcd",
-                            "useSourceIp": true
+                        "consistentHash": { // 3个只会显示其中一项
+                            "httpHeaderName": "xiaoming",
+                            "useSourceIp": false,
+                            "httpCookie":{
+                                "name":"xiaoming",
+                                "ttl":"10s"
+                            },
                         }
                     }
                 },
@@ -461,17 +418,32 @@ curl --location --request POST 'http://10.23.5.212:20001/istio/api/namespaces/sa
 ```
 {
     "metadata":{
-        "namespace":"sample",  //必填，服务名
-        "name":"helloworld"    //必填，k8s命名空间
+        "name":"helloworld",  //必填
     },
     "spec":{
         "hosts":[  //必填
-            "helloworld.sample.svc.cluster.local"  //默认加上此值，格式为："服务名"+"."+"k8s命名空间"+"svc.cluster.local"
-            "scmp-test.ushareit.me"  //选填
+            "scmp-test.ushareit.me",
+            "scmp-dev.com"
         ],
         "http":[ //流量规则
             {
-                "route":[
+                "match":[
+                    {
+                        "headers":{  //http header匹配
+                            "user":{ // 3选一
+                                "regex":"^.*$",
+                                "prefix":"xiao",
+                                "exact":"xiaoming"
+                            }
+                        },
+                        "uri":{ //http uri匹配，3选一
+                            "prefix":"/api/v1",
+                            "regex":"/v3/.*?/user",
+                            "exact":"/v2/user"
+                        }
+                    }
+                ],
+                "route":[   //通过服务列表获取数据
                     {
                         "destination":{
                             "host":"helloworld.sample.svc.cluster.local",
@@ -485,18 +457,6 @@ curl --location --request POST 'http://10.23.5.212:20001/istio/api/namespaces/sa
                             "subset":"v2"
                         },
                         "weight":50
-                    }
-                ],
-                "match":[
-                    {
-                        "headers":{
-                            "aabb":{
-                                "regex":"^.*$"
-                            }
-                        },
-                        "uri":{
-                            "prefix":"/api/v1"
-                        }
                     }
                 ]
             }
@@ -516,7 +476,7 @@ curl --location --request POST 'http://10.23.5.212:20001/istio/api/namespaces/sa
             }
         },
         "timeout":"2s",  //选填，超时控制
-        "retries":{  //必填，默认值 attempts写0，其他字段不写
+        "retries":{  //选填
             "attempts":3,
             "perTryTimeout":"2s",
             "retryOn":"gateway-error,connect-failure,refused-stream" //多选，用","组合成字符串
@@ -1172,3 +1132,578 @@ curl --location --request GET 'http://10.23.5.212:20001/istio/api/namespaces/sam
 }
 
 ```
+
+
+
+#####获取服务链路追踪信息
+
+```
+curl --location --request GET 'http://10.23.5.212:20001/istio/api/namespaces/sample/services/helloworld/traces?cluster=shareit-cce-test&startMicros=1635215359921000&limit=100'
+```
+```
+{
+  "code": 200,
+  "message": "status ok",
+  "result": {
+      "data": [
+          {
+              "traceID": "bf01a85a3805b250a72a39b29a8cc34e",
+              "spans": [
+                  {
+                      "traceID": "bf01a85a3805b250a72a39b29a8cc34e",
+                      "spanID": "a72a39b29a8cc34e",
+                      "operationName": "helloworld:5000/*",
+                      "references": [],
+                      "startTime": 1635215887141507,
+                      "duration": 87955,
+                      "tags": [
+                          {
+                              "key": "response_flags",
+                              "type": "string",
+                              "value": "DC"
+                          },
+                          {
+                              "key": "http.status_code",
+                              "type": "string",
+                              "value": "0"
+                          },
+                          {
+                              "key": "http.method",
+                              "type": "string",
+                              "value": "GET"
+                          },
+                          {
+                              "key": "istio.namespace",
+                              "type": "string",
+                              "value": "sample"
+                          },
+                          {
+                              "key": "user_agent",
+                              "type": "string",
+                              "value": "curl/7.78.0-DEV"
+                          },
+                          {
+                              "key": "downstream_cluster",
+                              "type": "string",
+                              "value": "-"
+                          },
+                          {
+                              "key": "response_size",
+                              "type": "string",
+                              "value": "0"
+                          },
+                          {
+                              "key": "node_id",
+                              "type": "string",
+                              "value": "sidecar~10.22.5.60~sleep-688d8dd85f-4sxh6.sample~sample.svc.cluster.local"
+                          },
+                          {
+                              "key": "istio.canonical_revision",
+                              "type": "string",
+                              "value": "latest"
+                          },
+                          {
+                              "key": "component",
+                              "type": "string",
+                              "value": "proxy"
+                          },
+                          {
+                              "key": "guid:x-request-id",
+                              "type": "string",
+                              "value": "d3f1a814-7253-9607-b7d7-4588b97e3313"
+                          },
+                          {
+                              "key": "istio.mesh_id",
+                              "type": "string",
+                              "value": "mesh1"
+                          },
+                          {
+                              "key": "http.url",
+                              "type": "string",
+                              "value": "http://helloworld:5000/hello"
+                          },
+                          {
+                              "key": "upstream_cluster",
+                              "type": "string",
+                              "value": "outbound|5000|v2|helloworld.sample.svc.cluster.local"
+                          },
+                          {
+                              "key": "upstream_cluster.name",
+                              "type": "string",
+                              "value": "outbound|5000|v2|helloworld.sample.svc.cluster.local"
+                          },
+                          {
+                              "key": "request_size",
+                              "type": "string",
+                              "value": "0"
+                          },
+                          {
+                              "key": "error",
+                              "type": "bool",
+                              "value": true
+                          },
+                          {
+                              "key": "istio.canonical_service",
+                              "type": "string",
+                              "value": "sleep"
+                          },
+                          {
+                              "key": "http.protocol",
+                              "type": "string",
+                              "value": "HTTP/1.1"
+                          },
+                          {
+                              "key": "peer.address",
+                              "type": "string",
+                              "value": "10.22.5.60"
+                          },
+                          {
+                              "key": "span.kind",
+                              "type": "string",
+                              "value": "client"
+                          },
+                          {
+                              "key": "internal.span.format",
+                              "type": "string",
+                              "value": "zipkin"
+                          }
+                      ],
+                      "logs": [],
+                      "processID": "p1",
+                      "warnings": null
+                  },
+                  {
+                      "traceID": "bf01a85a3805b250a72a39b29a8cc34e",
+                      "spanID": "961b525481896353",
+                      "operationName": "helloworld:5000/*",
+                      "references": [
+                          {
+                              "refType": "CHILD_OF",
+                              "traceID": "bf01a85a3805b250a72a39b29a8cc34e",
+                              "spanID": "a72a39b29a8cc34e"
+                          }
+                      ],
+                      "startTime": 1635215887141777,
+                      "duration": 88321,
+                      "tags": [
+                          {
+                              "key": "error",
+                              "type": "bool",
+                              "value": true
+                          },
+                          {
+                              "key": "node_id",
+                              "type": "string",
+                              "value": "sidecar~10.22.6.52~helloworld-v2-7cdb9c6c8c-m7lb2.sample~sample.svc.cluster.local"
+                          },
+                          {
+                              "key": "upstream_cluster",
+                              "type": "string",
+                              "value": "inbound|5000||"
+                          },
+                          {
+                              "key": "peer.address",
+                              "type": "string",
+                              "value": "10.22.5.60"
+                          },
+                          {
+                              "key": "http.url",
+                              "type": "string",
+                              "value": "http://helloworld:5000/hello"
+                          },
+                          {
+                              "key": "response_flags",
+                              "type": "string",
+                              "value": "DC"
+                          },
+                          {
+                              "key": "request_size",
+                              "type": "string",
+                              "value": "0"
+                          },
+                          {
+                              "key": "guid:x-request-id",
+                              "type": "string",
+                              "value": "d3f1a814-7253-9607-b7d7-4588b97e3313"
+                          },
+                          {
+                              "key": "http.method",
+                              "type": "string",
+                              "value": "GET"
+                          },
+                          {
+                              "key": "http.protocol",
+                              "type": "string",
+                              "value": "HTTP/1.1"
+                          },
+                          {
+                              "key": "user_agent",
+                              "type": "string",
+                              "value": "curl/7.78.0-DEV"
+                          },
+                          {
+                              "key": "istio.canonical_service",
+                              "type": "string",
+                              "value": "helloworld"
+                          },
+                          {
+                              "key": "istio.namespace",
+                              "type": "string",
+                              "value": "sample"
+                          },
+                          {
+                              "key": "http.status_code",
+                              "type": "string",
+                              "value": "0"
+                          },
+                          {
+                              "key": "downstream_cluster",
+                              "type": "string",
+                              "value": "-"
+                          },
+                          {
+                              "key": "component",
+                              "type": "string",
+                              "value": "proxy"
+                          },
+                          {
+                              "key": "response_size",
+                              "type": "string",
+                              "value": "0"
+                          },
+                          {
+                              "key": "istio.mesh_id",
+                              "type": "string",
+                              "value": "mesh1"
+                          },
+                          {
+                              "key": "istio.canonical_revision",
+                              "type": "string",
+                              "value": "v2"
+                          },
+                          {
+                              "key": "upstream_cluster.name",
+                              "type": "string",
+                              "value": "inbound|5000||"
+                          },
+                          {
+                              "key": "span.kind",
+                              "type": "string",
+                              "value": "server"
+                          },
+                          {
+                              "key": "internal.span.format",
+                              "type": "string",
+                              "value": "zipkin"
+                          }
+                      ],
+                      "logs": [],
+                      "processID": "p2",
+                      "warnings": null
+                  }
+              ],
+              "processes": {
+                  "p1": {
+                      "serviceName": "sleep.sample",
+                      "tags": [
+                          {
+                              "key": "ip",
+                              "type": "string",
+                              "value": "10.22.5.60"
+                          }
+                      ]
+                  },
+                  "p2": {
+                      "serviceName": "helloworld.sample",
+                      "tags": [
+                          {
+                              "key": "ip",
+                              "type": "string",
+                              "value": "10.22.6.52"
+                          }
+                      ]
+                  }
+              },
+              "warnings": null
+          },
+          {
+              "traceID": "80d87a03535366c560bb0543b1630e8c",
+              "spans": [
+                  {
+                      "traceID": "80d87a03535366c560bb0543b1630e8c",
+                      "spanID": "60bb0543b1630e8c",
+                      "operationName": "helloworld:5000/*",
+                      "references": [],
+                      "startTime": 1635215887030835,
+                      "duration": 105623,
+                      "tags": [
+                          {
+                              "key": "http.method",
+                              "type": "string",
+                              "value": "GET"
+                          },
+                          {
+                              "key": "http.protocol",
+                              "type": "string",
+                              "value": "HTTP/1.1"
+                          },
+                          {
+                              "key": "guid:x-request-id",
+                              "type": "string",
+                              "value": "9d0f9763-65a5-96c2-a99c-3fcdc7ffd9df"
+                          },
+                          {
+                              "key": "istio.mesh_id",
+                              "type": "string",
+                              "value": "mesh1"
+                          },
+                          {
+                              "key": "istio.namespace",
+                              "type": "string",
+                              "value": "sample"
+                          },
+                          {
+                              "key": "response_flags",
+                              "type": "string",
+                              "value": "-"
+                          },
+                          {
+                              "key": "http.status_code",
+                              "type": "string",
+                              "value": "200"
+                          },
+                          {
+                              "key": "user_agent",
+                              "type": "string",
+                              "value": "curl/7.78.0-DEV"
+                          },
+                          {
+                              "key": "upstream_cluster.name",
+                              "type": "string",
+                              "value": "outbound|5000|v1|helloworld.sample.svc.cluster.local"
+                          },
+                          {
+                              "key": "istio.canonical_revision",
+                              "type": "string",
+                              "value": "latest"
+                          },
+                          {
+                              "key": "peer.address",
+                              "type": "string",
+                              "value": "10.22.5.60"
+                          },
+                          {
+                              "key": "istio.canonical_service",
+                              "type": "string",
+                              "value": "sleep"
+                          },
+                          {
+                              "key": "upstream_cluster",
+                              "type": "string",
+                              "value": "outbound|5000|v1|helloworld.sample.svc.cluster.local"
+                          },
+                          {
+                              "key": "request_size",
+                              "type": "string",
+                              "value": "0"
+                          },
+                          {
+                              "key": "component",
+                              "type": "string",
+                              "value": "proxy"
+                          },
+                          {
+                              "key": "node_id",
+                              "type": "string",
+                              "value": "sidecar~10.22.5.60~sleep-688d8dd85f-4sxh6.sample~sample.svc.cluster.local"
+                          },
+                          {
+                              "key": "http.url",
+                              "type": "string",
+                              "value": "http://helloworld:5000/hello"
+                          },
+                          {
+                              "key": "response_size",
+                              "type": "string",
+                              "value": "60"
+                          },
+                          {
+                              "key": "downstream_cluster",
+                              "type": "string",
+                              "value": "-"
+                          },
+                          {
+                              "key": "span.kind",
+                              "type": "string",
+                              "value": "client"
+                          },
+                          {
+                              "key": "internal.span.format",
+                              "type": "string",
+                              "value": "zipkin"
+                          }
+                      ],
+                      "logs": [],
+                      "processID": "p1",
+                      "warnings": null
+                  },
+                  {
+                      "traceID": "80d87a03535366c560bb0543b1630e8c",
+                      "spanID": "10940e67dfeddd65",
+                      "operationName": "helloworld:5000/*",
+                      "references": [
+                          {
+                              "refType": "CHILD_OF",
+                              "traceID": "80d87a03535366c560bb0543b1630e8c",
+                              "spanID": "60bb0543b1630e8c"
+                          }
+                      ],
+                      "startTime": 1635215887031128,
+                      "duration": 104694,
+                      "tags": [
+                          {
+                              "key": "http.method",
+                              "type": "string",
+                              "value": "GET"
+                          },
+                          {
+                              "key": "response_flags",
+                              "type": "string",
+                              "value": "-"
+                          },
+                          {
+                              "key": "component",
+                              "type": "string",
+                              "value": "proxy"
+                          },
+                          {
+                              "key": "istio.canonical_revision",
+                              "type": "string",
+                              "value": "v1"
+                          },
+                          {
+                              "key": "upstream_cluster.name",
+                              "type": "string",
+                              "value": "inbound|5000||"
+                          },
+                          {
+                              "key": "downstream_cluster",
+                              "type": "string",
+                              "value": "-"
+                          },
+                          {
+                              "key": "guid:x-request-id",
+                              "type": "string",
+                              "value": "9d0f9763-65a5-96c2-a99c-3fcdc7ffd9df"
+                          },
+                          {
+                              "key": "peer.address",
+                              "type": "string",
+                              "value": "10.22.5.60"
+                          },
+                          {
+                              "key": "http.status_code",
+                              "type": "string",
+                              "value": "200"
+                          },
+                          {
+                              "key": "istio.namespace",
+                              "type": "string",
+                              "value": "sample"
+                          },
+                          {
+                              "key": "node_id",
+                              "type": "string",
+                              "value": "sidecar~10.22.6.50~helloworld-v1-56d6d5d49c-nlfmv.sample~sample.svc.cluster.local"
+                          },
+                          {
+                              "key": "upstream_cluster",
+                              "type": "string",
+                              "value": "inbound|5000||"
+                          },
+                          {
+                              "key": "user_agent",
+                              "type": "string",
+                              "value": "curl/7.78.0-DEV"
+                          },
+                          {
+                              "key": "istio.mesh_id",
+                              "type": "string",
+                              "value": "mesh1"
+                          },
+                          {
+                              "key": "istio.canonical_service",
+                              "type": "string",
+                              "value": "helloworld"
+                          },
+                          {
+                              "key": "http.protocol",
+                              "type": "string",
+                              "value": "HTTP/1.1"
+                          },
+                          {
+                              "key": "response_size",
+                              "type": "string",
+                              "value": "60"
+                          },
+                          {
+                              "key": "request_size",
+                              "type": "string",
+                              "value": "0"
+                          },
+                          {
+                              "key": "http.url",
+                              "type": "string",
+                              "value": "http://helloworld:5000/hello"
+                          },
+                          {
+                              "key": "span.kind",
+                              "type": "string",
+                              "value": "server"
+                          },
+                          {
+                              "key": "internal.span.format",
+                              "type": "string",
+                              "value": "zipkin"
+                          }
+                      ],
+                      "logs": [],
+                      "processID": "p2",
+                      "warnings": null
+                  }
+              ],
+              "processes": {
+                  "p1": {
+                      "serviceName": "sleep.sample",
+                      "tags": [
+                          {
+                              "key": "ip",
+                              "type": "string",
+                              "value": "10.22.5.60"
+                          }
+                      ]
+                  },
+                  "p2": {
+                      "serviceName": "helloworld.sample",
+                      "tags": [
+                          {
+                              "key": "ip",
+                              "type": "string",
+                              "value": "10.22.6.50"
+                          }
+                      ]
+                  }
+              },
+              "warnings": null
+          }
+      ],
+      "errors": null,
+      "jaegerServiceName": "helloworld.sample"
+  }
+}
+
+```
+
+
+
+
