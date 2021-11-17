@@ -275,7 +275,13 @@ func IstioConfigUpdate(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		RespondWithError(w, http.StatusBadRequest, "Update request with bad update patch: "+err.Error())
 	}
-	jsonPatch := string(body)
+
+	newBody, err := fixRequestBody(objectType, body)
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, "request body error: "+err.Error())
+	}
+
+	jsonPatch := string(newBody)
 	updatedConfigDetails, err := business.IstioConfig.UpdateIstioConfigDetail(api, namespace, objectType, object, jsonPatch)
 
 	if err != nil {
@@ -360,6 +366,12 @@ func IstioConfigCreate(w http.ResponseWriter, r *http.Request) {
 	namespace := params["namespace"]
 	objectType := params["object_type"]
 
+	// cluster := r.URL.Query().Get("cluster")
+	// if _, ok := business.ClusterMap[cluster]; !ok {
+	// 	RespondWithJSON(w, http.StatusOK, "")
+	// 	return
+	// }
+
 	api := business.GetIstioAPI(objectType)
 	if api == "" {
 		RespondWithError(w, http.StatusBadRequest, "Object type not managed: "+objectType)
@@ -403,19 +415,26 @@ func fixRequestBody(objectType string, body []byte) (res []byte, err error) {
 			log.Infof("err:[%s]", err)
 			return
 		}
-		v.Metadata.Namespace = "sample"
+		// v.Metadata.Namespace = "sample"
 
 		// for i, _ := range v.Spec.Http {
 		// 	for j, _ := range v.Spec.Http[i].Route {
 		// 		v.Spec.Http[i].Route[j].Destination.Host = v.Spec.Http[i].Route[j].Destination.Host + ".svc.cluster.local"
 		// 	}
 		// }
+		for i := range v.Spec.Http {
+			if v.Spec.Http[i].Retries == nil {
+				v.Spec.Http[i].Retries = &models.HTTPRetry{
+					Attempts: 0,
+				}
+			}
+		}
+
 		res, err = json.Marshal(v)
 		if err != nil {
 			log.Infof("err:[%s]", err)
 			return
 		}
-
 	case kubernetes.DestinationRules:
 		v := &models.DestinationRuleM{}
 		err = json.Unmarshal(body, v)
@@ -430,6 +449,9 @@ func fixRequestBody(objectType string, body []byte) (res []byte, err error) {
 			return
 		}
 	}
+
+	fmt.Println("before:", string(body))
+	fmt.Printf("after:%+v\n", string(res))
 
 	return
 }

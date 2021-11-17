@@ -95,7 +95,7 @@ func (in *AppService) GetAppList(namespace string, linkIstioResources bool) (mod
 			go func(namespace, resourceType string, dest *[]kubernetes.IstioObject, errChan chan error) {
 				defer wg.Done()
 				var err2 error
-				if IsNamespaceCached(namespace) {
+				if IsNamespaceCached("", namespace) {
 					*dest, err2 = kialiCache.GetIstioObjects(namespace, resourceType, "")
 				} else {
 					*dest, err2 = in.k8s.GetIstioObjects(namespace, resourceType, "")
@@ -285,7 +285,7 @@ func fetchNamespaceApps(layer *Layer, namespace string, appName string) (namespa
 		defer wg.Done()
 		var err error
 		// Check if namespace is cached
-		if IsNamespaceCached(namespace) {
+		if IsNamespaceCached("", namespace) {
 			services, err = kialiCache.GetServices(namespace, nil)
 		} else {
 			// services, err = layer.k8s.GetServices(namespace, nil)

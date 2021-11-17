@@ -78,8 +78,9 @@ type (
 )
 
 var RemoteK8S *kubernetes.K8SClient
+var RemoteClusters = map[string]*kubernetes.K8SClient{}
 
-func NewKialiCache() (KialiCache, error) {
+func NewKialiCache(cluster string) (KialiCache, error) {
 	config, err := kubernetes.ConfigClient()
 	if err != nil {
 		return nil, err
@@ -137,7 +138,8 @@ func NewKialiCache() (KialiCache, error) {
 		tokenNamespaceDuration: tokenNamespaceDuration,
 		proxyStatusNamespaces:  make(map[string]map[string]podProxyStatus),
 	}
-	kialiCacheImpl.k8sApi = RemoteK8S.GetK8sApi()
+	// kialiCacheImpl.k8sApi = RemoteK8S.GetK8sApi()
+	kialiCacheImpl.k8sApi = RemoteClusters[cluster].GetK8sApi()
 	// kialiCacheImpl.k8sApi = istioClient.GetK8sApi()
 	kialiCacheImpl.istioNetworkingGetter = istioClient.GetIstioNetworkingApi()
 	kialiCacheImpl.istioSecurityGetter = istioClient.GetIstioSecurityApi()

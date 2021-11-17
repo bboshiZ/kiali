@@ -44,7 +44,7 @@ func (in *Iter8Service) GetIter8Info() models.Iter8Info {
 				Namespace:              conf.Extensions.Iter8.Namespace,
 			}
 		}
-		if IsNamespaceCached(conf.Extensions.Iter8.Namespace) {
+		if IsNamespaceCached("", conf.Extensions.Iter8.Namespace) {
 			ps, err = kialiCache.GetPods(conf.Extensions.Iter8.Namespace, "")
 		} else {
 			ps, err = in.k8s.GetPods(conf.Extensions.Iter8.Namespace, "")

@@ -39,15 +39,26 @@ var clientFactory kubernetes.ClientFactory
 var prometheusClient prometheus.ClientInterface
 var once sync.Once
 var kialiCache cache.KialiCache
+var kialiRemoteCache = map[string]cache.KialiCache{}
 
-func initKialiCache() {
+func initKialiCache(remoteClusters []string) {
 	if config.Get().KubernetesConfig.CacheEnabled {
-		if cache, err := cache.NewKialiCache(); err != nil {
-			log.Errorf("Error initializing Kiali Cache. Details: %s", err)
-		} else {
-			kialiCache = cache
+		// if cache, err := cache.NewKialiCache(); err != nil {
+		// 	log.Errorf("Error initializing Kiali Cache. Details: %s", err)
+		// } else {
+		// 	kialiCache = cache
+		// }
+
+		for _, c := range remoteClusters {
+			if cache, err := cache.NewKialiCache(c); err != nil {
+				log.Errorf("Error initializing Kiali Cache. Details: %s", err)
+			} else {
+				kialiRemoteCache[c] = cache
+			}
 		}
+
 	}
+
 	if excludedWorkloads == nil {
 		excludedWorkloads = make(map[string]bool)
 		for _, w := range config.Get().KubernetesConfig.ExcludeWorkloads {
@@ -56,15 +67,19 @@ func initKialiCache() {
 	}
 }
 
-func IsNamespaceCached(namespace string) bool {
-	ok := kialiCache != nil && kialiCache.CheckNamespace(namespace)
+func IsNamespaceCached(cluster, namespace string) bool {
+	// ok := kialiCache != nil && kialiCache.CheckNamespace(namespace)
+	ok := kialiRemoteCache[cluster] != nil && kialiRemoteCache[cluster].CheckNamespace(namespace)
+
 	return ok
 }
 
-func IsResourceCached(namespace string, resource string) bool {
-	ok := IsNamespaceCached(namespace)
+func IsResourceCached(cluster, namespace string, resource string) bool {
+	ok := IsNamespaceCached(cluster, namespace)
 	if ok && resource != "" {
-		ok = kialiCache.CheckIstioResource(resource)
+		// ok = kialiCache.CheckIstioResource(resource)
+		ok = kialiRemoteCache[cluster].CheckIstioResource(resource)
+
 	}
 	return ok
 }

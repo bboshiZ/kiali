@@ -1,0 +1,33 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"networking.istio.io/v1beta1","kind":"VirtualService","metadata":{"annotations":{},"labels":{"kiali_wizard":"request_routing"},"name":"helloworld","namespace":"sample"},"spec":{"hosts":["helloworld.sample.svc.cluster.local"],"http":[{"fault":{"delay":{"fixedDelay":"5s","percentage":{"value":100}}},"match":[{"uri":{"prefix":"/api/v1"}}],"route":[{"destination":{"host":"helloworld.sample.svc.cluster.local","subset":"v1"},"weight":66},{"destination":{"host":"helloworld.sample.svc.cluster.local","subset":"v2"},"weight":34}]}]}}
+  creationTimestamp: "2021-11-17T06:35:58Z"
+  generation: 4
+  labels:
+    kiali_wizard: request_routing
+  name: helloworld
+  namespace: sample
+spec:
+  hosts:
+  - helloworld.sample.svc.cluster.local
+  http:
+  - fault:
+      delay:
+        fixedDelay: 5s
+        percentage:
+          value: 100
+    match:
+    - uri:
+        prefix: /api/v1
+    route:
+    - destination:
+        host: helloworld.sample.svc.cluster.local
+        subset: v1
+      weight: 66
+    - destination:
+        host: helloworld.sample.svc.cluster.local
+        subset: v2
+      weight: 34

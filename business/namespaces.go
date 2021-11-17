@@ -1,6 +1,7 @@
 package business
 
 import (
+	"fmt"
 	"regexp"
 
 	osproject_v1 "github.com/openshift/api/project/v1"
@@ -59,8 +60,10 @@ func NewNamespaceService(k8s kubernetes.ClientInterface) NamespaceService {
 
 // Returns a list of the given namespaces / projects
 func (in *NamespaceService) GetRemoteNamespaces(cluster string) ([]models.Namespace, error) {
-	if kialiCache != nil {
-		if ns := kialiCache.GetNamespaces(in.k8s.GetToken()); ns != nil {
+	if kialiRemoteCache[cluster] != nil {
+		// if ns := kialiRemoteCache[cluster].GetNamespaces(in.k8s.GetToken()); ns != nil {
+		if ns := kialiRemoteCache[cluster].GetNamespaces(remoteIstioClusters[cluster].Token); ns != nil {
+			fmt.Println("GetRemoteNamespaces from cache")
 			return ns, nil
 		}
 	}
@@ -144,8 +147,8 @@ func (in *NamespaceService) GetRemoteNamespaces(cluster string) ([]models.Namesp
 		}
 	}
 
-	if kialiCache != nil {
-		kialiCache.SetNamespaces(in.k8s.GetToken(), result)
+	if kialiRemoteCache[cluster] != nil {
+		kialiRemoteCache[cluster].SetNamespaces(remoteIstioClusters[cluster].Token, result)
 	}
 
 	return result, nil

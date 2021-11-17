@@ -126,7 +126,7 @@ func (in *IstioConfigService) GetIstioConfigList(criteria IstioConfigCriteria) (
 			var gg []kubernetes.IstioObject
 			var ggErr error
 			// Check if namespace is cached
-			if IsResourceCached(criteria.Namespace, kubernetes.Gateways) {
+			if IsResourceCached("", criteria.Namespace, kubernetes.Gateways) {
 				gg, ggErr = kialiCache.GetIstioObjects(criteria.Namespace, kubernetes.Gateways, criteria.LabelSelector)
 			} else {
 				gg, ggErr = in.k8s.GetIstioObjects(criteria.Namespace, kubernetes.Gateways, criteria.LabelSelector)
@@ -148,7 +148,7 @@ func (in *IstioConfigService) GetIstioConfigList(criteria IstioConfigCriteria) (
 			var vs []kubernetes.IstioObject
 			var vsErr error
 			// Check if namespace is cached
-			if IsResourceCached(criteria.Namespace, kubernetes.VirtualServices) {
+			if IsResourceCached("", criteria.Namespace, kubernetes.VirtualServices) {
 				vs, vsErr = kialiCache.GetIstioObjects(criteria.Namespace, kubernetes.VirtualServices, criteria.LabelSelector)
 			} else {
 				vs, vsErr = in.k8s.GetIstioObjects(criteria.Namespace, kubernetes.VirtualServices, criteria.LabelSelector)
@@ -167,7 +167,7 @@ func (in *IstioConfigService) GetIstioConfigList(criteria IstioConfigCriteria) (
 			var dr []kubernetes.IstioObject
 			var drErr error
 			// Check if namespace is cached
-			if IsResourceCached(criteria.Namespace, kubernetes.DestinationRules) {
+			if IsResourceCached("", criteria.Namespace, kubernetes.DestinationRules) {
 				dr, drErr = kialiCache.GetIstioObjects(criteria.Namespace, kubernetes.DestinationRules, criteria.LabelSelector)
 			} else {
 				dr, drErr = in.k8s.GetIstioObjects(criteria.Namespace, kubernetes.DestinationRules, criteria.LabelSelector)
@@ -186,7 +186,7 @@ func (in *IstioConfigService) GetIstioConfigList(criteria IstioConfigCriteria) (
 			var se []kubernetes.IstioObject
 			var seErr error
 			// Check if namespace is cached
-			if IsResourceCached(criteria.Namespace, kubernetes.ServiceEntries) {
+			if IsResourceCached("", criteria.Namespace, kubernetes.ServiceEntries) {
 				se, seErr = kialiCache.GetIstioObjects(criteria.Namespace, kubernetes.ServiceEntries, criteria.LabelSelector)
 			} else {
 				se, seErr = in.k8s.GetIstioObjects(criteria.Namespace, kubernetes.ServiceEntries, criteria.LabelSelector)
@@ -204,7 +204,7 @@ func (in *IstioConfigService) GetIstioConfigList(criteria IstioConfigCriteria) (
 		if criteria.Include(kubernetes.AuthorizationPolicies) {
 			var ap []kubernetes.IstioObject
 			var apErr error
-			if IsResourceCached(criteria.Namespace, kubernetes.AuthorizationPolicies) {
+			if IsResourceCached("", criteria.Namespace, kubernetes.AuthorizationPolicies) {
 				ap, apErr = kialiCache.GetIstioObjects(criteria.Namespace, kubernetes.AuthorizationPolicies, criteria.LabelSelector)
 			} else {
 				ap, apErr = in.k8s.GetIstioObjects(criteria.Namespace, kubernetes.AuthorizationPolicies, criteria.LabelSelector)
@@ -225,7 +225,7 @@ func (in *IstioConfigService) GetIstioConfigList(criteria IstioConfigCriteria) (
 		if criteria.Include(kubernetes.PeerAuthentications) {
 			var pa []kubernetes.IstioObject
 			var paErr error
-			if IsResourceCached(criteria.Namespace, kubernetes.PeerAuthentications) {
+			if IsResourceCached("", criteria.Namespace, kubernetes.PeerAuthentications) {
 				pa, paErr = kialiCache.GetIstioObjects(criteria.Namespace, kubernetes.PeerAuthentications, criteria.LabelSelector)
 			} else {
 				pa, paErr = in.k8s.GetIstioObjects(criteria.Namespace, kubernetes.PeerAuthentications, criteria.LabelSelector)
@@ -246,7 +246,7 @@ func (in *IstioConfigService) GetIstioConfigList(criteria IstioConfigCriteria) (
 		if criteria.Include(kubernetes.Sidecars) {
 			var sc []kubernetes.IstioObject
 			var scErr error
-			if IsResourceCached(criteria.Namespace, kubernetes.Sidecars) {
+			if IsResourceCached("", criteria.Namespace, kubernetes.Sidecars) {
 				sc, scErr = kialiCache.GetIstioObjects(criteria.Namespace, kubernetes.Sidecars, criteria.LabelSelector)
 			} else {
 				sc, scErr = in.k8s.GetIstioObjects(criteria.Namespace, kubernetes.Sidecars, criteria.LabelSelector)
@@ -267,7 +267,7 @@ func (in *IstioConfigService) GetIstioConfigList(criteria IstioConfigCriteria) (
 		if criteria.Include(kubernetes.WorkloadEntries) {
 			var we []kubernetes.IstioObject
 			var weErr error
-			if IsResourceCached(criteria.Namespace, kubernetes.WorkloadEntries) {
+			if IsResourceCached("", criteria.Namespace, kubernetes.WorkloadEntries) {
 				we, weErr = kialiCache.GetIstioObjects(criteria.Namespace, kubernetes.WorkloadEntries, criteria.LabelSelector)
 			} else {
 				we, weErr = in.k8s.GetIstioObjects(criteria.Namespace, kubernetes.WorkloadEntries, criteria.LabelSelector)
@@ -285,7 +285,7 @@ func (in *IstioConfigService) GetIstioConfigList(criteria IstioConfigCriteria) (
 		if criteria.Include(kubernetes.WorkloadGroups) {
 			var wg []kubernetes.IstioObject
 			var wgErr error
-			if IsResourceCached(criteria.Namespace, kubernetes.WorkloadGroups) {
+			if IsResourceCached("", criteria.Namespace, kubernetes.WorkloadGroups) {
 				wg, wgErr = kialiCache.GetIstioObjects(criteria.Namespace, kubernetes.WorkloadGroups, criteria.LabelSelector)
 			} else {
 				wg, wgErr = in.k8s.GetIstioObjects(criteria.Namespace, kubernetes.WorkloadGroups, criteria.LabelSelector)
@@ -303,7 +303,7 @@ func (in *IstioConfigService) GetIstioConfigList(criteria IstioConfigCriteria) (
 		if criteria.Include(kubernetes.RequestAuthentications) {
 			var ra []kubernetes.IstioObject
 			var raErr error
-			if IsResourceCached(criteria.Namespace, kubernetes.RequestAuthentications) {
+			if IsResourceCached("", criteria.Namespace, kubernetes.RequestAuthentications) {
 				ra, raErr = kialiCache.GetIstioObjects(criteria.Namespace, kubernetes.RequestAuthentications, criteria.LabelSelector)
 			} else {
 				ra, raErr = in.k8s.GetIstioObjects(criteria.Namespace, kubernetes.RequestAuthentications, criteria.LabelSelector)
@@ -324,7 +324,7 @@ func (in *IstioConfigService) GetIstioConfigList(criteria IstioConfigCriteria) (
 		if criteria.Include(kubernetes.EnvoyFilters) {
 			var ef []kubernetes.IstioObject
 			var efErr error
-			if IsResourceCached(criteria.Namespace, kubernetes.EnvoyFilters) {
+			if IsResourceCached("", criteria.Namespace, kubernetes.EnvoyFilters) {
 				ef, efErr = kialiCache.GetIstioObjects(criteria.Namespace, kubernetes.EnvoyFilters, criteria.LabelSelector)
 			} else {
 				ef, efErr = in.k8s.GetIstioObjects(criteria.Namespace, kubernetes.EnvoyFilters, criteria.LabelSelector)

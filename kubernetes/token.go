@@ -9,6 +9,8 @@ import (
 
 const DefaultServiceAccountPath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 
+// const DefaultServiceAccountPath = "/tmp/aa"
+
 var KialiToken string
 
 func GetKialiToken() (string, error) {

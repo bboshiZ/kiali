@@ -192,7 +192,7 @@ func (in *MeshService) ResolveKialiControlPlaneCluster(r *http.Request) (*Cluste
 	// the "istiod" deployment. Let's try to fetch it.
 	var istioDeployment *v1.Deployment
 	var err error
-	if IsNamespaceCached(conf.IstioNamespace) {
+	if IsNamespaceCached("", conf.IstioNamespace) {
 		istioDeployment, err = kialiCache.GetDeployment(conf.IstioNamespace, conf.ExternalServices.Istio.IstiodDeploymentName)
 	} else {
 		istioDeployment, err = in.k8s.GetDeployment(conf.IstioNamespace, conf.ExternalServices.Istio.IstiodDeploymentName)
@@ -289,7 +289,7 @@ func findKialiInNamespace(namespace string, clusterName string, layer *Layer) (i
 		// present in the Istio addon manifest of Kiali.
 		var services []core_v1.Service
 		var getSvcErr error
-		if IsNamespaceCached(kialiNs.Name) {
+		if IsNamespaceCached("", kialiNs.Name) {
 			var tmpSvc []core_v1.Service
 			tmpSvc, getSvcErr = kialiCache.GetServices(kialiNs.Name, nil)
 			if getSvcErr == nil {
@@ -364,7 +364,7 @@ func (in *MeshService) resolveKialiNetwork() (string, error) {
 
 	var istioSidecarConfig *core_v1.ConfigMap
 	var err error
-	if IsNamespaceCached(conf.IstioNamespace) {
+	if IsNamespaceCached("", conf.IstioNamespace) {
 		istioSidecarConfig, err = kialiCache.GetConfigMap(conf.IstioNamespace, conf.ExternalServices.Istio.IstioSidecarInjectorConfigMapName)
 	} else {
 		istioSidecarConfig, err = in.k8s.GetConfigMap(conf.IstioNamespace, conf.ExternalServices.Istio.IstioSidecarInjectorConfigMapName)

@@ -51,7 +51,7 @@ func (in *TLSService) getMeshPeerAuthentications() ([]kubernetes.IstioObject, er
 	var mps []kubernetes.IstioObject
 	var err error
 	controlPlaneNs := config.Get().IstioNamespace
-	if IsResourceCached(controlPlaneNs, kubernetes.PeerAuthentications) {
+	if IsResourceCached("", controlPlaneNs, kubernetes.PeerAuthentications) {
 		mps, err = kialiCache.GetIstioObjects(controlPlaneNs, kubernetes.PeerAuthentications, "")
 	} else {
 		mps, err = in.k8s.GetIstioObjects(controlPlaneNs, kubernetes.PeerAuthentications, "")
@@ -73,7 +73,7 @@ func (in *TLSService) getAllDestinationRules(namespaces []string) ([]kubernetes.
 			var err error
 			// Check if namespace is cached
 			// Namespace access is checked in the upper call
-			if IsResourceCached(ns, kubernetes.DestinationRules) {
+			if IsResourceCached("", ns, kubernetes.DestinationRules) {
 				drs, err = kialiCache.GetIstioObjects(ns, kubernetes.DestinationRules, "")
 			} else {
 				drs, err = in.k8s.GetIstioObjects(ns, kubernetes.DestinationRules, "")
@@ -138,7 +138,7 @@ func (in TLSService) getPeerAuthentications(namespace string) ([]kubernetes.Isti
 	if namespace == config.Get().IstioNamespace {
 		return []kubernetes.IstioObject{}, nil
 	}
-	if IsResourceCached(namespace, kubernetes.PeerAuthentications) {
+	if IsResourceCached("", namespace, kubernetes.PeerAuthentications) {
 		return kialiCache.GetIstioObjects(namespace, kubernetes.PeerAuthentications, "")
 	} else {
 		return in.k8s.GetIstioObjects(namespace, kubernetes.PeerAuthentications, "")
@@ -167,7 +167,7 @@ func (in *TLSService) hasAutoMTLSEnabled() bool {
 	cfg := config.Get()
 	var istioConfig *core_v1.ConfigMap
 	var err error
-	if IsNamespaceCached(cfg.IstioNamespace) {
+	if IsNamespaceCached("", cfg.IstioNamespace) {
 		istioConfig, err = kialiCache.GetConfigMap(cfg.IstioNamespace, cfg.ExternalServices.Istio.ConfigMapName)
 	} else {
 		istioConfig, err = in.k8s.GetConfigMap(cfg.IstioNamespace, cfg.ExternalServices.Istio.ConfigMapName)

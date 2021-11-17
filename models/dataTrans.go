@@ -27,9 +27,9 @@ type DestinationSpec struct {
 	XXX_sizecache        int32    `json:"-"`
 }
 type Subset struct {
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	// Labels               map[string]string `protobuf:"bytes,2,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	TrafficPolicy *TrafficPolicy `protobuf:"bytes,3,opt,name=traffic_policy,json=trafficPolicy,proto3" json:"traffic_policy,omitempty"`
+	Name          string            `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Labels        map[string]string `protobuf:"bytes,2,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	TrafficPolicy *TrafficPolicy    `protobuf:"bytes,3,opt,name=traffic_policy,json=trafficPolicy,proto3" json:"traffic_policy,omitempty"`
 }
 
 //负载均衡策略，simple和consistentHash只能选择一个
@@ -202,7 +202,9 @@ type VirtualServiceSpec struct {
 
 type HTTPRoute struct {
 	// 匹配规则
-	Match []*HTTPMatchRequest `protobuf:"bytes,1,rep,name=match,proto3" json:"match,omitempty"`
+	// Match []*HTTPMatchRequest `protobuf:"bytes,1,rep,name=match,proto3" json:"match,omitempty"`
+	Match interface{} `protobuf:"bytes,1,rep,name=match,proto3" json:"match,omitempty"`
+
 	// 路由配置
 	Route []*HTTPRouteDestination `protobuf:"bytes,2,rep,name=route,proto3" json:"route,omitempty"`
 	// 重试配置
@@ -236,7 +238,7 @@ type HTTPRetry struct {
 type HTTPFaultInjection struct {
 	//请求延时响应配置
 	//required: false
-	Delay struct {
+	Delay *struct {
 		//流量百分值（1-100）
 		// required: true
 		Percentage struct {
@@ -251,7 +253,7 @@ type HTTPFaultInjection struct {
 	} `json:"delay,omitempty"`
 	//流量丢弃配置
 	//required: false
-	Abort struct {
+	Abort *struct {
 		//流量百分值（1-100）
 		// required: true
 		Percentage struct {

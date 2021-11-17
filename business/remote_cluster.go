@@ -29,26 +29,36 @@ type RemoteCluster struct {
 
 	// SecretName is the name of the kubernetes "remote secret" where data of this cluster was resolved
 	SecretName string `json:"secretName"`
-
-	K8s kubernetes.ClientInterface
+	Token      string `json:"token"`
+	K8s        kubernetes.ClientInterface
 }
 
 var (
 	remoteIstioClusters = map[string]RemoteCluster{}
 	defaultClusterID    = "shareit-cce-test"
 	ClusterMap          = map[string]bool{}
+	remoteClusters      []string
 )
 
 func InitRemoteCluster() (clusterID string) {
-	saToken, _ := kubernetes.GetKialiToken()
+	saToken, err := kubernetes.GetKialiToken()
+	if err != nil {
+		log.Errorf("Error GetKialiToken: %v", err)
+		return
+	}
 	// fmt.Printf("saToken:%+v\n", string(saToken))
-	business, _ := Get(&api.AuthInfo{Token: saToken})
+	business, err := Get(&api.AuthInfo{Token: saToken})
+	if err != nil {
+		log.Errorf("Error Get business: %v", err)
+		return
+	}
 	in := business.Mesh
 	// business.Mesh.InitRemoteCluster()
 
 	conf := config.Get()
 	secrets, err := in.k8s.GetSecrets(conf.IstioNamespace, "istio/remoteKiali=true")
 	if err != nil {
+		log.Errorf("Error GetSecrets: %v", err)
 		return
 	}
 
@@ -109,10 +119,8 @@ func InitRemoteCluster() (clusterID string) {
 			SecretName:  secret.Name,
 			ApiEndpoint: remoteSecret.Clusters[0].Cluster.Server,
 			K8s:         remoteClientSet,
+			Token:       remoteSecret.Users[0].User.Token,
 		}
-
-		k8sClient, _ := kubernetes.NewClientFromConfig(restConfig)
-		cache.RemoteK8S = k8sClient
 
 		networkName := in.resolveNetwork(clusterName, remoteSecret)
 		if len(networkName) != 0 {
@@ -121,13 +129,24 @@ func InitRemoteCluster() (clusterID string) {
 
 		meshCluster.KialiInstances = in.findRemoteKiali(clusterName, remoteSecret)
 
-		defaultClusterID = secret.Annotations["istio/remoteCluster"]
+		remoteC := secret.Annotations["istio/remoteCluster"]
+		defaultClusterID = remoteC
 		clusterID = defaultClusterID
-		ClusterMap[secret.Annotations["istio/remoteCluster"]] = true
-		remoteIstioClusters[secret.Annotations["istio/remoteCluster"]] = meshCluster
+		ClusterMap[remoteC] = true
+		remoteIstioClusters[remoteC] = meshCluster
+
+		k8sClient, err := kubernetes.NewClientFromConfig(restConfig)
+		if err != nil {
+			log.Errorf("Error NewClientFromConfig: %v", err)
+			continue
+		}
+		cache.RemoteK8S = k8sClient
+		cache.RemoteClusters[remoteC] = k8sClient
+		remoteClusters = append(remoteClusters, remoteC)
+
 	}
 
-	initKialiCache()
+	initKialiCache(remoteClusters)
 
 	for k, c := range remoteIstioClusters {
 		fmt.Printf("new remote k8s cluster:%s,%+v\n", k, c)
