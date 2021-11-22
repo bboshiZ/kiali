@@ -43,11 +43,11 @@ var kialiRemoteCache = map[string]cache.KialiCache{}
 
 func initKialiCache(remoteClusters []string) {
 	if config.Get().KubernetesConfig.CacheEnabled {
-		// if cache, err := cache.NewKialiCache(); err != nil {
-		// 	log.Errorf("Error initializing Kiali Cache. Details: %s", err)
-		// } else {
-		// 	kialiCache = cache
-		// }
+		if cache, err := cache.NewKialiCache(""); err != nil {
+			log.Errorf("Error initializing Kiali Cache. Details: %s", err)
+		} else {
+			kialiCache = cache
+		}
 
 		for _, c := range remoteClusters {
 			if cache, err := cache.NewKialiCache(c); err != nil {
@@ -68,7 +68,13 @@ func initKialiCache(remoteClusters []string) {
 }
 
 func IsNamespaceCached(cluster, namespace string) bool {
-	// ok := kialiCache != nil && kialiCache.CheckNamespace(namespace)
+	if cluster == "" {
+		return false
+	}
+	if cluster == "" {
+		ok := kialiCache != nil && kialiCache.CheckNamespace(namespace)
+		return ok
+	}
 	ok := kialiRemoteCache[cluster] != nil && kialiRemoteCache[cluster].CheckNamespace(namespace)
 
 	return ok
@@ -77,7 +83,10 @@ func IsNamespaceCached(cluster, namespace string) bool {
 func IsResourceCached(cluster, namespace string, resource string) bool {
 	ok := IsNamespaceCached(cluster, namespace)
 	if ok && resource != "" {
-		// ok = kialiCache.CheckIstioResource(resource)
+		if cluster == "" {
+			ok = kialiCache.CheckIstioResource(resource)
+			return ok
+		}
 		ok = kialiRemoteCache[cluster].CheckIstioResource(resource)
 
 	}

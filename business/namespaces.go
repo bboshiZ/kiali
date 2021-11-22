@@ -1,7 +1,6 @@
 package business
 
 import (
-	"fmt"
 	"regexp"
 
 	osproject_v1 "github.com/openshift/api/project/v1"
@@ -63,7 +62,6 @@ func (in *NamespaceService) GetRemoteNamespaces(cluster string) ([]models.Namesp
 	if kialiRemoteCache[cluster] != nil {
 		// if ns := kialiRemoteCache[cluster].GetNamespaces(in.k8s.GetToken()); ns != nil {
 		if ns := kialiRemoteCache[cluster].GetNamespaces(remoteIstioClusters[cluster].Token); ns != nil {
-			fmt.Println("GetRemoteNamespaces from cache")
 			return ns, nil
 		}
 	}

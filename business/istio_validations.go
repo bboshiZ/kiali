@@ -37,7 +37,7 @@ func (in *IstioValidationsService) GetValidations(namespace, service string) (mo
 
 	// Ensure the service exists
 	if service != "" {
-		svc, err := in.businessLayer.Svc.getService(namespace, service)
+		svc, err := in.businessLayer.Svc.getService("", namespace, service)
 		if svc == nil || err != nil {
 			if err != nil {
 				log.Warningf("Error invoking GetService %s", err)

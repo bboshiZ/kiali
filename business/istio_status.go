@@ -109,7 +109,7 @@ func (iss *IstioStatusService) getComponentNamespacesWorkloads() ([]*models.Work
 				defer wg.Done()
 				var wls models.Workloads
 				var err error
-				wls, err = fetchWorkloads(iss.businessLayer, n, "")
+				wls, err = fetchWorkloads(iss.businessLayer, "", n, "")
 				wliChan <- wls
 				errChan <- err
 			}(n, wlChan, errChan)

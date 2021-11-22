@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/kiali/kiali/business"
 )
 
 // WorkloadList is the API handler to fetch all the workloads to be displayed, related to a single namespace
@@ -31,6 +32,12 @@ func WorkloadList(w http.ResponseWriter, r *http.Request) {
 
 // WorkloadDetails is the API handler to fetch all details to be displayed, related to a single workload
 func WorkloadDetails(w http.ResponseWriter, r *http.Request) {
+	cluster := r.URL.Query().Get("cluster")
+	if _, ok := business.ClusterMap[cluster]; !ok {
+		RespondWithJSON(w, http.StatusOK, "")
+		return
+	}
+
 	params := mux.Vars(r)
 	query := r.URL.Query()
 
@@ -45,7 +52,7 @@ func WorkloadDetails(w http.ResponseWriter, r *http.Request) {
 	workloadType := query.Get("type")
 
 	// Fetch and build workload
-	workloadDetails, err := business.Workload.GetWorkload(namespace, workload, workloadType, true)
+	workloadDetails, err := business.Workload.GetWorkload(cluster, namespace, workload, workloadType, true)
 	if err != nil {
 		handleErrorResponse(w, err)
 		return
@@ -56,6 +63,12 @@ func WorkloadDetails(w http.ResponseWriter, r *http.Request) {
 
 // WorkloadUpdate is the API to perform a patch on a Workload configuration
 func WorkloadUpdate(w http.ResponseWriter, r *http.Request) {
+	cluster := r.URL.Query().Get("cluster")
+	if _, ok := business.ClusterMap[cluster]; !ok {
+		RespondWithJSON(w, http.StatusOK, "")
+		return
+	}
+
 	params := mux.Vars(r)
 	query := r.URL.Query()
 
@@ -75,7 +88,7 @@ func WorkloadUpdate(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Update request with bad update patch: "+err.Error())
 	}
 	jsonPatch := string(body)
-	workloadDetails, err := business.Workload.UpdateWorkload(namespace, workload, workloadType, true, jsonPatch)
+	workloadDetails, err := business.Workload.UpdateWorkload(cluster, namespace, workload, workloadType, true, jsonPatch)
 
 	if err != nil {
 		handleErrorResponse(w, err)

@@ -138,9 +138,14 @@ func NewKialiCache(cluster string) (KialiCache, error) {
 		tokenNamespaceDuration: tokenNamespaceDuration,
 		proxyStatusNamespaces:  make(map[string]map[string]podProxyStatus),
 	}
-	// kialiCacheImpl.k8sApi = RemoteK8S.GetK8sApi()
-	kialiCacheImpl.k8sApi = RemoteClusters[cluster].GetK8sApi()
-	// kialiCacheImpl.k8sApi = istioClient.GetK8sApi()
+
+	if cluster == "" {
+		kialiCacheImpl.k8sApi = istioClient.GetK8sApi()
+	} else {
+		// kialiCacheImpl.k8sApi = RemoteK8S.GetK8sApi()
+		kialiCacheImpl.k8sApi = RemoteClusters[cluster].GetK8sApi()
+	}
+
 	kialiCacheImpl.istioNetworkingGetter = istioClient.GetIstioNetworkingApi()
 	kialiCacheImpl.istioSecurityGetter = istioClient.GetIstioSecurityApi()
 

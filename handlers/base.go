@@ -31,7 +31,8 @@ func RespondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 }
 
 func RespondWithJSONIndent(w http.ResponseWriter, code int, payload interface{}) {
-	response, err := json.MarshalIndent(payload, "", "  ")
+	response, err := json.MarshalIndent(resp{code, "status ok", payload}, "", "  ")
+	// response, err := json.MarshalIndent(payload, "", "  ")
 	if err != nil {
 		response, _ = json.Marshal(responseError{Error: err.Error()})
 		code = http.StatusInternalServerError

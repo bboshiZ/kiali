@@ -94,12 +94,17 @@ func (in *WorkloadService) GetWorkloadList(namespace string, linkIstioResources 
 
 	go func() {
 		defer wg.Done()
-		var err2 error
-		ws, err2 = fetchWorkloads(in.businessLayer, namespace, "")
-		if err2 != nil {
-			log.Errorf("Error fetching Workloads per namespace %s: %s", namespace, err2)
-			errChan <- err2
+		// var err2 error
+		for _, c := range remoteClusters {
+			w, err2 := fetchWorkloads(in.businessLayer, c, namespace, "")
+			if err2 != nil {
+				log.Errorf("Error fetching Workloads per namespace %s: %s", namespace, err2)
+				errChan <- err2
+			} else {
+				ws = append(ws, w...)
+			}
 		}
+
 	}()
 
 	resources := []string{
@@ -170,13 +175,13 @@ func (in *WorkloadService) GetWorkloadList(namespace string, linkIstioResources 
 
 // GetWorkload is the API handler to fetch details of a specific workload.
 // If includeServices is set true, the Workload will fetch all services related
-func (in *WorkloadService) GetWorkload(namespace string, workloadName string, workloadType string, includeServices bool) (*models.Workload, error) {
+func (in *WorkloadService) GetWorkload(cluster, namespace string, workloadName string, workloadType string, includeServices bool) (*models.Workload, error) {
 	ns, err := in.businessLayer.Namespace.GetNamespace(namespace)
 	if err != nil {
 		return nil, err
 	}
 
-	workload, err2 := fetchWorkload(in.businessLayer, namespace, workloadName, workloadType)
+	workload, err2 := fetchWorkload(in.businessLayer, cluster, namespace, workloadName, workloadType)
 	if err2 != nil {
 		return nil, err2
 	}
@@ -295,10 +300,10 @@ func (in *WorkloadService) UpdateRemoteWorkload(cluster, namespace string, workl
 	}
 
 	// After the update we fetch the whole workload
-	return in.GetWorkload(namespace, workloadName, workloadType, includeServices)
+	return in.GetWorkload(cluster, namespace, workloadName, workloadType, includeServices)
 }
 
-func (in *WorkloadService) UpdateWorkload(namespace string, workloadName string, workloadType string, includeServices bool, jsonPatch string) (*models.Workload, error) {
+func (in *WorkloadService) UpdateWorkload(cluster, namespace string, workloadName string, workloadType string, includeServices bool, jsonPatch string) (*models.Workload, error) {
 	// Identify controller and apply patch to workload
 	err := updateWorkload(in.businessLayer, namespace, workloadName, workloadType, jsonPatch)
 	if err != nil {
@@ -311,7 +316,7 @@ func (in *WorkloadService) UpdateWorkload(namespace string, workloadName string,
 	}
 
 	// After the update we fetch the whole workload
-	return in.GetWorkload(namespace, workloadName, workloadType, includeServices)
+	return in.GetWorkload(cluster, namespace, workloadName, workloadType, includeServices)
 }
 
 func (in *WorkloadService) GetPods(namespace string, labelSelector string) (models.Pods, error) {
@@ -527,7 +532,7 @@ func (in *WorkloadService) GetPodLogs(namespace, name string, opts *LogOptions) 
 	return in.getParsedLogs(namespace, name, opts)
 }
 
-func fetchWorkloads(layer *Layer, namespace string, labelSelector string) (models.Workloads, error) {
+func fetchWorkloads(layer *Layer, cluster, namespace string, labelSelector string) (models.Workloads, error) {
 	var pods []core_v1.Pod
 	var repcon []core_v1.ReplicationController
 	var dep []apps_v1.Deployment
@@ -547,7 +552,7 @@ func fetchWorkloads(layer *Layer, namespace string, labelSelector string) (model
 	}
 
 	wg := sync.WaitGroup{}
-	wg.Add(9)
+	wg.Add(4)
 	errChan := make(chan error, 9)
 
 	go func() {
@@ -555,8 +560,9 @@ func fetchWorkloads(layer *Layer, namespace string, labelSelector string) (model
 		var err error
 		// Check if namespace is cached
 		// Namespace access is checked in the upper caller
-		if IsNamespaceCached("", namespace) {
-			pods, err = kialiCache.GetPods(namespace, labelSelector)
+		if IsNamespaceCached(cluster, namespace) {
+			pods, err = kialiRemoteCache[cluster].GetPods(namespace, labelSelector)
+			// pods, err = kialiCache.GetPods(namespace, labelSelector)
 		} else {
 			// pods, err = layer.k8s.GetPods(namespace, labelSelector)
 			for _, c := range remoteIstioClusters {
@@ -576,8 +582,9 @@ func fetchWorkloads(layer *Layer, namespace string, labelSelector string) (model
 		var err error
 		// Check if namespace is cached
 		// Namespace access is checked in the upper caller
-		if IsNamespaceCached("", namespace) {
-			dep, err = kialiCache.GetDeployments(namespace)
+		if IsNamespaceCached(cluster, namespace) {
+			dep, err = kialiRemoteCache[cluster].GetDeployments(namespace)
+			// dep, err = kialiCache.GetDeployments(namespace)
 		} else {
 			// dep, err = layer.k8s.GetDeployments(namespace)
 			for _, c := range remoteIstioClusters {
@@ -596,8 +603,10 @@ func fetchWorkloads(layer *Layer, namespace string, labelSelector string) (model
 		var err error
 		// Check if namespace is cached
 		// Namespace access is checked in the upper caller
-		if IsNamespaceCached("", namespace) {
-			repset, err = kialiCache.GetReplicaSets(namespace)
+		if IsNamespaceCached(cluster, namespace) {
+			repset, err = kialiRemoteCache[cluster].GetReplicaSets(namespace)
+
+			// repset, err = kialiCache.GetReplicaSets(namespace)
 		} else {
 			// repset, err = layer.k8s.GetReplicaSets(namespace)
 			for _, c := range remoteIstioClusters {
@@ -624,78 +633,79 @@ func fetchWorkloads(layer *Layer, namespace string, labelSelector string) (model
 		}
 	}()
 
-	go func() {
-		defer wg.Done()
-		var err error
-		if layer.k8s.IsOpenShift() && isWorkloadIncluded(kubernetes.DeploymentConfigType) {
-			depcon, err = layer.k8s.GetDeploymentConfigs(namespace)
-			if err != nil {
-				log.Errorf("Error fetching DeploymentConfigs per namespace %s: %s", namespace, err)
-				errChan <- err
-			}
-		}
-	}()
+	// go func() {
+	// 	defer wg.Done()
+	// 	var err error
+	// 	if layer.k8s.IsOpenShift() && isWorkloadIncluded(kubernetes.DeploymentConfigType) {
+	// 		depcon, err = layer.k8s.GetDeploymentConfigs(namespace)
+	// 		if err != nil {
+	// 			log.Errorf("Error fetching DeploymentConfigs per namespace %s: %s", namespace, err)
+	// 			errChan <- err
+	// 		}
+	// 	}
+	// }()
 
-	go func() {
-		defer wg.Done()
-		var err error
-		if isWorkloadIncluded(kubernetes.StatefulSetType) {
-			if IsNamespaceCached("", namespace) {
-				fulset, err = kialiCache.GetStatefulSets(namespace)
-			} else {
-				// fulset, err = layer.k8s.GetStatefulSets(namespace)
-				fulset, err = remoteIstioClusters[defaultClusterID].K8s.GetStatefulSets(namespace)
-			}
-			if err != nil {
-				log.Errorf("Error fetching StatefulSets per namespace %s: %s", namespace, err)
-				errChan <- err
-			}
-		}
-	}()
+	// go func() {
+	// 	defer wg.Done()
+	// 	var err error
+	// 	if isWorkloadIncluded(kubernetes.StatefulSetType) {
+	// 		if IsNamespaceCached("", namespace) {
+	// 			// fulset, err = kialiRemoteCache[cluster].GetStatefulSets(namespace)
+	// 			fulset, err = kialiCache.GetStatefulSets(namespace)
+	// 		} else {
+	// 			// fulset, err = layer.k8s.GetStatefulSets(namespace)
+	// 			fulset, err = remoteIstioClusters[defaultClusterID].K8s.GetStatefulSets(namespace)
+	// 		}
+	// 		if err != nil {
+	// 			log.Errorf("Error fetching StatefulSets per namespace %s: %s", namespace, err)
+	// 			errChan <- err
+	// 		}
+	// 	}
+	// }()
 
-	go func() {
-		defer wg.Done()
-		var err error
-		if isWorkloadIncluded(kubernetes.CronJobType) {
-			// conjbs, err = layer.k8s.GetCronJobs(namespace)
-			conjbs, err = remoteIstioClusters[defaultClusterID].K8s.GetCronJobs(namespace)
+	// go func() {
+	// 	defer wg.Done()
+	// 	var err error
+	// 	if isWorkloadIncluded(kubernetes.CronJobType) {
+	// 		// conjbs, err = layer.k8s.GetCronJobs(namespace)
+	// 		conjbs, err = remoteIstioClusters[defaultClusterID].K8s.GetCronJobs(namespace)
 
-			if err != nil {
-				log.Errorf("Error fetching CronJobs per namespace %s: %s", namespace, err)
-				errChan <- err
-			}
-		}
-	}()
+	// 		if err != nil {
+	// 			log.Errorf("Error fetching CronJobs per namespace %s: %s", namespace, err)
+	// 			errChan <- err
+	// 		}
+	// 	}
+	// }()
 
-	go func() {
-		defer wg.Done()
-		var err error
-		if isWorkloadIncluded(kubernetes.JobType) {
-			// jbs, err = layer.k8s.GetJobs(namespace)
-			jbs, err = remoteIstioClusters[defaultClusterID].K8s.GetJobs(namespace)
-			if err != nil {
-				log.Errorf("Error fetching Jobs per namespace %s: %s", namespace, err)
-				errChan <- err
-			}
-		}
-	}()
+	// go func() {
+	// 	defer wg.Done()
+	// 	var err error
+	// 	if isWorkloadIncluded(kubernetes.JobType) {
+	// 		// jbs, err = layer.k8s.GetJobs(namespace)
+	// 		jbs, err = remoteIstioClusters[defaultClusterID].K8s.GetJobs(namespace)
+	// 		if err != nil {
+	// 			log.Errorf("Error fetching Jobs per namespace %s: %s", namespace, err)
+	// 			errChan <- err
+	// 		}
+	// 	}
+	// }()
 
-	go func() {
-		defer wg.Done()
-		var err error
-		if isWorkloadIncluded(kubernetes.DaemonSetType) {
-			if IsNamespaceCached("", namespace) {
-				daeset, err = kialiCache.GetDaemonSets(namespace)
-			} else {
-				// daeset, err = layer.k8s.GetDaemonSets(namespace)
-				daeset, err = remoteIstioClusters[defaultClusterID].K8s.GetDaemonSets(namespace)
+	// go func() {
+	// 	defer wg.Done()
+	// 	var err error
+	// 	if isWorkloadIncluded(kubernetes.DaemonSetType) {
+	// 		if IsNamespaceCached("", namespace) {
+	// 			daeset, err = kialiCache.GetDaemonSets(namespace)
+	// 		} else {
+	// 			// daeset, err = layer.k8s.GetDaemonSets(namespace)
+	// 			daeset, err = remoteIstioClusters[defaultClusterID].K8s.GetDaemonSets(namespace)
 
-			}
-			if err != nil {
-				log.Errorf("Error fetching DaemonSets per namespace %s: %s", namespace, err)
-			}
-		}
-	}()
+	// 		}
+	// 		if err != nil {
+	// 			log.Errorf("Error fetching DaemonSets per namespace %s: %s", namespace, err)
+	// 		}
+	// 	}
+	// }()
 
 	wg.Wait()
 	if len(errChan) != 0 {
@@ -1103,7 +1113,7 @@ func fetchWorkloads(layer *Layer, namespace string, labelSelector string) (model
 	return ws, nil
 }
 
-func fetchWorkload(layer *Layer, namespace string, workloadName string, workloadType string) (*models.Workload, error) {
+func fetchWorkload(layer *Layer, cluster, namespace string, workloadName string, workloadType string) (*models.Workload, error) {
 	var pods []core_v1.Pod
 	var repcon []core_v1.ReplicationController
 	var dep *apps_v1.Deployment
@@ -1142,8 +1152,10 @@ func fetchWorkload(layer *Layer, namespace string, workloadName string, workload
 		var err error
 		// Check if namespace is cached
 		// Namespace access is checked in the upper call
-		if IsNamespaceCached("", namespace) {
-			pods, err = kialiCache.GetPods(namespace, "")
+		if IsNamespaceCached(cluster, namespace) {
+			pods, err = kialiRemoteCache[cluster].GetPods(namespace, "")
+
+			// pods, err = kialiCache.GetPods(namespace, "")
 		} else {
 			// pods, err = layer.k8s.GetPods(namespace, "")
 			pods, err = remoteIstioClusters[defaultClusterID].K8s.GetPods(namespace, "")
@@ -1163,8 +1175,10 @@ func fetchWorkload(layer *Layer, namespace string, workloadName string, workload
 		}
 		// Check if namespace is cached
 		// Namespace access is checked in the upper call
-		if IsNamespaceCached("", namespace) {
-			dep, err = kialiCache.GetDeployment(namespace, workloadName)
+		if IsNamespaceCached(cluster, namespace) {
+			dep, err = kialiRemoteCache[cluster].GetDeployment(namespace, workloadName)
+
+			// dep, err = kialiCache.GetDeployment(namespace, workloadName)
 		} else {
 			// dep, err = layer.k8s.GetDeployment(namespace, workloadName)
 			dep, err = remoteIstioClusters[defaultClusterID].K8s.GetDeployment(namespace, workloadName)
@@ -1190,8 +1204,9 @@ func fetchWorkload(layer *Layer, namespace string, workloadName string, workload
 		var err error
 		// Check if namespace is cached
 		// Namespace access is checked in the upper call
-		if IsNamespaceCached("", namespace) {
-			repset, err = kialiCache.GetReplicaSets(namespace)
+		if IsNamespaceCached(cluster, namespace) {
+			repset, err = kialiRemoteCache[cluster].GetReplicaSets(namespace)
+			// repset, err = kialiCache.GetReplicaSets(namespace)
 		} else {
 			// repset, err = layer.k8s.GetReplicaSets(namespace)
 			repset, err = remoteIstioClusters[defaultClusterID].K8s.GetReplicaSets(namespace)
@@ -1245,8 +1260,9 @@ func fetchWorkload(layer *Layer, namespace string, workloadName string, workload
 		}
 		var err error
 		if isWorkloadIncluded(kubernetes.StatefulSetType) {
-			if IsNamespaceCached("", namespace) {
-				fulset, err = kialiCache.GetStatefulSet(namespace, workloadName)
+			if IsNamespaceCached(cluster, namespace) {
+				fulset, err = kialiRemoteCache[cluster].GetStatefulSet(namespace, workloadName)
+				// fulset, err = kialiCache.GetStatefulSet(namespace, workloadName)
 			} else {
 				// fulset, err = layer.k8s.GetStatefulSet(namespace, workloadName)
 				fulset, err = remoteIstioClusters[defaultClusterID].K8s.GetStatefulSet(namespace, workloadName)
@@ -1746,8 +1762,8 @@ func controllerPriority(type1, type2 string) string {
 }
 
 // GetWorkloadAppName returns the "Application" name (app label) that relates to a workload
-func (in *WorkloadService) GetWorkloadAppName(namespace, workload string) (string, error) {
-	wkd, err := fetchWorkload(in.businessLayer, namespace, workload, "")
+func (in *WorkloadService) GetWorkloadAppName(cluster, namespace, workload string) (string, error) {
+	wkd, err := fetchWorkload(in.businessLayer, cluster, namespace, workload, "")
 	if err != nil {
 		return "", err
 	}

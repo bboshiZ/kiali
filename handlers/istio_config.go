@@ -162,34 +162,34 @@ func IstioConfigDetails(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, istioConfigDetails)
 }
 
-func IstioVirtualServiceDelete(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	namespace := params["namespace"]
-	objectType := "virtualservices"
-	object := params["object"]
+// func IstioVirtualServiceDelete(w http.ResponseWriter, r *http.Request) {
+// 	params := mux.Vars(r)
+// 	namespace := params["namespace"]
+// 	objectType := "virtualservices"
+// 	object := params["object"]
 
-	api := business.GetIstioAPI(objectType)
-	if api == "" {
-		RespondWithError(w, http.StatusBadRequest, "Object type not managed: "+objectType)
-		return
-	}
+// 	api := business.GetIstioAPI(objectType)
+// 	if api == "" {
+// 		RespondWithError(w, http.StatusBadRequest, "Object type not managed: "+objectType)
+// 		return
+// 	}
 
-	// Get business layer
-	business, err := getBusiness(r)
-	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
-		return
-	}
-	err = business.IstioConfig.DeleteIstioConfigDetail(api, namespace, objectType, object)
-	if err != nil {
-		handleErrorResponse(w, err)
-		return
-	} else {
-		audit(r, "DELETE on Namespace: "+namespace+" Type: "+objectType+" Name: "+object)
-		RespondWithCode(w, http.StatusOK)
-	}
+// 	// Get business layer
+// 	business, err := getBusiness(r)
+// 	if err != nil {
+// 		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
+// 		return
+// 	}
+// 	err = business.IstioConfig.DeleteIstioConfigDetail(api, namespace, objectType, object)
+// 	if err != nil {
+// 		handleErrorResponse(w, err)
+// 		return
+// 	} else {
+// 		audit(r, "DELETE on Namespace: "+namespace+" Type: "+objectType+" Name: "+object)
+// 		RespondWithCode(w, http.StatusOK)
+// 	}
 
-}
+// }
 func IstioConfigDelete(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	namespace := params["namespace"]
@@ -218,39 +218,39 @@ func IstioConfigDelete(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func IstioVirtualServiceUpdate(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	namespace := params["namespace"]
-	objectType := "virtualservices"
-	object := params["object"]
-	api := business.GetIstioAPI(objectType)
-	if api == "" {
-		RespondWithError(w, http.StatusBadRequest, "Object type not managed: "+objectType)
-		return
-	}
+// func IstioVirtualServiceUpdate(w http.ResponseWriter, r *http.Request) {
+// 	params := mux.Vars(r)
+// 	namespace := params["namespace"]
+// 	objectType := "virtualservices"
+// 	object := params["object"]
+// 	api := business.GetIstioAPI(objectType)
+// 	if api == "" {
+// 		RespondWithError(w, http.StatusBadRequest, "Object type not managed: "+objectType)
+// 		return
+// 	}
 
-	// Get business layer
-	business, err := getBusiness(r)
-	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
-		return
-	}
+// 	// Get business layer
+// 	business, err := getBusiness(r)
+// 	if err != nil {
+// 		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
+// 		return
+// 	}
 
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, "Update request with bad update patch: "+err.Error())
-	}
-	jsonPatch := string(body)
-	updatedConfigDetails, err := business.IstioConfig.UpdateIstioConfigDetail(api, namespace, objectType, object, jsonPatch)
+// 	body, err := ioutil.ReadAll(r.Body)
+// 	if err != nil {
+// 		RespondWithError(w, http.StatusBadRequest, "Update request with bad update patch: "+err.Error())
+// 	}
+// 	jsonPatch := string(body)
+// 	updatedConfigDetails, err := business.IstioConfig.UpdateIstioConfigDetail(api, namespace, objectType, object, jsonPatch)
 
-	if err != nil {
-		handleErrorResponse(w, err)
-		return
-	}
+// 	if err != nil {
+// 		handleErrorResponse(w, err)
+// 		return
+// 	}
 
-	audit(r, "UPDATE on Namespace: "+namespace+" Type: "+objectType+" Name: "+object+" Patch: "+jsonPatch)
-	RespondWithJSON(w, http.StatusOK, updatedConfigDetails)
-}
+// 	audit(r, "UPDATE on Namespace: "+namespace+" Type: "+objectType+" Name: "+object+" Patch: "+jsonPatch)
+// 	RespondWithJSON(w, http.StatusOK, updatedConfigDetails)
+// }
 
 func IstioConfigUpdate(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
@@ -293,39 +293,39 @@ func IstioConfigUpdate(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, updatedConfigDetails)
 }
 
-func IstioVirtualServiceCreate(w http.ResponseWriter, r *http.Request) {
-	// Feels kinda replicated for multiple functions..
-	params := mux.Vars(r)
-	namespace := params["namespace"]
-	objectType := "virtualservices"
+// func IstioVirtualServiceCreate(w http.ResponseWriter, r *http.Request) {
+// 	// Feels kinda replicated for multiple functions..
+// 	params := mux.Vars(r)
+// 	namespace := params["namespace"]
+// 	objectType := "virtualservices"
 
-	api := business.GetIstioAPI(objectType)
-	if api == "" {
-		RespondWithError(w, http.StatusBadRequest, "Object type not managed: "+objectType)
-		return
-	}
+// 	api := business.GetIstioAPI(objectType)
+// 	if api == "" {
+// 		RespondWithError(w, http.StatusBadRequest, "Object type not managed: "+objectType)
+// 		return
+// 	}
 
-	// Get business layer
-	business, err := getBusiness(r)
-	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
-		return
-	}
+// 	// Get business layer
+// 	business, err := getBusiness(r)
+// 	if err != nil {
+// 		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
+// 		return
+// 	}
 
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, "Create request could not be read: "+err.Error())
-	}
+// 	body, err := ioutil.ReadAll(r.Body)
+// 	if err != nil {
+// 		RespondWithError(w, http.StatusBadRequest, "Create request could not be read: "+err.Error())
+// 	}
 
-	createdConfigDetails, err := business.IstioConfig.CreateIstioConfigDetail(api, namespace, objectType, body)
-	if err != nil {
-		handleErrorResponse(w, err)
-		return
-	}
+// 	createdConfigDetails, err := business.IstioConfig.CreateIstioConfigDetail(api, namespace, objectType, body)
+// 	if err != nil {
+// 		handleErrorResponse(w, err)
+// 		return
+// 	}
 
-	audit(r, "CREATE on Namespace: "+namespace+" Type: "+objectType+" Object: "+string(body))
-	RespondWithJSON(w, http.StatusOK, createdConfigDetails)
-}
+// 	audit(r, "CREATE on Namespace: "+namespace+" Type: "+objectType+" Object: "+string(body))
+// 	RespondWithJSON(w, http.StatusOK, createdConfigDetails)
+// }
 func IstioDestinationruleCreate(w http.ResponseWriter, r *http.Request) {
 	// Feels kinda replicated for multiple functions..
 	params := mux.Vars(r)

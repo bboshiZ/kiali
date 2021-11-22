@@ -36,6 +36,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/kiali/kiali/business"
 	"github.com/kiali/kiali/graph"
 	"github.com/prometheus/common/model"
 
@@ -58,6 +59,12 @@ func GraphNamespaces(w http.ResponseWriter, r *http.Request) {
 
 func GraphService(w http.ResponseWriter, r *http.Request) {
 	defer handlePanic(w)
+
+	cluster := r.URL.Query().Get("cluster")
+	if _, ok := business.ClusterMap[cluster]; !ok {
+		RespondWithJSON(w, http.StatusOK, "")
+		return
+	}
 
 	params := r.URL.Query()
 	durationString := params.Get("duration")

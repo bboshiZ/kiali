@@ -202,14 +202,14 @@ func (in *SvcService) buildServiceList(namespace models.Namespace, svcs []core_v
 }
 
 // GetService returns a single service and associated data using the interval and queryTime
-func (in *SvcService) GetService(namespace, service, interval string, queryTime time.Time) (*models.ServiceDetails, error) {
+func (in *SvcService) GetService(cluster, namespace, service, interval string, queryTime time.Time) (*models.ServiceDetails, error) {
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
 	if _, err := in.businessLayer.Namespace.GetNamespace(namespace); err != nil {
 		return nil, err
 	}
 
-	svc, eps, err := in.getServiceDefinition(namespace, service)
+	svc, eps, err := in.getServiceDefinition(cluster, namespace, service)
 	if err != nil {
 		return nil, err
 	}
@@ -251,7 +251,7 @@ func (in *SvcService) GetService(namespace, service, interval string, queryTime 
 		go func() {
 			defer wg.Done()
 			var err2 error
-			ws, err2 = fetchWorkloads(in.businessLayer, namespace, labelsSelector)
+			ws, err2 = fetchWorkloads(in.businessLayer, cluster, namespace, labelsSelector)
 			if err2 != nil {
 				log.Errorf("Error fetching Workloads per namespace %s and service %s: %s", namespace, service, err2)
 				errChan <- err2
@@ -262,7 +262,7 @@ func (in *SvcService) GetService(namespace, service, interval string, queryTime 
 	go func() {
 		defer wg.Done()
 		var err2 error
-		hth, err2 = in.businessLayer.Health.GetServiceHealth(namespace, service, interval, queryTime)
+		hth, err2 = in.businessLayer.Health.GetServiceHealth(cluster, namespace, service, interval, queryTime)
 		if err2 != nil {
 			errChan <- err2
 		}
@@ -361,12 +361,12 @@ func (in *SvcService) UpdateService(namespace, service string, interval string, 
 	}
 
 	// After the update we fetch the whole workload
-	return in.GetService(namespace, service, interval, queryTime)
+	return in.GetService("", namespace, service, interval, queryTime)
 }
 
 // GetServiceDefinition returns a single service definition (the service object and endpoints), no istio or runtime information
 func (in *SvcService) GetServiceDefinition(namespace, service string) (*models.ServiceDetails, error) {
-	svc, eps, err := in.getServiceDefinition(namespace, service)
+	svc, eps, err := in.getServiceDefinition("", namespace, service)
 	if err != nil {
 		return nil, err
 	}
@@ -377,21 +377,22 @@ func (in *SvcService) GetServiceDefinition(namespace, service string) (*models.S
 	return &s, nil
 }
 
-func (in *SvcService) getService(namespace, service string) (svc *core_v1.Service, err error) {
-	if IsNamespaceCached("", namespace) {
-		// Cache uses Kiali ServiceAccount, check if user can access to the namespace
-		if _, err = in.businessLayer.Namespace.GetNamespace(namespace); err == nil {
-			svc, err = kialiCache.GetService(namespace, service)
-		}
-	} else {
-		// in.k8s = remoteIstioClusters[defaultClusterID].K8s
-		// svc, err = in.k8s.GetService(namespace, service)
-		svc, err = remoteIstioClusters[defaultClusterID].K8s.GetService(namespace, service)
-	}
+func (in *SvcService) getService(cluster, namespace, service string) (svc *core_v1.Service, err error) {
+	// if IsNamespaceCached("", namespace) {
+	// 	// Cache uses Kiali ServiceAccount, check if user can access to the namespace
+	// 	if _, err = in.businessLayer.Namespace.GetNamespace(namespace); err == nil {
+	// 		svc, err = kialiCache.GetService(namespace, service)
+	// 	}
+	// } else {
+	// 	// in.k8s = remoteIstioClusters[defaultClusterID].K8s
+	// 	// svc, err = in.k8s.GetService(namespace, service)
+	// 	svc, err = remoteIstioClusters[defaultClusterID].K8s.GetService(namespace, service)
+	// }
+	svc, err = remoteIstioClusters[cluster].K8s.GetService(namespace, service)
 	return svc, err
 }
 
-func (in *SvcService) getServiceDefinition(namespace, service string) (svc *core_v1.Service, eps *core_v1.Endpoints, err error) {
+func (in *SvcService) getServiceDefinition(cluster, namespace, service string) (svc *core_v1.Service, eps *core_v1.Endpoints, err error) {
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 	errChan := make(chan error, 2)
@@ -399,7 +400,7 @@ func (in *SvcService) getServiceDefinition(namespace, service string) (svc *core
 	go func() {
 		defer wg.Done()
 		var err2 error
-		svc, err2 = in.getService(namespace, service)
+		svc, err2 = in.getService(cluster, namespace, service)
 		if err2 != nil {
 			log.Errorf("Error fetching definition for service [%s:%s]: %s", namespace, service, err2)
 			errChan <- err2
@@ -409,14 +410,17 @@ func (in *SvcService) getServiceDefinition(namespace, service string) (svc *core
 	go func() {
 		defer wg.Done()
 		var err2 error
-		if IsNamespaceCached("", namespace) {
+		if IsNamespaceCached(cluster, namespace) {
 			// Cache uses Kiali ServiceAccount, check if user can access to the namespace
-			if _, err = in.businessLayer.Namespace.GetNamespace(namespace); err == nil {
-				eps, err = kialiCache.GetEndpoints(namespace, service)
+			// if _, err = in.businessLayer.Namespace.GetNamespace(cluster, namespace); err == nil {
+			// 	eps, err = kialiCache.GetEndpoints(namespace, service)
+			// }
+			if _, err = remoteIstioClusters[cluster].K8s.GetNamespace(namespace); err == nil {
+				eps, err = kialiRemoteCache[cluster].GetEndpoints(namespace, service)
 			}
 		} else {
 			// eps, err2 = in.k8s.GetEndpoints(namespace, service)
-			eps, err2 = remoteIstioClusters[defaultClusterID].K8s.GetEndpoints(namespace, service)
+			eps, err2 = remoteIstioClusters[cluster].K8s.GetEndpoints(namespace, service)
 
 		}
 		if err2 != nil && !errors.IsNotFound(err2) {
@@ -491,7 +495,7 @@ func (in *SvcService) GetServiceAppName(namespace, service string) (string, erro
 		return "", err
 	}
 
-	svc, err := in.getService(namespace, service)
+	svc, err := in.getService("", namespace, service)
 	if svc == nil || err != nil {
 		return "", fmt.Errorf("Service [namespace: %s] [name: %s] doesn't exist.", namespace, service)
 	}

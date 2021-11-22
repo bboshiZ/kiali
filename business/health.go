@@ -26,8 +26,8 @@ type HealthService struct {
 var HealthAnnotation = []models.AnnotationKey{models.RateHealthAnnotation}
 
 // GetServiceHealth returns a service health (service request error rate)
-func (in *HealthService) GetServiceHealth(namespace, service, rateInterval string, queryTime time.Time) (models.ServiceHealth, error) {
-	rqHealth, err := in.getServiceRequestsHealth(namespace, service, rateInterval, queryTime)
+func (in *HealthService) GetServiceHealth(cluster, namespace, service, rateInterval string, queryTime time.Time) (models.ServiceHealth, error) {
+	rqHealth, err := in.getServiceRequestsHealth(cluster, namespace, service, rateInterval, queryTime)
 	// rqHealth, err := remoteIstioClusters[defaultClusterID].K8s.getServiceRequestsHealth(namespace, service, rateInterval, queryTime)
 
 	return models.ServiceHealth{Requests: rqHealth}, err
@@ -41,7 +41,7 @@ func (in *HealthService) GetAppHealth(namespace, app, rateInterval string, query
 	selectorLabels[appLabel] = app
 	labelSelector := labels.FormatLabels(selectorLabels)
 
-	ws, err := fetchWorkloads(in.businessLayer, namespace, labelSelector)
+	ws, err := fetchWorkloads(in.businessLayer, "", namespace, labelSelector)
 	if err != nil {
 		log.Errorf("Error fetching Workloads per namespace %s and app %s: %s", namespace, app, err)
 		return models.AppHealth{}, err
@@ -77,8 +77,8 @@ func (in *HealthService) getAppHealth(namespace, app, rateInterval string, query
 }
 
 // GetWorkloadHealth returns a workload health from just Namespace and workload (thus, it fetches data from K8S and Prometheus)
-func (in *HealthService) GetWorkloadHealth(namespace, workload, workloadType, rateInterval string, queryTime time.Time) (models.WorkloadHealth, error) {
-	w, err := fetchWorkload(in.businessLayer, namespace, workload, workloadType)
+func (in *HealthService) GetWorkloadHealth(cluster, namespace, workload, workloadType, rateInterval string, queryTime time.Time) (models.WorkloadHealth, error) {
+	w, err := fetchWorkload(in.businessLayer, cluster, namespace, workload, workloadType)
 	if err != nil {
 		return models.WorkloadHealth{}, err
 	}
@@ -94,7 +94,7 @@ func (in *HealthService) GetWorkloadHealth(namespace, workload, workloadType, ra
 	}
 
 	// Add Telemetry info
-	rate, err := in.getWorkloadRequestsHealth(namespace, workload, rateInterval, queryTime)
+	rate, err := in.getWorkloadRequestsHealth(cluster, namespace, workload, rateInterval, queryTime)
 	return models.WorkloadHealth{
 		WorkloadStatus: status,
 		Requests:       rate,
@@ -197,7 +197,7 @@ func (in *HealthService) getNamespaceServiceHealth(namespace string, services []
 
 // GetNamespaceWorkloadHealth returns a health for all workloads in given Namespace (thus, it fetches data from K8S and Prometheus)
 func (in *HealthService) GetNamespaceWorkloadHealth(namespace, rateInterval string, queryTime time.Time) (models.NamespaceWorkloadHealth, error) {
-	wl, err := fetchWorkloads(in.businessLayer, namespace, "")
+	wl, err := fetchWorkloads(in.businessLayer, "", namespace, "")
 	if err != nil {
 		return nil, err
 	}
@@ -271,7 +271,7 @@ func fillWorkloadRequestRates(allHealth models.NamespaceWorkloadHealth, rates mo
 	}
 }
 
-func (in *HealthService) getServiceRequestsHealth(namespace, service, rateInterval string, queryTime time.Time) (models.RequestHealth, error) {
+func (in *HealthService) getServiceRequestsHealth(cluster, namespace, service, rateInterval string, queryTime time.Time) (models.RequestHealth, error) {
 	rqHealth := models.NewEmptyRequestHealth()
 	inbound, err := in.prom.GetServiceRequestRates(namespace, service, rateInterval, queryTime)
 	if err != nil {
@@ -280,7 +280,7 @@ func (in *HealthService) getServiceRequestsHealth(namespace, service, rateInterv
 	for _, sample := range inbound {
 		rqHealth.AggregateInbound(sample)
 	}
-	svc, err := in.businessLayer.Svc.getService(namespace, service)
+	svc, err := in.businessLayer.Svc.getService(cluster, namespace, service)
 	if err != nil {
 		return rqHealth, err
 	}
@@ -306,7 +306,7 @@ func (in *HealthService) getAppRequestsHealth(namespace, app, rateInterval strin
 	return rqHealth, nil
 }
 
-func (in *HealthService) getWorkloadRequestsHealth(namespace, workload, rateInterval string, queryTime time.Time) (models.RequestHealth, error) {
+func (in *HealthService) getWorkloadRequestsHealth(cluster, namespace, workload, rateInterval string, queryTime time.Time) (models.RequestHealth, error) {
 	rqHealth := models.NewEmptyRequestHealth()
 	inbound, outbound, err := in.prom.GetWorkloadRequestRates(namespace, workload, rateInterval, queryTime)
 	if err != nil {
@@ -318,7 +318,7 @@ func (in *HealthService) getWorkloadRequestsHealth(namespace, workload, rateInte
 	for _, sample := range outbound {
 		rqHealth.AggregateOutbound(sample)
 	}
-	w, err := in.businessLayer.Workload.GetWorkload(namespace, workload, "", false)
+	w, err := in.businessLayer.Workload.GetWorkload(cluster, namespace, workload, "", false)
 	if err != nil {
 		return rqHealth, err
 	}

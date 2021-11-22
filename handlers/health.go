@@ -84,6 +84,11 @@ func AppHealth(w http.ResponseWriter, r *http.Request) {
 
 // WorkloadHealth is the API handler to get health of a single workload
 func WorkloadHealth(w http.ResponseWriter, r *http.Request) {
+	cluster := r.URL.Query().Get("cluster")
+	if _, ok := business.ClusterMap[cluster]; !ok {
+		RespondWithJSON(w, http.StatusOK, "")
+		return
+	}
 	business, err := getBusiness(r)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
@@ -99,12 +104,18 @@ func WorkloadHealth(w http.ResponseWriter, r *http.Request) {
 	}
 	p.RateInterval = rateInterval
 
-	health, err := business.Health.GetWorkloadHealth(p.Namespace, p.Workload, p.WorkloadType, rateInterval, p.QueryTime)
+	health, err := business.Health.GetWorkloadHealth(cluster, p.Namespace, p.Workload, p.WorkloadType, rateInterval, p.QueryTime)
 	handleHealthResponse(w, health, err)
 }
 
 // ServiceHealth is the API handler to get health of a single service
 func ServiceHealth(w http.ResponseWriter, r *http.Request) {
+	cluster := r.URL.Query().Get("cluster")
+	if _, ok := business.ClusterMap[cluster]; !ok {
+		RespondWithJSON(w, http.StatusOK, "")
+		return
+	}
+
 	business, err := getBusiness(r)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
@@ -119,7 +130,7 @@ func ServiceHealth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	health, err := business.Health.GetServiceHealth(p.Namespace, p.Service, rateInterval, p.QueryTime)
+	health, err := business.Health.GetServiceHealth(cluster, p.Namespace, p.Service, rateInterval, p.QueryTime)
 	handleHealthResponse(w, health, err)
 }
 

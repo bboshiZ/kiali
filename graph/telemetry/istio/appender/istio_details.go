@@ -1,6 +1,7 @@
 package appender
 
 import (
+	"fmt"
 	"time"
 
 	"k8s.io/apimachinery/pkg/labels"
@@ -184,7 +185,11 @@ func addLabels(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo
 
 func (a IstioAppender) decorateGateways(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo) {
 	// Get ingress-gateways deployments in the namespace. Then, find if the graph is showing any of them. If so, flag the GW nodes.
+	fmt.Println("1111:", time.Now().Local())
+
 	ingressWorkloads := a.getIngressGatewayWorkloads(globalInfo)
+	fmt.Println("22222:", time.Now().Local())
+
 	istioAppLabelName := config.Get().IstioLabels.AppLabelName
 
 	ingressNodeMapping := make(map[*models.WorkloadListItem][]*graph.Node)
@@ -205,7 +210,6 @@ func (a IstioAppender) decorateGateways(trafficMap graph.TrafficMap, globalInfo 
 	// match them against gateways in the graph.
 	if len(ingressNodeMapping) != 0 {
 		gatewaysCrds := a.getIstioGatewayResources(globalInfo)
-
 		for _, gwCrd := range gatewaysCrds {
 			gwSelector := labels.Set(gwCrd.Spec.Selector).AsSelector()
 			for gw, nodes := range ingressNodeMapping {

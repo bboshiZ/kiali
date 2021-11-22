@@ -47,13 +47,13 @@ external_services:
   custom_dashboards:
     enabled: true
   tracing:
-    in_cluster_url: 'http://10.20.0.216:16686'
-    url: 'http://10.20.0.216:16686'
+   # in_cluster_url: 'http://10.20.0.216:16686'
+   # url: 'http://10.20.0.216:16686'
   #   in_cluster_url: 'http://10.67.37.209:16686'
   #   url: 'http://10.67.37.209:16686'
     use_grpc: false
   prometheus:
-    url: 'http://prod.landing-app-select.sgt.sg2.api:8481/select/0/prometheus'
+  #  url: 'http://prod.landing-app-select.sgt.sg2.api:8481/select/0/prometheus'
 identity:
   cert_file: ""
   private_key_file: ""

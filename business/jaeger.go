@@ -82,8 +82,8 @@ func operationSpanFilter(ns, service string) SpanFilter {
 	}
 }
 
-func (in *JaegerService) GetWorkloadSpans(ns, workload string, query models.TracingQuery) ([]jaeger.JaegerSpan, error) {
-	app, err := in.businessLayer.Workload.GetWorkloadAppName(ns, workload)
+func (in *JaegerService) GetWorkloadSpans(cluster, ns, workload string, query models.TracingQuery) ([]jaeger.JaegerSpan, error) {
+	app, err := in.businessLayer.Workload.GetWorkloadAppName(cluster, ns, workload)
 	if err != nil {
 		return nil, err
 	}
@@ -152,8 +152,8 @@ func (in *JaegerService) GetServiceTraces(ns, service string, query models.Traci
 	return r, err
 }
 
-func (in *JaegerService) GetWorkloadTraces(ns, workload string, query models.TracingQuery) (*jaeger.JaegerResponse, error) {
-	app, err := in.businessLayer.Workload.GetWorkloadAppName(ns, workload)
+func (in *JaegerService) GetWorkloadTraces(cluster, ns, workload string, query models.TracingQuery) (*jaeger.JaegerResponse, error) {
+	app, err := in.businessLayer.Workload.GetWorkloadAppName(cluster, ns, workload)
 	if err != nil {
 		return nil, err
 	}

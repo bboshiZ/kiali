@@ -307,7 +307,7 @@ func fetchNamespaceApps(layer *Layer, namespace string, appName string) (namespa
 	go func() {
 		defer wg.Done()
 		var err error
-		ws, err = fetchWorkloads(layer, namespace, labelSelector)
+		ws, err = fetchWorkloads(layer, "", namespace, labelSelector)
 		if err != nil {
 			log.Errorf("Error fetching Workload per namespace %s: %s", namespace, err)
 			errChan <- err

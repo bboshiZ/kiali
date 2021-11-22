@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"sync"
@@ -14,13 +14,13 @@ import (
 )
 
 func ServiceInject(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
 	cluster := r.URL.Query().Get("cluster")
 	if _, ok := business.ClusterMap[cluster]; !ok {
 		RespondWithJSON(w, http.StatusOK, "")
 		return
 	}
 
+	params := mux.Vars(r)
 	service := params["service"]
 	business, err := getBusiness(r)
 	if err != nil {
@@ -31,7 +31,7 @@ func ServiceInject(w http.ResponseWriter, r *http.Request) {
 	namespace := params["namespace"]
 	workloadType := "Deployment"
 
-	serviceDetails, err := business.Svc.GetService(namespace, service, defaultHealthRateInterval, util.Clock.Now())
+	serviceDetails, err := business.Svc.GetService(cluster, namespace, service, defaultHealthRateInterval, util.Clock.Now())
 	if err != nil {
 		handleErrorResponse(w, err)
 		return
@@ -40,7 +40,7 @@ func ServiceInject(w http.ResponseWriter, r *http.Request) {
 	for _, deploy := range serviceDetails.Workloads {
 		_, err1 := business.Workload.UpdateRemoteWorkload(cluster, namespace, deploy.Name, workloadType, true, jsonPatch)
 		if err1 != nil {
-			err = errors.New(err.Error() + err1.Error())
+			err = err1
 		}
 	}
 
@@ -71,16 +71,17 @@ func ServiceUnInject(w http.ResponseWriter, r *http.Request) {
 	namespace := params["namespace"]
 	workloadType := "Deployment"
 
-	serviceDetails, err := business.Svc.GetService(namespace, service, defaultHealthRateInterval, util.Clock.Now())
+	serviceDetails, err := business.Svc.GetService(cluster, namespace, service, defaultHealthRateInterval, util.Clock.Now())
 	if err != nil {
 		handleErrorResponse(w, err)
 		return
 	}
+	fmt.Println("xxxx:", serviceDetails.Workloads)
 	jsonPatch := string(`{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/inject":"false"}}}}}`)
 	for _, deploy := range serviceDetails.Workloads {
 		_, err1 := business.Workload.UpdateRemoteWorkload(cluster, namespace, deploy.Name, workloadType, true, jsonPatch)
 		if err1 != nil {
-			err = errors.New(err.Error() + err1.Error())
+			err = err1
 		}
 	}
 
@@ -136,6 +137,12 @@ func ServiceList(w http.ResponseWriter, r *http.Request) {
 
 // ServiceDetails is the API handler to fetch full details of an specific service
 func ServiceDetails(w http.ResponseWriter, r *http.Request) {
+	cluster := r.URL.Query().Get("cluster")
+	if _, ok := business.ClusterMap[cluster]; !ok {
+		RespondWithJSON(w, http.StatusOK, "")
+		return
+	}
+
 	// Get business layer
 	business, err := getBusiness(r)
 	if err != nil {
@@ -177,7 +184,7 @@ func ServiceDetails(w http.ResponseWriter, r *http.Request) {
 		}()
 	}
 
-	serviceDetails, err := business.Svc.GetService(namespace, service, rateInterval, queryTime)
+	serviceDetails, err := business.Svc.GetService(cluster, namespace, service, rateInterval, queryTime)
 	if includeValidations && err == nil {
 		wg.Wait()
 		serviceDetails.Validations = istioConfigValidations

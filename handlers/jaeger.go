@@ -10,6 +10,7 @@ import (
 
 	"github.com/gorilla/mux"
 
+	"github.com/kiali/kiali/business"
 	"github.com/kiali/kiali/config"
 	"github.com/kiali/kiali/models"
 )
@@ -82,6 +83,12 @@ func ServiceTraces(w http.ResponseWriter, r *http.Request) {
 }
 
 func WorkloadTraces(w http.ResponseWriter, r *http.Request) {
+	cluster := r.URL.Query().Get("cluster")
+	if _, ok := business.ClusterMap[cluster]; !ok {
+		RespondWithJSON(w, http.StatusOK, "")
+		return
+	}
+
 	business, err := getBusiness(r)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "WorkloadTraces initialization error: "+err.Error())
@@ -95,7 +102,7 @@ func WorkloadTraces(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	traces, err := business.Jaeger.GetWorkloadTraces(namespace, workload, q)
+	traces, err := business.Jaeger.GetWorkloadTraces(cluster, namespace, workload, q)
 	if err != nil {
 		RespondWithError(w, http.StatusServiceUnavailable, err.Error())
 		return
@@ -202,6 +209,11 @@ func ServiceSpans(w http.ResponseWriter, r *http.Request) {
 
 // WorkloadSpans is the API handler to fetch Jaeger spans of a specific workload
 func WorkloadSpans(w http.ResponseWriter, r *http.Request) {
+	cluster := r.URL.Query().Get("cluster")
+	if _, ok := business.ClusterMap[cluster]; !ok {
+		RespondWithJSON(w, http.StatusOK, "")
+		return
+	}
 	business, err := getBusiness(r)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
@@ -217,7 +229,7 @@ func WorkloadSpans(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	spans, err := business.Jaeger.GetWorkloadSpans(namespace, workload, q)
+	spans, err := business.Jaeger.GetWorkloadSpans(cluster, namespace, workload, q)
 	if err != nil {
 		RespondWithError(w, http.StatusServiceUnavailable, err.Error())
 		return
