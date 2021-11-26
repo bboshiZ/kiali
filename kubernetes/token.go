@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"fmt"
 	"io/ioutil"
 )
 
@@ -16,7 +17,7 @@ var KialiToken string
 func GetKialiToken() (string, error) {
 	if KialiToken == "" {
 		if remoteSecret, err := GetRemoteSecret(RemoteSecretData); err == nil {
-			// fmt.Printf("%+v\n", remoteSecret)
+			fmt.Printf("%+v\n", remoteSecret)
 			KialiToken = remoteSecret.Users[0].User.Token
 		} else {
 			token, err := ioutil.ReadFile(DefaultServiceAccountPath)
@@ -27,4 +28,12 @@ func GetKialiToken() (string, error) {
 		}
 	}
 	return KialiToken, nil
+}
+
+func GetLocalK8sToken() (string, error) {
+	token, err := ioutil.ReadFile(DefaultServiceAccountPath)
+	if err != nil {
+		return "", err
+	}
+	return string(token), nil
 }

@@ -1,7 +1,5 @@
 package models
 
-import "github.com/gogo/protobuf/types"
-
 type ClusterM struct {
 	Name    string `json:"name"`
 	Address string `json:"address"`
@@ -17,9 +15,12 @@ type DestinationSpec struct {
 	// 目的主机名
 	Host string `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
 	// 流量熔断配置
-	TrafficPolicy *TrafficPolicy `protobuf:"bytes,2,opt,name=traffic_policy,json=trafficPolicy,proto3" json:"traffic_policy,omitempty"`
+	// TrafficPolicy *TrafficPolicy `protobuf:"bytes,2,opt,name=trafficPolicy,json=trafficPolicy,proto3" json:"trafficPolicy,omitempty"`
+	TrafficPolicy interface{} `json:"trafficPolicy,omitempty"`
+
 	// 服务版本
-	Subsets []*Subset `protobuf:"bytes,3,rep,name=subsets,proto3" json:"subsets,omitempty"`
+	// Subsets []*Subset `protobuf:"bytes,3,rep,name=subsets,proto3" json:"subsets,omitempty"`
+	Subsets interface{} `protobuf:"bytes,3,rep,name=subsets,proto3" json:"subsets,omitempty"`
 
 	// ExportTo             []string `protobuf:"bytes,4,rep,name=export_to,json=exportTo,proto3" json:"export_to,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -35,17 +36,19 @@ type Subset struct {
 //负载均衡策略，simple和consistentHash只能选择一个
 type LoadBalancerSettings struct {
 	//example:可选值ROUND_ROBIN LEAST_CONN RANDOM PASSTHROUGH
-	Simple         string                                 `protobuf:"varint,1,opt,name=simple,proto3,enum=istio.networking.v1alpha3.LoadBalancerSettings_SimpleLB,oneof" json:"simple,omitempty"`
-	ConsistentHash *LoadBalancerSettings_ConsistentHashLB `protobuf:"bytes,2,opt,name=consistent_hash,json=consistentHash,proto3,oneof" json:"consistent_hash,omitempty"`
+	Simple         string                                 `json:"simple,omitempty"`
+	ConsistentHash *LoadBalancerSettings_ConsistentHashLB `json:"consistentHash,omitempty"`
 }
 
 type TrafficPolicy struct {
 	// 负载均衡策略
-	LoadBalancer *LoadBalancerSettings `protobuf:"bytes,1,opt,name=loadBalancer,json=loadBalancer,proto3" json:"load_balancer,omitempty"`
+	LoadBalancer interface{} `protobuf:"bytes,1,opt,name=loadBalancer,json=loadBalancer,proto3" json:"loadBalancer,omitempty"`
+
+	// LoadBalancer *LoadBalancerSettings `protobuf:"bytes,1,opt,name=loadBalancer,json=loadBalancer,proto3" json:"loadBalancer,omitempty"`
 	// 连接池管理
-	ConnectionPool *ConnectionPoolSettings `protobuf:"bytes,2,opt,name=connectionPool,json=connectionPool,proto3" json:"connection_pool,omitempty"`
+	ConnectionPool *ConnectionPoolSettings `protobuf:"bytes,2,opt,name=connectionPool,json=connectionPool,proto3" json:"connectionPool,omitempty"`
 	// 异常检测
-	OutlierDetection *OutlierDetection `protobuf:"bytes,3,opt,name=outlierDetection,json=outlierDetection,proto3" json:"outlier_detection,omitempty"`
+	OutlierDetection *OutlierDetection `protobuf:"bytes,3,opt,name=outlierDetection,json=outlierDetection,proto3" json:"outlierDetection,omitempty"`
 
 	// PortLevelSettings    []*TrafficPolicy_PortTrafficPolicy `protobuf:"bytes,5,rep,name=port_level_settings,json=portLevelSettings,proto3" json:"port_level_settings,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
@@ -96,32 +99,76 @@ type LoadBalancerSettings_ConsistentHashLB_UseSourceIp struct {
 }
 
 type OutlierDetection struct {
-	//连续错误次数。对于HTTP服务，502、503、504会被认为异常，TPC服务，连接超时即异常
-	//example: 5
+	// Number of errors before a host is ejected from the connection
+	// pool. Defaults to 5. When the upstream host is accessed over HTTP, a
+	// 502, 503, or 504 return code qualifies as an error. When the upstream host
+	// is accessed over an opaque TCP connection, connect timeouts and
+	// connection error/failure events qualify as an error.
+	// $hide_from_docs
 	ConsecutiveErrors int32 `protobuf:"varint,1,opt,name=consecutive_errors,json=consecutiveErrors,proto3" json:"consecutive_errors,omitempty"` // Deprecated: Do not use.
-
-	//连续网关故障
-	ConsecutiveGatewayErrors *types.UInt32Value `protobuf:"bytes,6,opt,name=consecutive_gateway_errors,json=consecutiveGatewayErrors,proto3" json:"consecutive_gateway_errors,omitempty"`
-	//连续 5xx 响应
-	Consecutive_5XxErrors *types.UInt32Value `protobuf:"bytes,7,opt,name=consecutive_5xx_errors,json=consecutive5xxErrors,proto3" json:"consecutive_5xx_errors,omitempty"`
-
-	//扫描分析周期，（1h/1m/1s/1ms）
-	//default:  10s
-	Interval string `protobuf:"bytes,2,opt,name=interval,proto3" json:"interval,omitempty"`
-
-	//最小驱逐时间。驱逐时间会随着错误次数增加而增加。即错误次数*最小驱逐时间
-	//example:  1h/1m/1s/1ms
-	//default:  30s
-	BaseEjectionTime string `protobuf:"bytes,3,opt,name=base_ejection_time,json=baseEjectionTime,proto3" json:"base_ejection_time,omitempty"`
-
-	//负载均衡池中可以被驱逐的实例的最大比例。以免某个接口瞬时不可用，导致太多实例被驱逐，进而导致服务整体全部不可用。
-	//default: 10
-	//example: 50
-	MaxEjectionPercent int32 `protobuf:"varint,4,opt,name=max_ejection_percent,json=maxEjectionPercent,proto3" json:"max_ejection_percent,omitempty"`
-	//最小健康实例比例
-	//default: 0
-	//example: 50
-	MinHealthPercent int32 `protobuf:"varint,5,opt,name=min_health_percent,json=minHealthPercent,proto3" json:"min_health_percent,omitempty"`
+	// Determines whether to distinguish local origin failures from external errors. If set to true
+	// consecutive_local_origin_failure is taken into account for outlier detection calculations.
+	// This should be used when you want to derive the outlier detection status based on the errors
+	// seen locally such as failure to connect, timeout while connecting etc. rather than the status code
+	// retuned by upstream service. This is especially useful when the upstream service explicitly returns
+	// a 5xx for some requests and you want to ignore those responses from upstream service while determining
+	// the outlier detection status of a host.
+	// Defaults to false.
+	SplitExternalLocalOriginErrors bool `protobuf:"varint,8,opt,name=split_external_local_origin_errors,json=splitExternalLocalOriginErrors,proto3" json:"splitExternalLocalOriginErrors,omitempty"`
+	// The number of consecutive locally originated failures before ejection
+	// occurs. Defaults to 5. Parameter takes effect only when split_external_local_origin_errors
+	// is set to true.
+	ConsecutiveLocalOriginFailures *uint32 `protobuf:"bytes,9,opt,name=consecutive_local_origin_failures,json=consecutiveLocalOriginFailures,proto3" json:"consecutiveLocalOriginFailures,omitempty"`
+	// Number of gateway errors before a host is ejected from the connection pool.
+	// When the upstream host is accessed over HTTP, a 502, 503, or 504 return
+	// code qualifies as a gateway error. When the upstream host is accessed over
+	// an opaque TCP connection, connect timeouts and connection error/failure
+	// events qualify as a gateway error.
+	// This feature is disabled by default or when set to the value 0.
+	//
+	// Note that consecutive_gateway_errors and consecutive_5xx_errors can be
+	// used separately or together. Because the errors counted by
+	// consecutive_gateway_errors are also included in consecutive_5xx_errors,
+	// if the value of consecutive_gateway_errors is greater than or equal to
+	// the value of consecutive_5xx_errors, consecutive_gateway_errors will have
+	// no effect.
+	ConsecutiveGatewayErrors *uint32 `protobuf:"bytes,6,opt,name=consecutive_gateway_errors,json=consecutiveGatewayErrors,proto3" json:"consecutiveGatewayErrors,omitempty"`
+	// Number of 5xx errors before a host is ejected from the connection pool.
+	// When the upstream host is accessed over an opaque TCP connection, connect
+	// timeouts, connection error/failure and request failure events qualify as a
+	// 5xx error.
+	// This feature defaults to 5 but can be disabled by setting the value to 0.
+	//
+	// Note that consecutive_gateway_errors and consecutive_5xx_errors can be
+	// used separately or together. Because the errors counted by
+	// consecutive_gateway_errors are also included in consecutive_5xx_errors,
+	// if the value of consecutive_gateway_errors is greater than or equal to
+	// the value of consecutive_5xx_errors, consecutive_gateway_errors will have
+	// no effect.
+	Consecutive_5XxErrors *uint32 `protobuf:"bytes,7,opt,name=consecutive_5xx_errors,json=consecutive5xxErrors,proto3" json:"consecutive5xxErrors,omitempty"`
+	// Time interval between ejection sweep analysis. format:
+	// 1h/1m/1s/1ms. MUST BE >=1ms. Default is 10s.
+	Interval *string `protobuf:"bytes,2,opt,name=interval,proto3" json:"interval,omitempty"`
+	// Minimum ejection duration. A host will remain ejected for a period
+	// equal to the product of minimum ejection duration and the number of
+	// times the host has been ejected. This technique allows the system to
+	// automatically increase the ejection period for unhealthy upstream
+	// servers. format: 1h/1m/1s/1ms. MUST BE >=1ms. Default is 30s.
+	BaseEjectionTime *string `protobuf:"bytes,3,opt,name=base_ejection_time,json=baseEjectionTime,proto3" json:"baseEjectionTime,omitempty"`
+	// Maximum % of hosts in the load balancing pool for the upstream
+	// service that can be ejected. Defaults to 10%.
+	MaxEjectionPercent *int32 `protobuf:"varint,4,opt,name=max_ejection_percent,json=maxEjectionPercent,proto3" json:"maxEjectionPercent,omitempty"`
+	// Outlier detection will be enabled as long as the associated load balancing
+	// pool has at least min_health_percent hosts in healthy mode. When the
+	// percentage of healthy hosts in the load balancing pool drops below this
+	// threshold, outlier detection will be disabled and the proxy will load balance
+	// across all hosts in the pool (healthy and unhealthy). The threshold can be
+	// disabled by setting it to 0%. The default is 0% as it's not typically
+	// applicable in k8s environments with few pods per service.
+	MinHealthPercent     *int32   `protobuf:"varint,5,opt,name=min_health_percent,json=minHealthPercent,proto3" json:"minHealthPercent,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
 type ConnectionPoolSettings struct {
@@ -136,20 +183,20 @@ type ConnectionPoolSettings struct {
 
 // Settings applicable to HTTP1.1/HTTP2/GRPC connections.
 type ConnectionPoolSettings_HTTPSettings struct {
-	//最大等待HTTP请求数，默认1024
-	Http1MaxPendingRequests int32 `protobuf:"varint,1,opt,name=http1_max_pending_requests,json=http1MaxPendingRequests,proto3" json:"http1_max_pending_requests,omitempty"`
+	//最大等待HTTP请求数
+	Http1MaxPendingRequests uint32 `protobuf:"varint,1,opt,name=http1_max_pending_requests,json=http1MaxPendingRequests,proto3" json:"http1MaxPendingRequests,omitempty"`
 	//HTTP2最大连接数
-	Http2MaxRequests int32 `protobuf:"varint,2,opt,name=http2_max_requests,json=http2MaxRequests,proto3" json:"http2_max_requests,omitempty"`
+	Http2MaxRequests uint32 `protobuf:"varint,2,opt,name=http2_max_requests,json=http2MaxRequests,proto3" json:"http2MaxRequests,omitempty"`
 	//每个连接最大请求数
-	MaxRequestsPerConnection int32 `protobuf:"varint,3,opt,name=max_requests_per_connection,json=maxRequestsPerConnection,proto3" json:"max_requests_per_connection,omitempty"`
+	MaxRequestsPerConnection uint32 `protobuf:"varint,3,opt,name=max_requests_per_connection,json=maxRequestsPerConnection,proto3" json:"maxRequestsPerConnection,omitempty"`
 
 	//最大重试次数
-	MaxRetries int32 `protobuf:"varint,4,opt,name=max_retries,json=maxRetries,proto3" json:"max_retries,omitempty"`
+	MaxRetries uint32 `protobuf:"varint,4,opt,name=max_retries,json=maxRetries,proto3" json:"max_retries,omitempty"`
 	//一个连接idle状态的最大时长,默认1h （1h/1m/10s）
-	IdleTimeout string `protobuf:"bytes,5,opt,name=idle_timeout,json=idleTimeout,proto3" json:"idleTimeout,omitempty"`
-	// H2UpgradePolicy ConnectionPoolSettings_HTTPSettings_H2UpgradePolicy `protobuf:"varint,6,opt,name=h2_upgrade_policy,json=h2UpgradePolicy,proto3,enum=istio.networking.v1alpha3.ConnectionPoolSettings_HTTPSettings_H2UpgradePolicy" json:"h2_upgrade_policy,omitempty"`
+	IdleTimeout     string      `protobuf:"bytes,5,opt,name=idle_timeout,json=idleTimeout,proto3" json:"idleTimeout,omitempty"`
+	H2UpgradePolicy interface{} `protobuf:"varint,6,opt,name=h2_upgrade_policy,json=h2UpgradePolicy,proto3,enum=istio.networking.v1alpha3.ConnectionPoolSettings_HTTPSettings_H2UpgradePolicy" json:"h2_upgrade_policy,omitempty"`
 
-	// UseClientProtocol    bool     `protobuf:"varint,7,opt,name=use_client_protocol,json=useClientProtocol,proto3" json:"use_client_protocol,omitempty"`
+	UseClientProtocol    bool     `protobuf:"varint,7,opt,name=use_client_protocol,json=useClientProtocol,proto3" json:"useClientProtocol,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -158,9 +205,9 @@ type ConnectionPoolSettings_HTTPSettings struct {
 // Settings common to both HTTP and TCP upstream connections.
 type ConnectionPoolSettings_TCPSettings struct {
 	// Envoy为上游集群建立的最大连接数
-	MaxConnections int32 `protobuf:"varint,1,opt,name=max_connections,json=maxConnections,proto3" json:"max_connections,omitempty"`
+	MaxConnections uint32 `protobuf:"varint,1,opt,name=max_connections,json=maxConnections,proto3" json:"maxConnections,omitempty"`
 	// TCP连接超时时间 （1h/1m/1s/1ms. MUST BE >=1ms. Default is 10s）
-	ConnectTimeout string `protobuf:"bytes,2,opt,name=connect_timeout,json=connectTimeout,proto3" json:"connect_timeout,omitempty"`
+	ConnectTimeout string `protobuf:"bytes,2,opt,name=connect_timeout,json=connectTimeout,proto3" json:"connectTimeout,omitempty"`
 	// If set then set SO_KEEPALIVE on the socket to enable TCP Keepalives.
 	TcpKeepalive         *ConnectionPoolSettings_TCPSettings_TcpKeepalive `protobuf:"bytes,3,opt,name=tcp_keepalive,json=tcpKeepalive,proto3" json:"tcp_keepalive,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                                         `json:"-"`

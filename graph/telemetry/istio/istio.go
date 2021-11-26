@@ -878,9 +878,9 @@ func promQuery(query string, queryTime time.Time, api prom_v1.API) model.Vector 
 	defer cancel()
 
 	// wrap with a round() to be in line with metrics api
-	query = fmt.Sprintf("round(%s,0.001)", query)
-	s := fmt.Sprintf("{cluster=\"%s\",", RemoteCluster)
-	query = strings.Replace(query, "{", s, 1)
+	// query = fmt.Sprintf("round(%s,0.001)", query)
+	// s := fmt.Sprintf("{cluster=\"%s\",", RemoteCluster)
+	// query = strings.Replace(query, "{", s, 1)
 	// sa := "cluster=sgt-service-sg2-prod"
 	log.Infof("Graph query:\n%s@time=%v (now=%v, %v)\n", query, queryTime.Format(graph.TF), time.Now().Format(graph.TF), queryTime.Unix())
 

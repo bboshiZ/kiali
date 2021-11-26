@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"sort"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -18,6 +20,17 @@ import (
 )
 
 func IstioConfigList(w http.ResponseWriter, r *http.Request) {
+	page, err := strconv.Atoi(r.URL.Query().Get("page"))
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, "page error "+r.URL.Query().Get("page"))
+		return
+	}
+	limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, "limit error "+r.URL.Query().Get("limit"))
+		return
+	}
+
 	params := mux.Vars(r)
 	namespace := params["namespace"]
 	query := r.URL.Query()
@@ -93,6 +106,52 @@ func IstioConfigList(w http.ResponseWriter, r *http.Request) {
 		Data:        istioConfig,
 	}
 
+	searchName := r.URL.Query().Get("name")
+	if len(searchName) > 0 {
+		if objects == "virtualservices" {
+			tmp := []models.VirtualService{}
+			for i := range istioConfig.VirtualServices.Items {
+				if strings.HasPrefix(istioConfig.VirtualServices.Items[i].IstioBase.Metadata.Name, searchName) {
+					tmp = append(tmp, istioConfig.VirtualServices.Items[i])
+				}
+			}
+			istioConfig.VirtualServices.Items = tmp
+		} else if objects == "destinationrules" {
+			tmp := []models.DestinationRule{}
+			for i := range istioConfig.DestinationRules.Items {
+				if strings.HasPrefix(istioConfig.DestinationRules.Items[i].IstioBase.Metadata.Name, searchName) {
+					tmp = append(tmp, istioConfig.DestinationRules.Items[i])
+				}
+			}
+			istioConfig.DestinationRules.Items = tmp
+		}
+
+	}
+	if objects == "virtualservices" {
+		sort.SliceStable(istioConfig.VirtualServices.Items, func(i, j int) bool {
+			return istioConfig.VirtualServices.Items[i].IstioBase.Metadata.Name < istioConfig.VirtualServices.Items[j].IstioBase.Metadata.Name
+		})
+
+		resp.CurrentPage = page
+		resp.TotalCount = len(istioConfig.VirtualServices.Items)
+		start, end, pageCount := SlicePage(page, limit, resp.TotalCount)
+		resp.PageCount = pageCount
+		resp.PageSize = limit
+		istioConfig.VirtualServices.Items = istioConfig.VirtualServices.Items[start:end]
+	} else if objects == "destinationrules" {
+		sort.SliceStable(istioConfig.VirtualServices.Items, func(i, j int) bool {
+			return istioConfig.DestinationRules.Items[i].IstioBase.Metadata.Name < istioConfig.DestinationRules.Items[j].IstioBase.Metadata.Name
+		})
+
+		resp.CurrentPage = page
+		resp.TotalCount = len(istioConfig.VirtualServices.Items)
+		start, end, pageCount := SlicePage(page, limit, resp.TotalCount)
+		resp.PageCount = pageCount
+		resp.PageSize = limit
+		istioConfig.VirtualServices.Items = istioConfig.VirtualServices.Items[start:end]
+	}
+
+	resp.Data = istioConfig
 	RespondWithJSON(w, http.StatusOK, resp)
 }
 
@@ -409,12 +468,13 @@ func fixRequestBody(objectType string, body []byte) (res []byte, err error) {
 
 	switch objectType {
 	case kubernetes.VirtualServices:
-		v := &models.VirtualServiceM{}
-		err = json.Unmarshal(body, v)
-		if err != nil {
-			log.Infof("err:[%s]", err)
-			return
-		}
+		res = body
+		// v := &models.VirtualServiceM{}
+		// err = json.Unmarshal(body, v)
+		// if err != nil {
+		// 	log.Infof("err:[%s]", err)
+		// 	return
+		// }
 		// v.Metadata.Namespace = "sample"
 
 		// for i, _ := range v.Spec.Http {
@@ -422,19 +482,19 @@ func fixRequestBody(objectType string, body []byte) (res []byte, err error) {
 		// 		v.Spec.Http[i].Route[j].Destination.Host = v.Spec.Http[i].Route[j].Destination.Host + ".svc.cluster.local"
 		// 	}
 		// }
-		for i := range v.Spec.Http {
-			if v.Spec.Http[i].Retries == nil {
-				v.Spec.Http[i].Retries = &models.HTTPRetry{
-					Attempts: 0,
-				}
-			}
-		}
+		// for i := range v.Spec.Http {
+		// 	if v.Spec.Http[i].Retries == nil {
+		// 		v.Spec.Http[i].Retries = &models.HTTPRetry{
+		// 			Attempts: 0,
+		// 		}
+		// 	}
+		// }
 
-		res, err = json.Marshal(v)
-		if err != nil {
-			log.Infof("err:[%s]", err)
-			return
-		}
+		// res, err = json.Marshal(v)
+		// if err != nil {
+		// 	log.Infof("err:[%s]", err)
+		// 	return
+		// }
 	case kubernetes.DestinationRules:
 		v := &models.DestinationRuleM{}
 		err = json.Unmarshal(body, v)
@@ -442,6 +502,26 @@ func fixRequestBody(objectType string, body []byte) (res []byte, err error) {
 			log.Infof("err:[%s]", err)
 			return
 		}
+
+		// if v.Spec.TrafficPolicy.ConnectionPool.Http.Http1MaxPendingRequests > 2147483647 {
+		// 	v.Spec.TrafficPolicy.ConnectionPool.Http.Http1MaxPendingRequests = 2147483647
+		// }
+		// if v.Spec.TrafficPolicy.ConnectionPool.Http.Http2MaxRequests > 2147483647 {
+		// 	v.Spec.TrafficPolicy.ConnectionPool.Http.Http2MaxRequests = 2147483647
+		// }
+
+		// if v.Spec.TrafficPolicy.ConnectionPool.Http.MaxRequestsPerConnection > 536870912 {
+		// 	v.Spec.TrafficPolicy.ConnectionPool.Http.MaxRequestsPerConnection = 536870912
+		// }
+
+		// if v.Spec.TrafficPolicy.ConnectionPool.Http.MaxRetries > 2147483647 {
+		// 	v.Spec.TrafficPolicy.ConnectionPool.Http.MaxRetries = 2147483647
+		// }
+
+		// if v.Spec.TrafficPolicy.ConnectionPool.Tcp.MaxConnections > 2147483647 {
+		// 	v.Spec.TrafficPolicy.ConnectionPool.Tcp.MaxConnections = 2147483647
+		// }
+
 		v.Spec.Host = fmt.Sprintf("%s.%s.svc.cluster.local", v.Metadata.Name, v.Metadata.Namespace)
 		res, err = json.Marshal(v)
 		if err != nil {

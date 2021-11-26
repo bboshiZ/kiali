@@ -24,7 +24,7 @@ import (
 
 // const RemoteSecretData = "/data/code/kiali/secret/sgt-mesh-sg2-prod"
 
-const RemoteSecretData = "/data/code/kiali/secret/shareit-cce-dev"
+const RemoteSecretData = "/istio-config/secret/istio-config-remote"
 
 var (
 	emptyListOptions = meta_v1.ListOptions{}

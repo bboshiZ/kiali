@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"sort"
+	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/gorilla/mux"
@@ -97,26 +100,35 @@ func ServiceUnInject(w http.ResponseWriter, r *http.Request) {
 // ServiceList is the API handler to fetch the list of services in a given namespace
 func ServiceList(w http.ResponseWriter, r *http.Request) {
 	resp := RespList{
-		// TotalCount:  10,
-		// PageCount:   1,
-		// CurrentPage: 1,
-		// PageSize:    10,
 		Data: []interface{}{},
 	}
+	// page := r.URL.Query().Get("page")
+	page, err := strconv.Atoi(r.URL.Query().Get("page"))
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, "page error "+r.URL.Query().Get("page"))
+		return
+	}
+	limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, "limit error "+r.URL.Query().Get("limit"))
+		return
+	}
 
-	params := mux.Vars(r)
 	cluster := r.URL.Query().Get("cluster")
 	if _, ok := business.ClusterMap[cluster]; !ok {
 		RespondWithJSON(w, http.StatusOK, resp)
 		return
 	}
+
+	params := mux.Vars(r)
+	namespace := params["namespace"]
+
 	// Get business layer
 	business, err := getBusiness(r)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
 		return
 	}
-	namespace := params["namespace"]
 
 	// Fetch and build services
 	serviceList, err := business.Svc.GetServiceList(cluster, namespace, true)
@@ -124,12 +136,28 @@ func ServiceList(w http.ResponseWriter, r *http.Request) {
 		handleErrorResponse(w, err)
 		return
 	}
+	searchName := r.URL.Query().Get("name")
+	if len(searchName) > 0 {
+		tmp := []models.ServiceOverview{}
+		for i := range serviceList.Services {
+			if strings.HasPrefix(serviceList.Services[i].Name, searchName) {
+				tmp = append(tmp, serviceList.Services[i])
+			}
+		}
+		serviceList.Services = tmp
+	}
+	sort.SliceStable(serviceList.Services, func(i, j int) bool {
+		return serviceList.Services[i].Name < serviceList.Services[j].Name
+	})
 
-	resp.CurrentPage = 1
-	resp.PageCount = 1
-	resp.PageSize = 20
+	resp.CurrentPage = page
 	resp.TotalCount = len(serviceList.Services)
 
+	start, end, pageCount := SlicePage(page, limit, resp.TotalCount)
+
+	resp.PageCount = pageCount
+	resp.PageSize = limit
+	serviceList.Services = serviceList.Services[start:end]
 	resp.Data = serviceList
 
 	RespondWithJSON(w, http.StatusOK, resp)
