@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"sort"
@@ -32,7 +31,7 @@ func ServiceInject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	namespace := params["namespace"]
-	workloadType := "Deployment"
+	// workloadType := "Deployment"
 
 	serviceDetails, err := business.Svc.GetService(cluster, namespace, service, defaultHealthRateInterval, util.Clock.Now())
 	if err != nil {
@@ -41,7 +40,7 @@ func ServiceInject(w http.ResponseWriter, r *http.Request) {
 	}
 	jsonPatch := string(`{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/inject":"true"}}}}}`)
 	for _, deploy := range serviceDetails.Workloads {
-		_, err1 := business.Workload.UpdateRemoteWorkload(cluster, namespace, deploy.Name, workloadType, true, jsonPatch)
+		err1 := business.Workload.UpdateRemoteWorkload(cluster, namespace, deploy.Name, deploy.Type, true, jsonPatch)
 		if err1 != nil {
 			err = err1
 		}
@@ -79,12 +78,9 @@ func ServiceUnInject(w http.ResponseWriter, r *http.Request) {
 		handleErrorResponse(w, err)
 		return
 	}
-	// fmt.Printf("xxxx:%+v\n", serviceDetails.Workloads)
 	jsonPatch := string(`{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/inject":"false"}}}}}`)
 	for _, deploy := range serviceDetails.Workloads {
-		fmt.Printf("aaaa:%+v\n", deploy)
-
-		_, err1 := business.Workload.UpdateRemoteWorkload(cluster, namespace, deploy.Name, deploy.Type, true, jsonPatch)
+		err1 := business.Workload.UpdateRemoteWorkload(cluster, namespace, deploy.Name, deploy.Type, true, jsonPatch)
 		if err1 != nil {
 			err = err1
 		}

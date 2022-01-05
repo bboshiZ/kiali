@@ -289,11 +289,11 @@ func updateRemoteWorkload(layer *Layer, cluster, namespace string, workloadName 
 	return nil
 }
 
-func (in *WorkloadService) UpdateRemoteWorkload(cluster, namespace string, workloadName string, workloadType string, includeServices bool, jsonPatch string) (*models.Workload, error) {
+func (in *WorkloadService) UpdateRemoteWorkload(cluster, namespace string, workloadName string, workloadType string, includeServices bool, jsonPatch string) error {
 	// Identify controller and apply patch to workload
 	err := updateRemoteWorkload(in.businessLayer, cluster, namespace, workloadName, workloadType, jsonPatch)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Cache is stopped after a Create/Update/Delete operation to force a refresh
@@ -301,8 +301,9 @@ func (in *WorkloadService) UpdateRemoteWorkload(cluster, namespace string, workl
 		kialiCache.RefreshNamespace(namespace)
 	}
 
+	return nil
 	// After the update we fetch the whole workload
-	return in.GetWorkload(cluster, namespace, workloadName, workloadType, includeServices)
+	// return in.GetWorkload(cluster, namespace, workloadName, workloadType, includeServices)
 }
 
 func (in *WorkloadService) UpdateWorkload(cluster, namespace string, workloadName string, workloadType string, includeServices bool, jsonPatch string) (*models.Workload, error) {
