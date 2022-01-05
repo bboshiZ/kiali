@@ -17,7 +17,7 @@ var KialiToken string
 func GetKialiToken() (string, error) {
 	if KialiToken == "" {
 		if remoteSecret, err := GetRemoteSecret(RemoteSecretData); err == nil {
-			fmt.Printf("%+v\n", remoteSecret)
+			fmt.Printf("GetRemoteSecret: %+v\n", remoteSecret)
 			KialiToken = remoteSecret.Users[0].User.Token
 		} else {
 			token, err := ioutil.ReadFile(DefaultServiceAccountPath)

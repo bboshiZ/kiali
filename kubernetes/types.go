@@ -22,6 +22,7 @@ const (
 	ReplicaSetType            = "ReplicaSet"
 	ServiceType               = "Service"
 	StatefulSetType           = "StatefulSet"
+	CloneSetType              = "CloneSet"
 
 	// Networking
 

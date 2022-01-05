@@ -502,6 +502,16 @@ func (in *K8SClient) UpdateWorkload(namespace string, workloadName string, workl
 		_, err = in.k8s.CoreV1().Pods(namespace).Patch(in.ctx, workloadName, types.MergePatchType, bytePatch, emptyPatchOptions)
 	case DaemonSetType:
 		_, err = in.k8s.AppsV1().DaemonSets(namespace).Patch(in.ctx, workloadName, types.MergePatchType, bytePatch, emptyPatchOptions)
+	case CloneSetType:
+		// result, err := in.k8s.RESTClient().Get().AbsPath("/apis/apps/v1").Namespace(namespace).Resource("deployments").SubResource("sleep").DoRaw(in.ctx)
+		// result, err := in.k8s.RESTClient().Get().AbsPath("/apis/apps/v1/namespaces/sample/deployments/sleep").DoRaw(in.ctx)
+		// result, err := in.k8s.RESTClient().Patch(types.MergePatchType).AbsPath("/apis/apps/v1").Namespace(namespace).Resource("deployments").SubResource("sleep").Body(bytePatch).DoRaw(in.ctx)
+		// fmt.Printf("xxxx:%+v,%+v\n", result, err)
+
+		// result, err := in.k8s.RESTClient().Get().AbsPath("/apis/apps.kruise.io/v1alpha1").Namespace(namespace).Resource("clonesets").SubResource(workloadName).DoRaw(in.ctx)
+		err = in.k8s.RESTClient().Patch(types.MergePatchType).AbsPath("/apis/apps.kruise.io/v1alpha1").Namespace(namespace).Resource("clonesets").SubResource(workloadName).Body(bytePatch).Do(in.ctx).Error()
+		// err := result.Error()
+		// fmt.Printf("xxxx:%+v\n", err)
 	default:
 		err = fmt.Errorf("Workload type %s not found", workloadType)
 	}

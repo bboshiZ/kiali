@@ -240,6 +240,7 @@ func updateRemoteWorkload(layer *Layer, cluster, namespace string, workloadName 
 		kubernetes.CronJobType,
 		kubernetes.PodType,
 		kubernetes.DaemonSetType,
+		kubernetes.CloneSetType,
 	}
 
 	// workloadType is an optional parameter used to optimize the workload type fetch
@@ -269,6 +270,7 @@ func updateRemoteWorkload(layer *Layer, cluster, namespace string, workloadName 
 				err = remoteIstioClusters[cluster].K8s.UpdateWorkload(namespace, workloadName, wkType, jsonPatch)
 				// err = layer.k8s.UpdateWorkload(namespace, workloadName, wkType, jsonPatch)
 			}
+			// fmt.Println("xxxxxxx:", err)
 			if err != nil {
 				if !errors.IsNotFound(err) {
 					log.Errorf("Error fetching %s per namespace %s and name %s: %s", wkType, namespace, workloadName, err)
