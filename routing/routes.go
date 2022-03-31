@@ -184,6 +184,27 @@ func NewRoutes() (r *Routes) {
 			handlers.IstioConfigCreate,
 			true,
 		},
+
+		{
+			"IstioNetworkConfig",
+			"POST",
+			"/api/namespaces/{namespace}/{object_type}/{network_type}/{object}",
+			// "/api/namespaces/sample/destinationrules/outlier-detection/hellworld",
+
+			handlers.IstioNetworkConfigUpdate,
+			true,
+		},
+
+		{
+			"IstioNetworkConfig",
+			"DELETE",
+			"/api/namespaces/{namespace}/{object_type}/{network_type}/{object}",
+			// "/api/namespaces/sample/destinationrules/outlier-detection/hellworld",
+
+			handlers.IstioNetworkConfigDelete,
+			true,
+		},
+
 		// swagger:route DELETE /namespaces/{namespace}/istio/virtualservices/{object} istio管理 istioVirtualServiceDelete
 		// ---
 		// 删除virtualservices接口

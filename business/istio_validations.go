@@ -130,6 +130,11 @@ func (in *IstioValidationsService) getAllObjectCheckers(namespace string, istioD
 	}
 }
 
+func (in *IstioValidationsService) GetIstioObject(namespace string, objectType string, object string) (kubernetes.IstioObject, error) {
+
+	return in.k8s.GetIstioObject(namespace, objectType, object)
+}
+
 // GetIstioObjectValidations validates a single Istio object of the given type with the given name found in the given namespace.
 func (in *IstioValidationsService) GetIstioObjectValidations(namespace string, objectType string, object string) (models.IstioValidations, error) {
 	var istioDetails kubernetes.IstioDetails

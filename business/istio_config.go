@@ -511,6 +511,9 @@ func (in *IstioConfigService) ParseJsonForCreate(resourceType string, body []byt
 	case kubernetes.RequestAuthentications:
 		istioConfigDetail.RequestAuthentication = &models.RequestAuthentication{}
 		err = json.Unmarshal(body, istioConfigDetail.RequestAuthentication)
+	case kubernetes.EnvoyFilters:
+		istioConfigDetail.EnvoyFilter = &models.EnvoyFilter{}
+		err = json.Unmarshal(body, istioConfigDetail.EnvoyFilter)
 	default:
 		err = fmt.Errorf("object type not found: %v", resourceType)
 	}
@@ -571,9 +574,19 @@ func (in *IstioConfigService) modifyIstioConfigDetail(api, namespace, resourceTy
 	if create {
 		// Create new object
 		result, err = in.k8s.CreateIstioObject(api, namespace, updatedType, json)
+		fmt.Println("xxxxx:", result, err)
 	} else {
 		// Update/Path existing object
 		result, err = in.k8s.UpdateIstioObject(api, namespace, updatedType, name, json)
+		if err != nil && strings.Contains(err.Error(), "not found") {
+			var newJson string
+			newJson, err = in.ParseJsonForCreate(resourceType, []byte(json))
+			if err != nil {
+				return models.IstioConfigDetails{}, errors2.NewBadRequest(err.Error())
+			}
+			result, err = in.k8s.CreateIstioObject(api, namespace, updatedType, newJson)
+		}
+
 	}
 	if err != nil {
 		return istioConfigDetail, err
@@ -626,6 +639,7 @@ func (in *IstioConfigService) modifyIstioConfigDetail(api, namespace, resourceTy
 func (in *IstioConfigService) CreateIstioConfigDetail(api, namespace, resourceType string, body []byte) (models.IstioConfigDetails, error) {
 	json, err := in.ParseJsonForCreate(resourceType, body)
 	if err != nil {
+		fmt.Println("ParseJsonForCreate-err-xxx:", err, string(body))
 		return models.IstioConfigDetails{}, errors2.NewBadRequest(err.Error())
 	}
 	return in.modifyIstioConfigDetail(api, namespace, resourceType, "", json, true)

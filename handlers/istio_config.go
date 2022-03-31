@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -9,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"text/template"
 
 	"github.com/gorilla/mux"
 
@@ -352,39 +354,6 @@ func IstioConfigUpdate(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, updatedConfigDetails)
 }
 
-// func IstioVirtualServiceCreate(w http.ResponseWriter, r *http.Request) {
-// 	// Feels kinda replicated for multiple functions..
-// 	params := mux.Vars(r)
-// 	namespace := params["namespace"]
-// 	objectType := "virtualservices"
-
-// 	api := business.GetIstioAPI(objectType)
-// 	if api == "" {
-// 		RespondWithError(w, http.StatusBadRequest, "Object type not managed: "+objectType)
-// 		return
-// 	}
-
-// 	// Get business layer
-// 	business, err := getBusiness(r)
-// 	if err != nil {
-// 		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
-// 		return
-// 	}
-
-// 	body, err := ioutil.ReadAll(r.Body)
-// 	if err != nil {
-// 		RespondWithError(w, http.StatusBadRequest, "Create request could not be read: "+err.Error())
-// 	}
-
-// 	createdConfigDetails, err := business.IstioConfig.CreateIstioConfigDetail(api, namespace, objectType, body)
-// 	if err != nil {
-// 		handleErrorResponse(w, err)
-// 		return
-// 	}
-
-// 	audit(r, "CREATE on Namespace: "+namespace+" Type: "+objectType+" Object: "+string(body))
-// 	RespondWithJSON(w, http.StatusOK, createdConfigDetails)
-// }
 func IstioDestinationruleCreate(w http.ResponseWriter, r *http.Request) {
 	// Feels kinda replicated for multiple functions..
 	params := mux.Vars(r)
@@ -419,17 +388,420 @@ func IstioDestinationruleCreate(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, createdConfigDetails)
 }
 
+const (
+	TYPE_ROUTE            = "route"
+	TYPE_LOADBALANCE      = "load_balance"
+	TYPE_CONNECTIONPOOL   = "connection_pool"
+	TYPE_OUTLIERDETECTION = "outlier-detection"
+	TYPE_RETRY            = "retry"
+	TYPE_RATELIMIT        = "ratelimit"
+	TYPE_MIRROR           = "mirror"
+	TYPE_LOCALITYLB       = "locality-lbsetting"
+	TYPE_FAULTINJECT      = "fault_inject"
+	TYPE_SUBNET           = "subset"
+
+	rateLimtTpl = `
+{
+	"apiVersion": "networking.istio.io/v1alpha3",
+	"kind": "EnvoyFilter",
+	"metadata": {
+		"name": "filter-local-ratelimit-{{.Name}}",
+		"namespace": "{{.Namespace}}"
+	},
+	"spec": {
+		"workloadSelector": {
+		"labels": {
+			"app": "nginx"
+		}
+		},
+		"configPatches": [
+		{
+			"applyTo": "HTTP_FILTER",
+			"match": {
+			"context": "SIDECAR_INBOUND",
+			"listener": {
+				"filterChain": {
+				"filter": {
+					"name": "envoy.filters.network.http_connection_manager"
+				}
+				}
+			}
+			},
+			"patch": {
+			"operation": "INSERT_BEFORE",
+			"value": {
+				"name": "envoy.filters.http.local_ratelimit",
+				"typed_config": {
+				"@type": "type.googleapis.com/udpa.type.v1.TypedStruct",
+				"type_url": "type.googleapis.com/envoy.extensions.filters.http.local_ratelimit.v3.LocalRateLimit",
+				"value": {
+					"stat_prefix": "http_local_rate_limiter",
+					"token_bucket": {
+					"max_tokens": "{{.Max_tokens}}",
+					"tokens_per_fill": "{{.Tokens_per_fill}}",
+					"fill_interval": "{{.Fill_interval}}"
+					},
+					"filter_enabled": {
+					"runtime_key": "local_rate_limit_enabled",
+					"default_value": {
+						"numerator": 100,
+						"denominator": "HUNDRED"
+					}
+					},
+					"filter_enforced": {
+					"runtime_key": "local_rate_limit_enforced",
+					"default_value": {
+						"numerator": 100,
+						"denominator": "HUNDRED"
+					}
+					},
+					"response_headers_to_add": [
+					{
+						"append": false,
+						"header": {
+						"key": "x-local-rate-limit",
+						"value": "true"
+						}
+					}
+					]
+				}
+				}
+			}
+			}
+		}
+	  ]
+	}
+}
+	
+`
+	rateLimtTpl_aa = `
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: filter-local-ratelimit-{{.Name}}
+  namespace: {{.Namespace}}
+spec:
+  workloadSelector:
+    labels:
+      app: nginx
+  configPatches:
+    - applyTo: HTTP_FILTER
+      match:
+        context: SIDECAR_INBOUND
+        listener:
+          filterChain:
+            filter:
+              name: "envoy.filters.network.http_connection_manager"
+      patch:
+        operation: INSERT_BEFORE
+        value:
+          name: envoy.filters.http.local_ratelimit
+          typed_config:
+            "@type": type.googleapis.com/udpa.type.v1.TypedStruct
+            type_url: type.googleapis.com/envoy.extensions.filters.http.local_ratelimit.v3.LocalRateLimit
+            value:
+              stat_prefix: http_local_rate_limiter
+              token_bucket:
+                max_tokens: {{.Max_tokens}}
+                tokens_per_fill: {{.Tokens_per_fill}}
+                fill_interval: {{.Fill_interval}}
+              filter_enabled:
+                runtime_key: local_rate_limit_enabled
+                default_value:
+                  numerator: 100
+                  denominator: HUNDRED
+              filter_enforced:
+                runtime_key: local_rate_limit_enforced
+                default_value:
+                  numerator: 100
+                  denominator: HUNDRED
+              response_headers_to_add:
+                - append: false
+                  header:
+                    key: x-local-rate-limit
+                    value: 'true'
+	
+`
+)
+
+func IstioNetworkConfigDelete(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	namespace := params["namespace"]
+	objectType := params["object_type"]
+	networkType := params["network_type"]
+	object := params["object"]
+
+	api := business.GetIstioAPI(objectType)
+	if api == "" {
+		RespondWithError(w, http.StatusBadRequest, "Object type not managed: "+objectType)
+		return
+	}
+
+	business, err := getBusiness(r)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
+		return
+	}
+
+	if networkType == TYPE_RATELIMIT {
+
+		object = fmt.Sprintf("filter-local-ratelimit-%s", object)
+
+		err := business.IstioConfig.DeleteIstioConfigDetail(api, namespace, kubernetes.EnvoyFilters, object)
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, "delete  ratelimit error: "+err.Error())
+			return
+		}
+
+		RespondWithJSON(w, http.StatusOK, "")
+
+		return
+	}
+
+	fmt.Println("IstioNetworkConfig-xxx:", namespace, objectType, object)
+	result, err := business.IstioConfig.GetIstioConfigDetails(namespace, objectType, object)
+	// result.DestinationRule
+	// fmt.Println("IstioNetworkConfig-result-xxx:", result.DestinationRule, err)
+	if networkType == TYPE_MIRROR {
+		vsHttpList := result.VirtualService.Spec.Http.([]interface{})
+		var newVsHttpList []interface{}
+		for i, _ := range vsHttpList {
+			vs := vsHttpList[i].(map[string]interface{})
+			vs["mirror"] = nil
+			vs["mirrorPercentage"] = nil
+			newVsHttpList = append(newVsHttpList, vs)
+		}
+		result.VirtualService.Spec.Http = newVsHttpList
+		jsonPatch, err := json.Marshal(result.VirtualService)
+
+		fmt.Printf("IstioNetworkConfig-result-xxx:%+v,%+v\n", string(jsonPatch), err)
+		_, err = business.IstioConfig.UpdateIstioConfigDetail(api, namespace, objectType, object, string(jsonPatch))
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, "IstioNetworkConfigDelete error: "+err.Error())
+			return
+		}
+
+		RespondWithJSON(w, http.StatusOK, "")
+		return
+	}
+	fmt.Printf("IstioNetworkConfig-result-xxx:%+v,%s\n", result.DestinationRule.Spec, err)
+	tp := result.DestinationRule.Spec.TrafficPolicy.(map[string]interface{})
+	if _, ok := tp["loadBalancer"]; !ok {
+		tp["loadBalancer"] = models.LoadBalancerSettings{
+			Simple: "ROUND_ROBIN",
+		}
+	}
+	switch networkType {
+	case TYPE_OUTLIERDETECTION:
+		tp["outlierDetection"] = nil
+	case TYPE_CONNECTIONPOOL:
+		// tp["connectionPool"] = nil
+	case TYPE_LOCALITYLB:
+		lb := tp["loadBalancer"].(map[string]interface{})
+		lb["localityLbSetting"] = nil
+		tp["loadBalancer"] = lb
+		// case TYPE_MIRROR:
+
+	}
+
+	// tp["outlierDetection"] = nil
+
+	result.DestinationRule.Spec.TrafficPolicy = tp
+	// fmt.Printf("IstioNetworkConfig-result-xxx:%+v\n", result.DestinationRule.Spec)
+
+	jsonPatch, err := json.Marshal(result.DestinationRule)
+	fmt.Printf("IstioNetworkConfig-result-xxx:%+v,%+v\n", string(jsonPatch), err)
+
+	_, err = business.IstioConfig.UpdateIstioConfigDetail(api, namespace, objectType, object, string(jsonPatch))
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "IstioNetworkConfigDelete error: "+err.Error())
+		return
+	}
+
+	RespondWithJSON(w, http.StatusOK, "")
+}
+
+func IstioNetworkConfigUpdate(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	namespace := params["namespace"]
+	objectType := params["object_type"]
+	networkType := params["network_type"]
+	object := params["object"]
+
+	api := business.GetIstioAPI(objectType)
+	if api == "" {
+		RespondWithError(w, http.StatusBadRequest, "Object type not managed: "+objectType)
+		return
+	}
+
+	business, err := getBusiness(r)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
+		return
+	}
+
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, "Create request could not be read: "+err.Error())
+	}
+
+	if networkType == TYPE_RATELIMIT {
+		objectType = kubernetes.EnvoyFilters
+		dstRule := &models.DestinationRuleM{}
+		err = json.Unmarshal(body, dstRule)
+		if err != nil {
+			log.Infof("err:[%s]", err)
+			handleErrorResponse(w, err)
+			return
+		}
+
+		type limit struct {
+			Name            string `json:name`
+			Namespace       string `json:namespace`
+			Max_tokens      int    `json:max_tokens`
+			Tokens_per_fill int    `json:tokens_per_fill`
+			Fill_interval   string `json:fill_interval`
+		}
+		trafic := dstRule.Spec.TrafficPolicy.(map[string]interface{})
+		li := trafic["rateLimit"].(map[string]interface{})
+
+		p := limit{
+			Name:      dstRule.Metadata.Name,
+			Namespace: dstRule.Metadata.Namespace,
+			// Max_tokens:      ,
+			// Tokens_per_fill: li["tokens_per_fill"].(int),
+			Fill_interval: li["fill_interval"].(string),
+		}
+
+		if num, ok := li["max_tokens"].(float64); ok {
+			p.Max_tokens = int(num)
+		}
+		if num, ok := li["tokens_per_fill"].(float64); ok {
+			p.Tokens_per_fill = int(num)
+		}
+
+		t := template.New("test")
+		t = template.Must(t.Parse(rateLimtTpl))
+
+		var buf bytes.Buffer
+		err := t.Execute(&buf, p)
+		if err != nil {
+			log.Infof("err-111:[%s]", err)
+			handleErrorResponse(w, err)
+			return
+		}
+
+		body = buf.Bytes()
+		object = fmt.Sprintf("filter-local-ratelimit-%s", dstRule.Metadata.Name)
+
+		log.Infof("body-111:[%s]", string(body))
+
+	}
+
+	if objectType == kubernetes.DestinationRules {
+		v := &models.DestinationRuleM{}
+		err = json.Unmarshal(body, v)
+		if err != nil {
+			log.Infof("err:[%s]", err)
+			handleErrorResponse(w, err)
+			return
+		}
+		v.Spec.Host = fmt.Sprintf("%s.%s.svc.cluster.local", v.Metadata.Name, v.Metadata.Namespace)
+		body, err = json.Marshal(v)
+		if err != nil {
+			log.Infof("err:[%s]", err)
+			handleErrorResponse(w, err)
+			return
+		}
+	}
+
+	// business.IstioConfig.GetIstioConfigDetails(namespace, objectType, object)
+	fmt.Println("IstioNetworkConfig-xxx:", namespace, objectType, object)
+	// result, err := business.IstioConfig.GetIstioConfigDetails(namespace, objectType, object)
+
+	result, err := business.IstioConfig.GetIstioConfigDetails(namespace, objectType, object)
+	// fmt.Println("IstioNetworkConfig-result-xxx:", result, err)
+	fmt.Printf("IstioNetworkConfig-result-xxx:%+v,%+v\n", result, err)
+
+	if err == nil {
+		if networkType == "mirror" {
+			fmt.Printf("IstioNetworkConfig-mirror-xxx:%+v,%+v\n", result.VirtualService.Spec.Http, err)
+
+			vsHttpList := result.VirtualService.Spec.Http.([]interface{})
+
+			if len(vsHttpList) > 0 {
+				vsHttp := vsHttpList[0].(map[string]interface{})
+				v := &models.VirtualService{}
+				jsonErr := json.Unmarshal(body, v)
+				if err != nil {
+					log.Infof("err:[%s]", jsonErr)
+					handleErrorResponse(w, jsonErr)
+				}
+				newVsHttpList := v.Spec.Http.([]interface{})
+				if len(newVsHttpList) > 0 {
+					newVsHttp := newVsHttpList[0].(map[string]interface{})
+					vsHttp["mirror"] = newVsHttp["mirror"]
+					vsHttp["mirrorPercentage"] = newVsHttp["mirrorPercentage"]
+					result.VirtualService.Spec.Http = []map[string]interface{}{vsHttp}
+					fmt.Printf("IstioNetworkConfig-VirtualService-xxx:%+v\n", result.VirtualService.Spec.Http)
+
+					body, _ = json.Marshal(result.VirtualService)
+				}
+
+			}
+
+		}
+
+		fmt.Printf("IstioNetworkConfig-updatemirror-xxx:%+v\n", string(body))
+
+		jsonPatch := string(body)
+		updatedConfigDetails, err := business.IstioConfig.UpdateIstioConfigDetail(api, namespace, objectType, object, jsonPatch)
+		if err != nil {
+			handleErrorResponse(w, err)
+			return
+		}
+		audit(r, "UPDATE on Namespace: "+namespace+" Type: "+objectType+" Name: "+object+" Patch: "+jsonPatch)
+		RespondWithJSON(w, http.StatusOK, updatedConfigDetails)
+	} else {
+		if networkType == "mirror" {
+			vs := &models.VirtualService{}
+			jsonErr := json.Unmarshal(body, vs)
+			if jsonErr != nil {
+				log.Infof("err:[%s]", jsonErr)
+				handleErrorResponse(w, jsonErr)
+			}
+
+			vs.Spec.Hosts = []string{fmt.Sprintf("%s.%s.svc.cluster.local", vs.Metadata.Name, vs.Metadata.Namespace)}
+			newVsHttpList := vs.Spec.Http.([]interface{})
+			if len(newVsHttpList) > 0 {
+				newVsHttp := newVsHttpList[0].(map[string]interface{})
+				d := models.HTTPRouteDestination{
+					Destination: &models.Destination{
+						Host: fmt.Sprintf("%s.%s.svc.cluster.local", vs.Metadata.Name, vs.Metadata.Namespace),
+					},
+				}
+				newVsHttp["route"] = []models.HTTPRouteDestination{d}
+				vs.Spec.Http = []interface{}{newVsHttp}
+				body, _ = json.Marshal(vs)
+				fmt.Printf("create-mirror-xxx:%+v\n", vs)
+			}
+
+		}
+
+		createdConfigDetails, err := business.IstioConfig.CreateIstioConfigDetail(api, namespace, objectType, body)
+		if err != nil {
+			handleErrorResponse(w, err)
+			return
+		}
+		audit(r, "CREATE on Namespace: "+namespace+" Type: "+objectType+" Object: "+string(body))
+		RespondWithJSON(w, http.StatusOK, createdConfigDetails)
+	}
+}
 func IstioConfigCreate(w http.ResponseWriter, r *http.Request) {
 	// Feels kinda replicated for multiple functions..
 	params := mux.Vars(r)
 	namespace := params["namespace"]
 	objectType := params["object_type"]
-
-	// cluster := r.URL.Query().Get("cluster")
-	// if _, ok := business.ClusterMap[cluster]; !ok {
-	// 	RespondWithJSON(w, http.StatusOK, "")
-	// 	return
-	// }
 
 	api := business.GetIstioAPI(objectType)
 	if api == "" {
