@@ -12,6 +12,8 @@ import (
 	"sync"
 	"text/template"
 
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/gorilla/mux"
 
 	"github.com/kiali/kiali/business"
@@ -206,7 +208,66 @@ func IstioConfigDetails(w http.ResponseWriter, r *http.Request) {
 	}
 
 	istioConfigDetails, err := business.IstioConfig.GetIstioConfigDetails(namespace, objectType, object)
+	fmt.Printf("xxxxxx-xxxx-%+v,%+v\n", istioConfigDetails, err)
 
+	if objectType == kubernetes.DestinationRules {
+		type CommonSpec struct {
+			Host          interface{} `json:"host,omitempty"`
+			TrafficPolicy interface{} `json:"trafficPolicy,omitempty"`
+			Subsets       interface{} `json:"subsets,omitempty"`
+			ExportTo      interface{} `json:"exportTo,omitempty"`
+		}
+
+		if istioConfigDetails.DestinationRule == nil {
+			err = nil
+			istioConfigDetails.DestinationRule = &models.DestinationRule{
+				IstioBase: models.IstioBase{
+					Metadata: meta_v1.ObjectMeta{
+						Name:      object,
+						Namespace: namespace,
+					},
+				},
+				Spec: CommonSpec{
+					Host:          fmt.Sprintf("%s.%s.svc.cluster.local", object, namespace),
+					TrafficPolicy: map[string]interface{}{},
+				},
+			}
+		}
+
+		object = fmt.Sprintf("filter-local-ratelimit-%s", object)
+		result, err := business.IstioConfig.GetIstioConfigDetails(namespace, kubernetes.EnvoyFilters, object)
+		// fmt.Printf("xxxxxx-aaa-%+v,%+v\n", result, err)
+		if err == nil && result.EnvoyFilter != nil {
+			// fmt.Printf("xxxxxx-bbb-%+v\n", result.EnvoyFilter.Spec.ConfigPatches)
+			if configP, ok := result.EnvoyFilter.Spec.ConfigPatches.([]interface{}); ok {
+				date, err := json.Marshal(configP[0])
+				if err == nil {
+					var patch ConfigPatches
+					err = json.Unmarshal(date, &patch)
+					bucket := patch.Patch.Value.TypedConfig.Value.TokenBucket
+					fmt.Printf("xxxxxx-%+v,%+v\n", patch.Patch.Value.TypedConfig.Value.TokenBucket, err)
+					if err == nil {
+						traffic := istioConfigDetails.DestinationRule.Spec.TrafficPolicy.(map[string]interface{})
+						mToken, _ := strconv.Atoi(bucket.MaxTokens)
+						tokenFil, _ := strconv.Atoi(bucket.TokensPerFill)
+
+						traffic["rateLimit"] = TokenBucketInt{
+							MaxTokens:     mToken,
+							TokensPerFill: tokenFil,
+							FillInterval:  bucket.FillInterval}
+						istioConfigDetails.DestinationRule.Spec.TrafficPolicy = traffic
+					}
+
+				}
+			}
+
+			// if configP, ok := result.EnvoyFilter.Spec.ConfigPatches.([]ConfigPatches); ok {
+			// 	fmt.Printf("xxxxxx-%+v\n", configP[0].Patch.Value.TypedConfig.Value.TokenBucket)
+			// 	// configP.Patch.Value.TypedConfig.Value.TokenBucket.MaxTokens
+			// }
+		}
+
+	}
 	if includeValidations && err == nil {
 		wg.Wait()
 
@@ -437,9 +498,9 @@ const (
 				"value": {
 					"stat_prefix": "http_local_rate_limiter",
 					"token_bucket": {
-					"max_tokens": "{{.Max_tokens}}",
-					"tokens_per_fill": "{{.Tokens_per_fill}}",
-					"fill_interval": "{{.Fill_interval}}"
+					"max_tokens": "{{.MaxTokens}}",
+					"tokens_per_fill": "{{.TokensPerFill}}",
+					"fill_interval": "{{.FillInterval}}"
 					},
 					"filter_enabled": {
 					"runtime_key": "local_rate_limit_enabled",
@@ -656,11 +717,11 @@ func IstioNetworkConfigUpdate(w http.ResponseWriter, r *http.Request) {
 		}
 
 		type limit struct {
-			Name            string `json:name`
-			Namespace       string `json:namespace`
-			Max_tokens      int    `json:max_tokens`
-			Tokens_per_fill int    `json:tokens_per_fill`
-			Fill_interval   string `json:fill_interval`
+			Name          string `json:name`
+			Namespace     string `json:namespace`
+			MaxTokens     int    `json:max_tokens`
+			TokensPerFill int    `json:tokens_per_fill`
+			FillInterval  string `json:fill_interval`
 		}
 		trafic := dstRule.Spec.TrafficPolicy.(map[string]interface{})
 		li := trafic["rateLimit"].(map[string]interface{})
@@ -668,16 +729,17 @@ func IstioNetworkConfigUpdate(w http.ResponseWriter, r *http.Request) {
 		p := limit{
 			Name:      dstRule.Metadata.Name,
 			Namespace: dstRule.Metadata.Namespace,
-			// Max_tokens:      ,
-			// Tokens_per_fill: li["tokens_per_fill"].(int),
-			Fill_interval: li["fill_interval"].(string),
 		}
 
-		if num, ok := li["max_tokens"].(float64); ok {
-			p.Max_tokens = int(num)
+		if fill, ok := li["fillInterval"].(string); ok {
+			p.FillInterval = fill
 		}
-		if num, ok := li["tokens_per_fill"].(float64); ok {
-			p.Tokens_per_fill = int(num)
+
+		if num, ok := li["maxTokens"].(float64); ok {
+			p.MaxTokens = int(num)
+		}
+		if num, ok := li["tokensPerFill"].(float64); ok {
+			p.TokensPerFill = int(num)
 		}
 
 		t := template.New("test")
