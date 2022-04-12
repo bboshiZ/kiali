@@ -262,6 +262,21 @@ type HTTPRoute struct {
 	// 请求超时配置
 	// example: 10s
 	Timeout string `json:"timeout,omitempty"`
+
+	Mirror           MirrorPolice `json:"mirror"`
+	MirrorPercentage *Percent     `json:"mirrorPercentage,omitempty"`
+}
+type MirrorPolice struct {
+	Cluster   string `json:"cluster"`
+	Namespace string `json:"namespace"`
+	Service   string `json:"service"`
+}
+
+type Percent struct {
+	Value                float64  `protobuf:"fixed64,1,opt,name=value,proto3" json:"value,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
 type HTTPRouteDestination struct {

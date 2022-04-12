@@ -21,7 +21,26 @@ import (
 	"github.com/kiali/kiali/kubernetes"
 	"github.com/kiali/kiali/log"
 	"github.com/kiali/kiali/models"
+	"github.com/kiali/kiali/util"
 )
+
+func LocalityList(w http.ResponseWriter, r *http.Request) {
+
+	hw := []string{"ap-southeast-3/ap-southeast-3a/*", "ap-southeast-3/ap-southeast-3b/*", "ap-southeast-3/ap-southeast-3c/*"}
+	aws := []string{"ap-southeast-1/ap-southeast-1a/*", "ap-southeast-1/ap-southeast-1b/*", "ap-southeast-1/ap-southeast-1c/*"}
+	resp := map[string][]string{
+		"locality": append(hw, aws...)}
+	// typs Locality struct{
+	// 	Region string
+	// 	Zone []string
+	// }
+	// hw:=Locality{
+	// 	Region:"ap-southeast-3",
+	// 	Zone:[]string{}
+	// }
+	RespondWithJSON(w, http.StatusOK, resp)
+
+}
 
 func IstioConfigList(w http.ResponseWriter, r *http.Request) {
 	page, err := strconv.Atoi(r.URL.Query().Get("page"))
@@ -209,6 +228,67 @@ func IstioConfigDetails(w http.ResponseWriter, r *http.Request) {
 
 	istioConfigDetails, err := business.IstioConfig.GetIstioConfigDetails(namespace, objectType, object)
 	fmt.Printf("xxxxxx-xxxx-%+v,%+v\n", istioConfigDetails, err)
+
+	if objectType == kubernetes.VirtualServices {
+
+		if istioConfigDetails.VirtualService == nil {
+			err = nil
+
+			type CommonSpec struct {
+				Hosts    []string    `json:"hosts,omitempty"`
+				Gateways interface{} `json:"gateways,omitempty"`
+				Http     interface{} `json:"http,omitempty"`
+				Tcp      interface{} `json:"tcp,omitempty"`
+				Tls      interface{} `json:"tls,omitempty"`
+				ExportTo interface{} `json:"exportTo,omitempty"`
+			}
+
+			istioConfigDetails.VirtualService = &models.VirtualService{
+				IstioBase: models.IstioBase{
+					Metadata: meta_v1.ObjectMeta{
+						Name:      object,
+						Namespace: namespace,
+					},
+				},
+				Spec: CommonSpec{
+					Hosts: []string{fmt.Sprintf("%s.%s.svc.cluster.local", object, namespace)},
+					Http:  map[string]interface{}{},
+				},
+			}
+		}
+
+		object = fmt.Sprintf("filter-mirror-%s", object)
+		result, err := business.IstioConfig.GetIstioConfigDetails(namespace, kubernetes.EnvoyFilters, object)
+		fmt.Printf("xxxxxx-mirror-%+v,%+v\n", result, err)
+		if err == nil && result.EnvoyFilter != nil {
+			if configP, ok := result.EnvoyFilter.Spec.ConfigPatches.([]interface{}); ok {
+				date, err := json.Marshal(configP[0])
+				if err == nil {
+					var patch MirrorConfigPatches
+					err = json.Unmarshal(date, &patch)
+					if err == nil {
+						if httpList, ok := istioConfigDetails.VirtualService.Spec.Http.([]interface{}); ok {
+							if len(httpList) > 0 {
+								vsHttp := httpList[0].(map[string]interface{})
+
+								label := result.EnvoyFilter.Metadata.Labels
+								vsHttp["mirror"] = map[string]string{
+									"cluster":   label["targetK8sCluster"],
+									"namespace": label["targetK8sNamespace"],
+									"service":   label["targetK8sService"],
+								}
+								vsHttp["mirrorPercentage"] = map[string]float64{
+									"value": float64(patch.Patch.Value.Route.RequestMirrorPolicies[0].RuntimeFraction.DefaultValue.Numerator) / 10000,
+								}
+								istioConfigDetails.VirtualService.Spec.Http = []interface{}{vsHttp}
+							}
+						}
+					}
+				}
+
+			}
+		}
+	}
 
 	if objectType == kubernetes.DestinationRules {
 		type CommonSpec struct {
@@ -460,6 +540,98 @@ const (
 	TYPE_LOCALITYLB       = "locality-lbsetting"
 	TYPE_FAULTINJECT      = "fault_inject"
 	TYPE_SUBNET           = "subset"
+	mirrorTpl             = `
+{
+	"apiVersion": "networking.istio.io/v1alpha3",
+	"kind": "EnvoyFilter",
+	"metadata": {
+		"name": "filter-mirror-{{.Name}}",
+		"namespace": "{{.Namespace}}"
+	},
+	"spec": {
+		"configPatches": [
+		{
+			"applyTo": "HTTP_ROUTE",
+			"match": {
+			"routeConfiguration": {
+				"vhost": {
+				"name": "{{.Host}}"
+				}
+			}
+			},
+			"patch": {
+			"operation": "MERGE",
+			"value": {
+				"route": {
+				"request_mirror_policies": [
+					{
+					"cluster": "{{.MirrorCluster}}",
+					"runtime_fraction": {
+						"default_value": {
+						"numerator": {{.Numerator}},
+						"denominator": "MILLION"
+						}
+					}
+					}
+				]
+				}
+			}
+			}
+		}
+		]
+	}
+	}
+	
+`
+
+	mirrorTplaa = `
+{
+	"apiVersion": "networking.istio.io/v1alpha3",
+	"kind": "EnvoyFilter",
+	"metadata": {
+		"name": "filter-mirror-{{.Name}}",
+		"namespace": "{{.Namespace}}"
+	},
+	"spec": {
+		"workloadSelector": {
+		"labels": {
+			"app": "{{.Name}}"
+		}
+		},
+		"configPatches": [
+		{
+			"applyTo": "HTTP_ROUTE",
+			"match": {
+			"routeConfiguration": {
+				"vhost": {
+				"name": "{{.Host}}"
+				}
+			}
+			},
+			"patch": {
+			"operation": "MERGE",
+			"value": {
+				"route": {
+				"request_mirror_policies": [
+					{
+					"cluster": "{{.MirrorCluster}}",
+					"runtime_fraction": {
+						"default_value": {
+						"numerator": {{.Numerator}},
+						"denominator": "MILLION"
+						}
+					}
+					}
+				]
+				}
+			}
+			}
+		}
+		]
+	}
+	}
+	
+`
 
 	rateLimtTpl = `
 {
@@ -472,7 +644,7 @@ const (
 	"spec": {
 		"workloadSelector": {
 		"labels": {
-			"app": "nginx"
+			"app": "{{.Name}}"
 		}
 		},
 		"configPatches": [
@@ -624,26 +796,39 @@ func IstioNetworkConfigDelete(w http.ResponseWriter, r *http.Request) {
 	// result.DestinationRule
 	// fmt.Println("IstioNetworkConfig-result-xxx:", result.DestinationRule, err)
 	if networkType == TYPE_MIRROR {
-		vsHttpList := result.VirtualService.Spec.Http.([]interface{})
-		var newVsHttpList []interface{}
-		for i, _ := range vsHttpList {
-			vs := vsHttpList[i].(map[string]interface{})
-			vs["mirror"] = nil
-			vs["mirrorPercentage"] = nil
-			newVsHttpList = append(newVsHttpList, vs)
-		}
-		result.VirtualService.Spec.Http = newVsHttpList
-		jsonPatch, err := json.Marshal(result.VirtualService)
 
-		fmt.Printf("IstioNetworkConfig-result-xxx:%+v,%+v\n", string(jsonPatch), err)
-		_, err = business.IstioConfig.UpdateIstioConfigDetail(api, namespace, objectType, object, string(jsonPatch))
+		object = fmt.Sprintf("filter-mirror-%s", object)
+
+		err := business.IstioConfig.DeleteIstioConfigDetail(api, namespace, kubernetes.EnvoyFilters, object)
 		if err != nil {
-			RespondWithError(w, http.StatusInternalServerError, "IstioNetworkConfigDelete error: "+err.Error())
+			RespondWithError(w, http.StatusInternalServerError, "delete  ratelimit error: "+err.Error())
 			return
 		}
 
 		RespondWithJSON(w, http.StatusOK, "")
+
 		return
+
+		// vsHttpList := result.VirtualService.Spec.Http.([]interface{})
+		// var newVsHttpList []interface{}
+		// for i, _ := range vsHttpList {
+		// 	vs := vsHttpList[i].(map[string]interface{})
+		// 	vs["mirror"] = nil
+		// 	vs["mirrorPercentage"] = nil
+		// 	newVsHttpList = append(newVsHttpList, vs)
+		// }
+		// result.VirtualService.Spec.Http = newVsHttpList
+		// jsonPatch, err := json.Marshal(result.VirtualService)
+
+		// fmt.Printf("IstioNetworkConfig-result-xxx:%+v,%+v\n", string(jsonPatch), err)
+		// _, err = business.IstioConfig.UpdateIstioConfigDetail(api, namespace, objectType, object, string(jsonPatch))
+		// if err != nil {
+		// 	RespondWithError(w, http.StatusInternalServerError, "IstioNetworkConfigDelete error: "+err.Error())
+		// 	return
+		// }
+
+		// RespondWithJSON(w, http.StatusOK, "")
+		// return
 	}
 	fmt.Printf("IstioNetworkConfig-result-xxx:%+v,%s\n", result.DestinationRule.Spec, err)
 	tp := result.DestinationRule.Spec.TrafficPolicy.(map[string]interface{})
@@ -706,6 +891,70 @@ func IstioNetworkConfigUpdate(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Create request could not be read: "+err.Error())
 	}
 
+	if networkType == TYPE_MIRROR {
+		objectType = kubernetes.EnvoyFilters
+		dstRule := &models.VirtualServiceM{}
+		err = json.Unmarshal(body, dstRule)
+		fmt.Printf("TYPE_MIRROR-mirror-xxx:%+v,%+v\n", dstRule.Spec.Http, err)
+
+		// log.Infof("TYPE_MIRROR-111:%+v,[%s]", dstRule, err)
+
+		if err != nil {
+			log.Infof("err:[%s]", err)
+			handleErrorResponse(w, err)
+			return
+		}
+
+		type Mirror struct {
+			Name          string `json:"name"`
+			Namespace     string `json:"namespace"`
+			Host          string `json:"host"`
+			MirrorCluster string `json:"mirror_cluster"`
+			Numerator     string `json:"numerator"`
+		}
+		cluster := r.URL.Query().Get("cluster")
+
+		targerService, err := business.Svc.GetService(cluster, dstRule.Metadata.Namespace, dstRule.Metadata.Name, defaultHealthRateInterval, util.Clock.Now())
+		if err != nil {
+			log.Infof("err:[%s]", err)
+			handleErrorResponse(w, err)
+			return
+		}
+
+		mirrorService, err := business.Svc.GetService(dstRule.Spec.Http[0].Mirror.Cluster, dstRule.Spec.Http[0].Mirror.Namespace, dstRule.Spec.Http[0].Mirror.Service, defaultHealthRateInterval, util.Clock.Now())
+		if err != nil {
+			log.Infof("err:[%s]", err)
+			handleErrorResponse(w, err)
+			return
+		}
+
+		m := Mirror{
+			Name:      dstRule.Metadata.Name,
+			Namespace: dstRule.Metadata.Namespace,
+			Host:      fmt.Sprintf("%s.%s.svc.cluster.local:%d", dstRule.Metadata.Name, dstRule.Metadata.Namespace, targerService.Service.Ports[0].Port),
+			// Host:          "helloworld.sample.svc.cluster.local:5000",
+			MirrorCluster: fmt.Sprintf("outbound|%d||%s.%s.svc.cluster.local", mirrorService.Service.Ports[0].Port, dstRule.Spec.Http[0].Mirror.Service, dstRule.Spec.Http[0].Mirror.Namespace),
+
+			// MirrorCluster: "outbound|80||nginx.sample.svc.cluster.local",
+			Numerator: strconv.FormatInt(int64(dstRule.Spec.Http[0].MirrorPercentage.Value*10000), 10),
+		}
+		t := template.New("test")
+		t = template.Must(t.Parse(mirrorTpl))
+
+		var buf bytes.Buffer
+		err = t.Execute(&buf, m)
+		if err != nil {
+			log.Infof("err-111:[%s]", err)
+			handleErrorResponse(w, err)
+			return
+		}
+
+		body = buf.Bytes()
+		object = fmt.Sprintf("filter-mirror-%s", dstRule.Metadata.Name)
+
+		log.Infof("body-111:[%s]", string(body))
+
+	}
 	if networkType == TYPE_RATELIMIT {
 		objectType = kubernetes.EnvoyFilters
 		dstRule := &models.DestinationRuleM{}
@@ -786,33 +1035,33 @@ func IstioNetworkConfigUpdate(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("IstioNetworkConfig-result-xxx:%+v,%+v\n", result, err)
 
 	if err == nil {
-		if networkType == "mirror" {
-			fmt.Printf("IstioNetworkConfig-mirror-xxx:%+v,%+v\n", result.VirtualService.Spec.Http, err)
+		// if networkType == "mirror" {
+		// 	fmt.Printf("IstioNetworkConfig-mirror-xxx:%+v,%+v\n", result.VirtualService.Spec.Http, err)
 
-			vsHttpList := result.VirtualService.Spec.Http.([]interface{})
+		// 	vsHttpList := result.VirtualService.Spec.Http.([]interface{})
 
-			if len(vsHttpList) > 0 {
-				vsHttp := vsHttpList[0].(map[string]interface{})
-				v := &models.VirtualService{}
-				jsonErr := json.Unmarshal(body, v)
-				if err != nil {
-					log.Infof("err:[%s]", jsonErr)
-					handleErrorResponse(w, jsonErr)
-				}
-				newVsHttpList := v.Spec.Http.([]interface{})
-				if len(newVsHttpList) > 0 {
-					newVsHttp := newVsHttpList[0].(map[string]interface{})
-					vsHttp["mirror"] = newVsHttp["mirror"]
-					vsHttp["mirrorPercentage"] = newVsHttp["mirrorPercentage"]
-					result.VirtualService.Spec.Http = []map[string]interface{}{vsHttp}
-					fmt.Printf("IstioNetworkConfig-VirtualService-xxx:%+v\n", result.VirtualService.Spec.Http)
+		// 	if len(vsHttpList) > 0 {
+		// 		vsHttp := vsHttpList[0].(map[string]interface{})
+		// 		v := &models.VirtualService{}
+		// 		jsonErr := json.Unmarshal(body, v)
+		// 		if err != nil {
+		// 			log.Infof("err:[%s]", jsonErr)
+		// 			handleErrorResponse(w, jsonErr)
+		// 		}
+		// 		newVsHttpList := v.Spec.Http.([]interface{})
+		// 		if len(newVsHttpList) > 0 {
+		// 			newVsHttp := newVsHttpList[0].(map[string]interface{})
+		// 			vsHttp["mirror"] = newVsHttp["mirror"]
+		// 			vsHttp["mirrorPercentage"] = newVsHttp["mirrorPercentage"]
+		// 			result.VirtualService.Spec.Http = []map[string]interface{}{vsHttp}
+		// 			fmt.Printf("IstioNetworkConfig-VirtualService-xxx:%+v\n", result.VirtualService.Spec.Http)
 
-					body, _ = json.Marshal(result.VirtualService)
-				}
+		// 			body, _ = json.Marshal(result.VirtualService)
+		// 		}
 
-			}
+		// 	}
 
-		}
+		// }
 
 		fmt.Printf("IstioNetworkConfig-updatemirror-xxx:%+v\n", string(body))
 
@@ -825,30 +1074,30 @@ func IstioNetworkConfigUpdate(w http.ResponseWriter, r *http.Request) {
 		audit(r, "UPDATE on Namespace: "+namespace+" Type: "+objectType+" Name: "+object+" Patch: "+jsonPatch)
 		RespondWithJSON(w, http.StatusOK, updatedConfigDetails)
 	} else {
-		if networkType == "mirror" {
-			vs := &models.VirtualService{}
-			jsonErr := json.Unmarshal(body, vs)
-			if jsonErr != nil {
-				log.Infof("err:[%s]", jsonErr)
-				handleErrorResponse(w, jsonErr)
-			}
+		// if networkType == "mirror" {
+		// 	vs := &models.VirtualService{}
+		// 	jsonErr := json.Unmarshal(body, vs)
+		// 	if jsonErr != nil {
+		// 		log.Infof("err:[%s]", jsonErr)
+		// 		handleErrorResponse(w, jsonErr)
+		// 	}
 
-			vs.Spec.Hosts = []string{fmt.Sprintf("%s.%s.svc.cluster.local", vs.Metadata.Name, vs.Metadata.Namespace)}
-			newVsHttpList := vs.Spec.Http.([]interface{})
-			if len(newVsHttpList) > 0 {
-				newVsHttp := newVsHttpList[0].(map[string]interface{})
-				d := models.HTTPRouteDestination{
-					Destination: &models.Destination{
-						Host: fmt.Sprintf("%s.%s.svc.cluster.local", vs.Metadata.Name, vs.Metadata.Namespace),
-					},
-				}
-				newVsHttp["route"] = []models.HTTPRouteDestination{d}
-				vs.Spec.Http = []interface{}{newVsHttp}
-				body, _ = json.Marshal(vs)
-				fmt.Printf("create-mirror-xxx:%+v\n", vs)
-			}
+		// 	vs.Spec.Hosts = []string{fmt.Sprintf("%s.%s.svc.cluster.local", vs.Metadata.Name, vs.Metadata.Namespace)}
+		// 	newVsHttpList := vs.Spec.Http.([]interface{})
+		// 	if len(newVsHttpList) > 0 {
+		// 		newVsHttp := newVsHttpList[0].(map[string]interface{})
+		// 		d := models.HTTPRouteDestination{
+		// 			Destination: &models.Destination{
+		// 				Host: fmt.Sprintf("%s.%s.svc.cluster.local", vs.Metadata.Name, vs.Metadata.Namespace),
+		// 			},
+		// 		}
+		// 		newVsHttp["route"] = []models.HTTPRouteDestination{d}
+		// 		vs.Spec.Http = []interface{}{newVsHttp}
+		// 		body, _ = json.Marshal(vs)
+		// 		fmt.Printf("create-mirror-xxx:%+v\n", vs)
+		// 	}
 
-		}
+		// }
 
 		createdConfigDetails, err := business.IstioConfig.CreateIstioConfigDetail(api, namespace, objectType, body)
 		if err != nil {

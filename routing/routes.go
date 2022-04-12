@@ -74,6 +74,14 @@ func NewRoutes() (r *Routes) {
 			true,
 		},
 
+		{
+			"LocalityList",
+			"GET",
+			"/api/localities",
+			handlers.LocalityList,
+			true,
+		},
+
 		// swagger:route GET /namespaces/{namespace}/services k8s服务 serviceList
 		// ---
 		// 获取service接口

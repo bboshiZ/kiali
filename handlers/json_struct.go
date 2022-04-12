@@ -90,3 +90,44 @@ type Spec struct {
 	WorkloadSelector WorkloadSelector `json:"workloadSelector"`
 	ConfigPatches    []ConfigPatches  `json:"configPatches"`
 }
+
+////////////
+
+type Vhost struct {
+	Name string `json:"name"`
+}
+type RouteConfiguration struct {
+	Vhost Vhost `json:"vhost"`
+}
+
+type RuntimeFraction struct {
+	DefaultValue DefaultValue `json:"default_value"`
+}
+type RequestMirrorPolicies struct {
+	Cluster         string          `json:"cluster"`
+	RuntimeFraction RuntimeFraction `json:"runtime_fraction"`
+}
+type MirrorRoute struct {
+	RequestMirrorPolicies []RequestMirrorPolicies `json:"request_mirror_policies"`
+}
+type MirrorValue struct {
+	Route MirrorRoute `json:"route"`
+}
+type MirrorPatch struct {
+	Operation string      `json:"operation"`
+	Value     MirrorValue `json:"value"`
+}
+
+type MirrorMatch struct {
+	RouteConfiguration RouteConfiguration `json:"routeConfiguration"`
+}
+
+type MirrorConfigPatches struct {
+	ApplyTo string      `json:"applyTo"`
+	Match   MirrorMatch `json:"match"`
+	Patch   MirrorPatch `json:"patch"`
+}
+
+type MirrorSpec struct {
+	ConfigPatches []MirrorConfigPatches `json:"configPatches"`
+}
