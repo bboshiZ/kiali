@@ -46,6 +46,14 @@ func NewRoutes() (r *Routes) {
 			true,
 		},
 
+		{
+			"MeshClusterList",
+			"GET",
+			"/api/mesh/clusters",
+			handlers.MeshClusterList,
+			true,
+		},
+
 		// swagger:route GET /namespaces k8s服务 namespaceList
 		// ---
 		// 获取集群里的命名空间列表

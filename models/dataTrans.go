@@ -1,6 +1,7 @@
 package models
 
 type ClusterM struct {
+	Id      int    `json:"id"`
 	Name    string `json:"name"`
 	Address string `json:"address"`
 }
@@ -263,13 +264,15 @@ type HTTPRoute struct {
 	// example: 10s
 	Timeout string `json:"timeout,omitempty"`
 
-	Mirror           MirrorPolice `json:"mirror"`
-	MirrorPercentage *Percent     `json:"mirrorPercentage,omitempty"`
+	Mirror []MirrorPolice `json:"mirror"`
+	// MirrorPercentage *Percent       `json:"mirrorPercentage,omitempty"`
 }
 type MirrorPolice struct {
-	Cluster   string `json:"cluster"`
-	Namespace string `json:"namespace"`
-	Service   string `json:"service"`
+	Cid              int     `json:"cid"`
+	Cluster          string  `json:"cluster"`
+	Namespace        string  `json:"namespace"`
+	Service          string  `json:"service"`
+	MirrorPercentage float64 `json:"mirrorPercentage"`
 }
 
 type Percent struct {

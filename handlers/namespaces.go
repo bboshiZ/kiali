@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 
@@ -11,14 +12,58 @@ import (
 	"github.com/kiali/kiali/models"
 )
 
-func ClusterList(w http.ResponseWriter, r *http.Request) {
-	resp := RespList{
-		// TotalCount:  10,
-		// PageCount:   1,
-		// CurrentPage: 1,
-		// PageSize:    10,
-		Data: []interface{}{},
+func MeshClusterList(w http.ResponseWriter, r *http.Request) {
+	result := map[string][]models.ClusterM{}
+
+	hulkUrl := "http://scmp-hulk.sgt:80/hulk/clusters"
+	resp, err := http.Get(hulkUrl)
+	if err != nil {
+		log.Error(err)
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
+
+	defer resp.Body.Close()
+	body, _ := ioutil.ReadAll(resp.Body)
+
+	type Cluster struct {
+		Result []struct {
+			Id      int    `json:"id"`
+			Name    string `json:"name"`
+			Address string `json:"address"`
+		} `json:"result"`
+	}
+
+	var cluster Cluster
+	err = json.Unmarshal(body, &cluster)
+	if err != nil {
+		log.Error(err)
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	var inMesh bool
+	for _, c := range cluster.Result {
+		inMesh = false
+		for cName, _ := range business.ClusterMap {
+			if c.Name == cName {
+				inMesh = true
+				result["inMesh"] = append(result["inMesh"], models.ClusterM{Id: c.Id, Name: c.Name, Address: c.Address})
+			}
+		}
+		if !inMesh {
+			result["outMesh"] = append(result["outMesh"], models.ClusterM{Id: c.Id, Name: c.Name, Address: c.Address})
+		}
+	}
+
+	RespondWithJSON(w, http.StatusOK, result)
+
+}
+
+func ClusterList(w http.ResponseWriter, r *http.Request) {
+	// resp := RespList{
+	// 	Data: []interface{}{},
+	// }
 
 	var data []models.ClusterM
 	for c, _ := range business.ClusterMap {
@@ -27,12 +72,12 @@ func ClusterList(w http.ResponseWriter, r *http.Request) {
 		}
 		data = append(data, d)
 	}
-	resp.CurrentPage = 1
-	resp.PageCount = 1
-	resp.PageSize = 20
-	resp.TotalCount = len(data)
+	// resp.CurrentPage = 1
+	// resp.PageCount = 1
+	// resp.PageSize = 20
+	// resp.TotalCount = len(data)
 
-	resp.Data = data
+	// resp.Data = data
 
 	RespondWithJSON(w, http.StatusOK, data)
 }

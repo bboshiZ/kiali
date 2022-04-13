@@ -574,7 +574,7 @@ func (in *IstioConfigService) modifyIstioConfigDetail(api, namespace, resourceTy
 	if create {
 		// Create new object
 		result, err = in.k8s.CreateIstioObject(api, namespace, updatedType, json)
-		fmt.Println("xxxxx:", result, err)
+		// fmt.Println("xxxxx:", result, err)
 	} else {
 		// Update/Path existing object
 		result, err = in.k8s.UpdateIstioObject(api, namespace, updatedType, name, json)

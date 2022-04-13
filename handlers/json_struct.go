@@ -106,6 +106,7 @@ type RuntimeFraction struct {
 type RequestMirrorPolicies struct {
 	Cluster         string          `json:"cluster"`
 	RuntimeFraction RuntimeFraction `json:"runtime_fraction"`
+	ServiceInfo     string          `json:"service_info"`
 }
 type MirrorRoute struct {
 	RequestMirrorPolicies []RequestMirrorPolicies `json:"request_mirror_policies"`
