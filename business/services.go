@@ -25,6 +25,20 @@ type SvcService struct {
 	businessLayer *Layer
 }
 
+func (in *SvcService) GetAllNode() ([]*core_v1.NodeList, error) {
+	var nodes []*core_v1.NodeList
+	for c, _ := range ClusterMap {
+		node, err := remoteIstioClusters[c].K8s.GetNode()
+		if err != nil {
+			log.Errorf("Error fetching nodes from cluster %s: %s", c, err)
+			continue
+		}
+		nodes = append(nodes, node)
+	}
+
+	return nodes, nil
+}
+
 // GetServiceList returns a list of all services for a given Namespace
 func (in *SvcService) GetServiceList(cluster, namespace string, linkIstioResources bool) (*models.ServiceList, error) {
 	var svcs []core_v1.Service

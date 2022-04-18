@@ -4,9 +4,10 @@ import core_v1 "k8s.io/api/core/v1"
 
 type Addresses []Address
 type Address struct {
-	Kind string `json:"kind"`
-	Name string `json:"name"`
-	IP   string `json:"ip"`
+	Kind     string `json:"kind"`
+	Name     string `json:"name"`
+	IP       string `json:"ip"`
+	NodeName string `json:"nodeName"`
 }
 
 func (addresses *Addresses) Parse(as []core_v1.EndpointAddress) {
@@ -19,6 +20,7 @@ func (addresses *Addresses) Parse(as []core_v1.EndpointAddress) {
 
 func (address *Address) Parse(a core_v1.EndpointAddress) {
 	address.IP = a.IP
+	address.NodeName = *a.NodeName
 
 	if a.TargetRef != nil {
 		address.Kind = a.TargetRef.Kind

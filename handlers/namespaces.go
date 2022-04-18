@@ -46,6 +46,9 @@ func MeshClusterList(w http.ResponseWriter, r *http.Request) {
 	for _, c := range cluster.Result {
 		inMesh = false
 		for cName, _ := range business.ClusterMap {
+			if c.Name == "shareit-cce-test" {
+				break
+			}
 			if c.Name == cName {
 				inMesh = true
 				result["inMesh"] = append(result["inMesh"], models.ClusterM{Id: c.Id, Name: c.Name, Address: c.Address})

@@ -547,6 +547,11 @@ func (in *IstioConfigService) ParseJsonForCreate(resourceType string, body []byt
 	return marshalled, nil
 }
 
+func (in *IstioConfigService) GetIstioObject(api, namespace, resourceType, label string) (objects []kubernetes.IstioObject, err error) {
+	objects, err = in.k8s.GetIstioObjects(namespace, resourceType, label)
+	return
+}
+
 // DeleteIstioConfigDetail deletes the given Istio resource
 func (in *IstioConfigService) DeleteIstioConfigDetail(api, namespace, resourceType, name string) (err error) {
 	err = in.k8s.DeleteIstioObject(api, namespace, resourceType, name)

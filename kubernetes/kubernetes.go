@@ -60,6 +60,7 @@ type K8SClientInterface interface {
 	UpdateNamespace(namespace string, jsonPatch string) (*core_v1.Namespace, error)
 	UpdateService(namespace string, name string, jsonPatch string) error
 	UpdateWorkload(namespace string, name string, workloadType string, jsonPatch string) error
+	GetNode() (*core_v1.NodeList, error)
 }
 
 type OSClientInterface interface {
@@ -90,6 +91,10 @@ func (in *K8SClient) ForwardGetRequest(namespace, podName string, localPort, des
 	}
 
 	return resp, err
+}
+
+func (in *K8SClient) GetNode() (*core_v1.NodeList, error) {
+	return in.k8s.CoreV1().Nodes().List(in.ctx, meta_v1.ListOptions{})
 }
 
 // GetClusterServicesByLabels fetches and returns all services in the whole cluster

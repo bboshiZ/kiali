@@ -272,6 +272,7 @@ type MirrorPolice struct {
 	Cluster          string  `json:"cluster"`
 	Namespace        string  `json:"namespace"`
 	Service          string  `json:"service"`
+	TargetPort       int     `json:"targetPort"`
 	MirrorPercentage float64 `json:"mirrorPercentage"`
 }
 
