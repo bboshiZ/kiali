@@ -345,9 +345,7 @@ func IstioConfigDetails(w http.ResponseWriter, r *http.Request) {
 
 		object = fmt.Sprintf("filter-mirror-%s", object)
 		result, err := business.IstioConfig.GetIstioConfigDetails(namespace, kubernetes.EnvoyFilters, object)
-		// fmt.Printf("xxxxxx-mirror-%+v,%+v\n", result, err)
 		if err == nil && result.EnvoyFilter != nil {
-			// fmt.Printf("xxxxxx-result.EnvoyFilter-%+v,%+v\n", result.EnvoyFilter.Spec.ConfigPatches, err)
 			if configP, ok := result.EnvoyFilter.Spec.ConfigPatches.([]interface{}); ok {
 				date, err := json.Marshal(configP[0])
 				if err == nil {
@@ -620,7 +618,8 @@ const (
 	TYPE_RATELIMIT             = "ratelimit"
 	TYPE_MIRROR                = "mirror"
 	TYPE_LOCALITYLB            = "locality-lbsetting"
-	TYPE_FAULTINJECT           = "fault_inject"
+	TYPE_FAULTINJECT           = "fault-inject"
+	TYPE_SLOWSTART             = "slow-start"
 	TYPE_SUBNET                = "subset"
 	reteLimitEnvoyFilterPrefix = "filter-local-ratelimit-"
 
@@ -849,6 +848,7 @@ func IstioNetworkConfigDelete(w http.ResponseWriter, r *http.Request) {
 			Simple: "ROUND_ROBIN",
 		}
 	}
+
 	switch networkType {
 	case TYPE_OUTLIERDETECTION:
 		tp["outlierDetection"] = nil
@@ -858,8 +858,11 @@ func IstioNetworkConfigDelete(w http.ResponseWriter, r *http.Request) {
 		lb := tp["loadBalancer"].(map[string]interface{})
 		lb["localityLbSetting"] = nil
 		tp["loadBalancer"] = lb
-		// case TYPE_MIRROR:
-
+	// case TYPE_MIRROR:
+	case TYPE_SLOWSTART:
+		lb := tp["loadBalancer"].(map[string]interface{})
+		lb["warmupDurationSecs"] = nil
+		tp["loadBalancer"] = lb
 	}
 
 	result.DestinationRule.Spec.TrafficPolicy = tp
@@ -1313,6 +1316,26 @@ func IstioNetworkConfigUpdate(w http.ResponseWriter, r *http.Request) {
 
 	}
 
+	if networkType == TYPE_SLOWSTART {
+		result, err := business.IstioConfig.GetIstioConfigDetails(namespace, kubernetes.DestinationRules, object)
+		if err == nil {
+			if result.DestinationRule != nil {
+				dstRule := result.DestinationRule
+				if tp, ok := dstRule.Spec.TrafficPolicy.(map[string]interface{}); ok {
+					if lb, ok := tp["loadBalancer"].(map[string]interface{}); ok {
+						if m, ok := lb["simple"]; ok {
+							if m != "LEAST_REQUEST" && m != "ROUND_ROBIN" {
+								log.Errorf("loadBalancer info not match:[%s][%+v]", result.DestinationRule)
+								RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("慢启动仅支持:LEAST_REQUEST,ROUND_ROBIN,当前使用的负载均衡算法:%s", m))
+								return
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
 	if objectType == kubernetes.DestinationRules {
 		v := &models.DestinationRuleM{}
 		err = json.Unmarshal(body, v)
@@ -1332,7 +1355,7 @@ func IstioNetworkConfigUpdate(w http.ResponseWriter, r *http.Request) {
 
 	_, err = business.IstioConfig.GetIstioConfigDetails(namespace, objectType, object)
 	if err == nil {
-		fmt.Printf("IstioNetworkConfig-updatemirror-xxx:%+v\n", string(body))
+		// fmt.Printf("IstioNetworkConfig-updatemirror-xxx:%+v\n", string(body))
 
 		jsonPatch := string(body)
 		updatedConfigDetails, err := business.IstioConfig.UpdateIstioConfigDetail(api, namespace, objectType, object, jsonPatch)
