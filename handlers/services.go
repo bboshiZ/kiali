@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"sort"
@@ -11,6 +12,8 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/kiali/kiali/business"
+	"github.com/kiali/kiali/kubernetes"
+	"github.com/kiali/kiali/log"
 	"github.com/kiali/kiali/models"
 	"github.com/kiali/kiali/util"
 )
@@ -156,6 +159,55 @@ func ServiceList(w http.ResponseWriter, r *http.Request) {
 	resp.PageCount = pageCount
 	resp.PageSize = limit
 	serviceList.Services = serviceList.Services[start:end]
+
+	for i := range serviceList.Services {
+		svc := serviceList.Services[i]
+		istioConfigStatus := map[string]bool{
+			"ratelimit":         false,
+			"mirror":            false,
+			"localityLbsetting": false,
+			"slowStart":         false,
+			"outlierDetection":  false,
+		}
+		result, err := business.IstioConfig.GetIstioConfigDetails(namespace, kubernetes.DestinationRules, svc.Name)
+		if err == nil {
+			log.Infof("GetIstioConfigDetails:[%+v]", result)
+			if result.DestinationRule != nil {
+				if tp, ok := result.DestinationRule.Spec.TrafficPolicy.(map[string]interface{}); ok {
+					if tp["outlierDetection"] != nil {
+						istioConfigStatus["outlierDetection"] = true
+					}
+
+					if tp["loadBalancer"] != nil {
+						if lb, ok := tp["loadBalancer"].(map[string]interface{}); ok {
+							if lb["localityLbSetting"] != nil {
+								istioConfigStatus["localityLbsetting"] = true
+							}
+						}
+					}
+				}
+
+			}
+
+		}
+
+		name := fmt.Sprintf("%s%s", reteLimitEnvoyFilterPrefix, svc.Name)
+		result, err = business.IstioConfig.GetIstioConfigDetails(namespace, kubernetes.EnvoyFilters, name)
+		if err == nil {
+			if result.EnvoyFilter != nil {
+				istioConfigStatus["ratelimit"] = true
+			}
+		}
+
+		filterName := fmt.Sprintf("filter-mirror-%s", svc.Name)
+		result, err = business.IstioConfig.GetIstioConfigDetails(namespace, kubernetes.EnvoyFilters, filterName)
+		if err == nil && result.EnvoyFilter != nil {
+			istioConfigStatus["mirror"] = true
+		}
+
+		serviceList.Services[i].IstioConfigStatus = istioConfigStatus
+
+	}
 	resp.Data = serviceList
 
 	RespondWithJSON(w, http.StatusOK, resp)

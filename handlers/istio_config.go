@@ -611,8 +611,8 @@ var (
 
 const (
 	TYPE_ROUTE                 = "route"
-	TYPE_LOADBALANCE           = "load_balance"
-	TYPE_CONNECTIONPOOL        = "connection_pool"
+	TYPE_LOADBALANCE           = "load-balance"
+	TYPE_CONNECTIONPOOL        = "connection-pool"
 	TYPE_OUTLIERDETECTION      = "outlier-detection"
 	TYPE_RETRY                 = "retry"
 	TYPE_RATELIMIT             = "ratelimit"
@@ -823,7 +823,7 @@ func IstioNetworkConfigDelete(w http.ResponseWriter, r *http.Request) {
 			// return
 		}
 		label := fmt.Sprintf("mirror=mirror-%s-%s", object, namespace)
-		objects, err := business.IstioConfig.GetIstioObject(api, namespace, kubernetes.ServiceEntries, label)
+		objects, err := business.IstioConfig.GetIstioObject(namespace, kubernetes.ServiceEntries, label)
 		if err == nil {
 			for _, ob := range objects {
 				err = business.IstioConfig.DeleteIstioConfigDetail(api, namespace, kubernetes.ServiceEntries, ob.GetObjectMeta().Name)
@@ -966,7 +966,7 @@ func IstioNetworkConfigUpdate(w http.ResponseWriter, r *http.Request) {
 		}
 
 		label := fmt.Sprintf("mirror=mirror-%s-%s", object, namespace)
-		objects, err := business.IstioConfig.GetIstioObject(api, namespace, kubernetes.ServiceEntries, label)
+		objects, err := business.IstioConfig.GetIstioObject(namespace, kubernetes.ServiceEntries, label)
 		// fmt.Println("xxxxx-", objects, err)
 		if err == nil {
 			for _, ob := range objects {

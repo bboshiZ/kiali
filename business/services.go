@@ -129,12 +129,12 @@ func (in *SvcService) GetServiceList(cluster, namespace string, linkIstioResourc
 				defer wg.Done()
 				var err2 error
 				if IsNamespaceCached(cluster, namespace) {
-					// *dest, err2 = kialiCache.GetIstioObjects(namespace, resourceType, "")
-					*dest, err2 = kialiRemoteCache[cluster].GetIstioObjects(namespace, resourceType, "")
+					*dest, err2 = kialiCache.GetIstioObjects(namespace, resourceType, "")
+					// *dest, err2 = kialiRemoteCache[cluster].GetIstioObjects(namespace, resourceType, "")
 
 				} else {
-					// *dest, err2 = in.k8s.GetIstioObjects(namespace, resourceType, "")
-					*dest, err2 = remoteIstioClusters[cluster].K8s.GetIstioObjects(namespace, resourceType, "")
+					*dest, err2 = in.k8s.GetIstioObjects(namespace, resourceType, "")
+					// *dest, err2 = remoteIstioClusters[cluster].K8s.GetIstioObjects(namespace, resourceType, "")
 				}
 				if err2 != nil {
 					log.Errorf("Error fetching Istio %s per namespace %s: %s", resourceType, namespace, err2)

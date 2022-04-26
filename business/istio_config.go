@@ -547,7 +547,7 @@ func (in *IstioConfigService) ParseJsonForCreate(resourceType string, body []byt
 	return marshalled, nil
 }
 
-func (in *IstioConfigService) GetIstioObject(api, namespace, resourceType, label string) (objects []kubernetes.IstioObject, err error) {
+func (in *IstioConfigService) GetIstioObject(namespace, resourceType, label string) (objects []kubernetes.IstioObject, err error) {
 	objects, err = in.k8s.GetIstioObjects(namespace, resourceType, label)
 	return
 }

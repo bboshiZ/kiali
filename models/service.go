@@ -30,7 +30,8 @@ type ServiceOverview struct {
 	// Istio References
 	IstioReferences []*IstioValidationKey `json:"istioReferences"`
 	// Kiali Wizard scenario, if any
-	KialiWizard string `json:"kialiWizard"`
+	KialiWizard       string          `json:"kialiWizard"`
+	IstioConfigStatus map[string]bool `json:"istioConfigStatus"`
 }
 
 type ServiceList struct {
