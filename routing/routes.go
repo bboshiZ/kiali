@@ -26,18 +26,7 @@ func NewRoutes() (r *Routes) {
 	r = new(Routes)
 
 	r.Routes = []Route{
-		// swagger:route GET /clusters k8s服务 clusterList
-		// ---
-		// 获取集群列表
-		//
-		//     Produces:
-		//     - application/json
-		//
-		//     Schemes: http, https
-		//
-		// responses:
-		//      200: clusterList
-		//
+
 		{
 			"ClusterList",
 			"GET",
@@ -54,18 +43,6 @@ func NewRoutes() (r *Routes) {
 			true,
 		},
 
-		// swagger:route GET /namespaces k8s服务 namespaceList
-		// ---
-		// 获取集群里的命名空间列表
-		//
-		//     Produces:
-		//     - application/json
-		//
-		//     Schemes: http, https
-		//
-		// responses:
-		//      200: namespaceList
-		//
 		{
 			"NamespaceList",
 			"GET",
@@ -90,18 +67,6 @@ func NewRoutes() (r *Routes) {
 			true,
 		},
 
-		// swagger:route GET /namespaces/{namespace}/services k8s服务 serviceList
-		// ---
-		// 获取service接口
-		//
-		//     Produces:
-		//     - application/json
-		//
-		//     Schemes: http, https
-		//
-		// responses:
-		//      200: serviceListResponse
-		//
 		{
 			"ServiceList",
 			"GET",
@@ -110,18 +75,6 @@ func NewRoutes() (r *Routes) {
 			true,
 		},
 
-		// swagger:route GET /namespaces/{namespace}/services/{service} k8s服务 serviceDetail
-		// ---
-		// Endpoint to get the details of a given service
-		//
-		//     Produces:
-		//     - application/json
-		//
-		//     Schemes: http, https
-		//
-		// responses:
-		//      200: serviceDetailsResponse
-		//
 		{
 			"ServiceDetails",
 			"GET",
@@ -129,18 +82,6 @@ func NewRoutes() (r *Routes) {
 			handlers.ServiceDetails,
 			true,
 		},
-
-		// swagger:route POST /api/namespaces/{namespace}/services/{service}/inject k8s服务 istioInject
-		// ---
-		// 开启服务的serviceMesh
-		//
-		//     Produces:
-		//     - application/json
-		//
-		//     Schemes: http, https
-		//
-		// responses:
-		//      200: commonResponse
 
 		{
 			"ServiceInject",
@@ -150,17 +91,6 @@ func NewRoutes() (r *Routes) {
 			true,
 		},
 
-		// swagger:route POST /api/namespaces/{namespace}/services/{service}/unInject k8s服务 istioUnInject
-		// ---
-		// 取消服务的serviceMesh
-		//
-		//     Produces:
-		//     - application/json
-		//
-		//     Schemes: http, https
-		//
-		// responses:
-		//      200: commonResponse
 		{
 			"ServiceDisInject",
 			"POST",
@@ -169,44 +99,10 @@ func NewRoutes() (r *Routes) {
 			true,
 		},
 
-		// swagger:route POST /namespaces/{namespace}/istio/virtualservices istio管理 istioVirtualServiceCreate
-		// ---
-		// 创建virtualservices接口
-		//
-		//     Produces:
-		//     - application/json
-		//
-		//     Schemes: http, https
-		//
-		// responses:
-		//      200: commonResponse
-
-		// swagger:route POST /namespaces/{namespace}/istio/destinationrules istio管理 istioDestinationCreate
-		// ---
-		// 创建destinationrules接口
-		//
-		//     Produces:
-		//     - application/json
-		//
-		//     Schemes: http, https
-		//
-		// responses:
-		//      200: commonResponse
-
-		{
-			"IstioConfigCreate",
-			"POST",
-			"/api/namespaces/{namespace}/{object_type}",
-			handlers.IstioConfigCreate,
-			true,
-		},
-
 		{
 			"IstioNetworkConfigUpdate",
 			"POST",
 			"/api/namespaces/{namespace}/{object_type}/{network_type}/{object}",
-			// "/api/namespaces/sample/destinationrules/outlier-detection/hellworld",
-
 			handlers.IstioNetworkConfigUpdate,
 			true,
 		},
@@ -215,38 +111,17 @@ func NewRoutes() (r *Routes) {
 			"IstioNetworkConfigDelete",
 			"DELETE",
 			"/api/namespaces/{namespace}/{object_type}/{network_type}/{object}",
-			// "/api/namespaces/sample/destinationrules/outlier-detection/hellworld",
-
 			handlers.IstioNetworkConfigDelete,
 			true,
 		},
 
-		// swagger:route DELETE /namespaces/{namespace}/istio/virtualservices/{object} istio管理 istioVirtualServiceDelete
-		// ---
-		// 删除virtualservices接口
-		//
-		//     Produces:
-		//     - application/json
-		//
-		//     Schemes: http, https
-		//
-		// responses:
-		//      200: commonResponse
-		//
-
-		// swagger:route DELETE /namespaces/{namespace}/istio/destinationrules/{object} istio管理 istioDestinationDelete
-		// ---
-		// 删除destinationrules接口
-		//
-		//     Produces:
-		//     - application/json
-		//
-		//     Schemes: http, https
-		//
-		// responses:
-		//      200: commonResponse
-		//
-
+		{
+			"IstioConfigCreate",
+			"POST",
+			"/api/namespaces/{namespace}/{object_type}",
+			handlers.IstioConfigCreate,
+			true,
+		},
 		{
 			"IstioConfigDelete",
 			"DELETE",
@@ -254,30 +129,6 @@ func NewRoutes() (r *Routes) {
 			handlers.IstioConfigDelete,
 			true,
 		},
-
-		// swagger:route PUT /namespaces/{namespace}/istio/virtualservices/{object} istio管理 istioVirtualServiceUpdate
-		// ---
-		// 修改virtualservices接口
-		//
-		//     Produces:
-		//     - application/json
-		//
-		//     Schemes: http, https
-		//
-		// responses:
-		//      200: commonResponse
-
-		// swagger:route PUT /namespaces/{namespace}/istio/destinationrules/{object} istio管理 istioDestinationUpdate
-		// ---
-		// 修改destinationrules接口
-		//
-		//     Produces:
-		//     - application/json
-		//
-		//     Schemes: http, https
-		//
-		// responses:
-		//      200: commonResponse
 
 		{
 			"IstioConfigUpdate",
@@ -287,18 +138,6 @@ func NewRoutes() (r *Routes) {
 			true,
 		},
 
-		// swagger:route GET /namespaces/{namespace}/config istio管理 istioConfigList
-		// ---
-		// 获取virtualservices destinationrules 列表
-		//
-		//     Produces:
-		//     - application/json
-		//
-		//     Schemes: http, https
-		//
-		// responses:
-		//      200: istioConfigList
-		//
 		{
 			"IstioConfigList",
 			"GET",
@@ -307,18 +146,6 @@ func NewRoutes() (r *Routes) {
 			true,
 		},
 
-		// swagger:route GET /namespaces/{namespace}/istio/{object_type}/{object} istio管理 istioConfigDetail
-		// ---
-		// 获取virtualService，destination详情
-		//
-		//     Produces:
-		//     - application/json
-		//
-		//     Schemes: http, https
-		//
-		// responses:
-		//      200: istioConfigDetailsResponse
-		//
 		{
 			"IstioConfigDetails",
 			"GET",
@@ -327,18 +154,6 @@ func NewRoutes() (r *Routes) {
 			true,
 		},
 
-		// swagger:route GET /namespaces/{namespace}/services/{service}/traces 链路追踪 serviceTraces
-		// ---
-		// 获取服务链路追踪信息接口
-		//
-		//     Produces:
-		//     - application/json
-		//
-		//     Schemes: http, https
-		//
-		// responses:
-		//      200: traceDetailsResponse
-		//
 		{
 			"ServiceTraces",
 			"GET",
@@ -346,19 +161,6 @@ func NewRoutes() (r *Routes) {
 			handlers.ServiceTraces,
 			true,
 		},
-
-		// swagger:route GET /namespaces/{namespace}/services/{service}/graph 流量图 graphServiceSmple
-		// ---
-		// 服务流量图
-		//
-		//     Produces:
-		//     - application/json
-		//
-		//     Schemes: http, https
-		//
-		// responses:
-		//      200: graphResponse
-		//
 
 		{
 			"GraphService",

@@ -1320,21 +1320,11 @@ func IstioNetworkConfigUpdateMirror(w http.ResponseWriter, r *http.Request, para
 
 }
 
-func IstioNetworkConfigUpdate(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	networkType := params["network_type"]
-
-	if networkType == TYPE_MIRROR {
-		IstioNetworkConfigUpdateMirror(w, r, params)
-		return
-	}
+func IstioNetworkConfigUpdateRateLimit(w http.ResponseWriter, r *http.Request, params map[string]string) {
 
 	namespace := params["namespace"]
 	objectType := params["object_type"]
-	object := params["object"]
-	// clusterMap := business.ClusterMap
-	// cidStr := r.URL.Query().Get("cid")
-	// sourceCid, _ := strconv.Atoi(cidStr)
+	// object := params["object"]
 	api := business.GetIstioAPI(objectType)
 	if api == "" {
 		RespondWithError(w, http.StatusBadRequest, "Object type not managed: "+objectType)
@@ -1352,8 +1342,185 @@ func IstioNetworkConfigUpdate(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Create request could not be read: "+err.Error())
 	}
 
+	objectType = kubernetes.EnvoyFilters
+	dstRule := &models.DestinationRuleM{}
+	err = json.Unmarshal(body, dstRule)
+	if err != nil {
+		log.Infof("err:[%s]", err)
+		handleErrorResponse(w, err)
+		return
+	}
+
+	type limit struct {
+		Name          string `json:"name"`
+		Namespace     string `json:"namespace"`
+		MaxTokens     int    `json:"max_tokens"`
+		TokensPerFill int    `json:"tokens_per_fill"`
+		FillInterval  string `json:"fill_interval"`
+	}
+	li := dstRule.Spec.TrafficPolicy.RateLimit
+	object := fmt.Sprintf("%s%s", reteLimitEnvoyFilterPrefix, dstRule.Metadata.Name)
+	p := limit{
+		Name:      object,
+		Namespace: dstRule.Metadata.Namespace,
+	}
+
+	if fill, ok := li["fillInterval"].(string); ok {
+		p.FillInterval = fill
+	}
+
+	if num, ok := li["maxTokens"].(float64); ok {
+		p.MaxTokens = int(num)
+	}
+	if num, ok := li["tokensPerFill"].(float64); ok {
+		p.TokensPerFill = int(num)
+	}
+
+	t, err := template.New("test").Parse(rateLimtTpl)
+	if err != nil {
+		log.Infof("err:[%s]", err)
+		handleErrorResponse(w, err)
+		return
+	}
+	var buf bytes.Buffer
+	err = t.Execute(&buf, p)
+	if err != nil {
+		log.Infof("err:[%s]", err)
+		handleErrorResponse(w, err)
+		return
+	}
+
+	body = buf.Bytes()
+	_, err = business.IstioConfig.GetIstioConfigDetails(namespace, objectType, object)
+	if err == nil {
+		jsonPatch := string(body)
+		updatedConfigDetails, err := business.IstioConfig.UpdateIstioConfigDetail(api, namespace, objectType, object, jsonPatch)
+		if err != nil {
+			handleErrorResponse(w, err)
+			return
+		}
+		audit(r, "UPDATE on Namespace: "+namespace+" Type: "+objectType+" Name: "+object+" Patch: "+jsonPatch)
+		RespondWithJSON(w, http.StatusOK, updatedConfigDetails)
+	} else {
+		createdConfigDetails, err := business.IstioConfig.CreateIstioConfigDetail(api, namespace, objectType, body)
+		if err != nil {
+			handleErrorResponse(w, err)
+			return
+		}
+		audit(r, "CREATE on Namespace: "+namespace+" Type: "+objectType+" Object: "+string(body))
+		RespondWithJSON(w, http.StatusOK, createdConfigDetails)
+	}
+
+}
+
+func IstioNetworkConfigUpdate(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	networkType := params["network_type"]
+
+	if networkType == TYPE_MIRROR {
+		IstioNetworkConfigUpdateMirror(w, r, params)
+		return
+	}
 	if networkType == TYPE_RATELIMIT {
-		objectType = kubernetes.EnvoyFilters
+		IstioNetworkConfigUpdateRateLimit(w, r, params)
+		return
+	}
+
+	namespace := params["namespace"]
+	objectType := params["object_type"]
+	object := params["object"]
+	api := business.GetIstioAPI(objectType)
+	if api == "" {
+		RespondWithError(w, http.StatusBadRequest, "Object type not managed: "+objectType)
+		return
+	}
+
+	business, err := getBusiness(r)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
+		return
+	}
+
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, "Create request could not be read: "+err.Error())
+	}
+
+	// if networkType == TYPE_RATELIMIT {
+	// 	objectType = kubernetes.EnvoyFilters
+	// 	dstRule := &models.DestinationRuleM{}
+	// 	err = json.Unmarshal(body, dstRule)
+	// 	if err != nil {
+	// 		log.Infof("err:[%s]", err)
+	// 		handleErrorResponse(w, err)
+	// 		return
+	// 	}
+
+	// 	type limit struct {
+	// 		Name          string `json:name`
+	// 		Namespace     string `json:namespace`
+	// 		MaxTokens     int    `json:max_tokens`
+	// 		TokensPerFill int    `json:tokens_per_fill`
+	// 		FillInterval  string `json:fill_interval`
+	// 	}
+	// 	// trafic := dstRule.Spec.TrafficPolicy
+	// 	li := dstRule.Spec.TrafficPolicy.RateLimit
+	// 	object = fmt.Sprintf("%s%s", reteLimitEnvoyFilterPrefix, dstRule.Metadata.Name)
+	// 	p := limit{
+	// 		Name:      object,
+	// 		Namespace: dstRule.Metadata.Namespace,
+	// 	}
+
+	// 	if fill, ok := li["fillInterval"].(string); ok {
+	// 		p.FillInterval = fill
+	// 	}
+
+	// 	if num, ok := li["maxTokens"].(float64); ok {
+	// 		p.MaxTokens = int(num)
+	// 	}
+	// 	if num, ok := li["tokensPerFill"].(float64); ok {
+	// 		p.TokensPerFill = int(num)
+	// 	}
+
+	// 	t, err := template.New("test").Parse(rateLimtTpl)
+	// 	if err != nil {
+	// 		log.Infof("err:[%s]", err)
+	// 		handleErrorResponse(w, err)
+	// 		return
+	// 	}
+	// 	var buf bytes.Buffer
+	// 	err = t.Execute(&buf, p)
+	// 	if err != nil {
+	// 		log.Infof("err:[%s]", err)
+	// 		handleErrorResponse(w, err)
+	// 		return
+	// 	}
+
+	// 	body = buf.Bytes()
+
+	// }
+
+	if objectType == kubernetes.DestinationRules {
+		if networkType == TYPE_SLOWSTART {
+			result, err := business.IstioConfig.GetIstioConfigDetails(namespace, kubernetes.DestinationRules, object)
+			if err == nil {
+				if result.DestinationRule != nil {
+					dstRule := result.DestinationRule
+					if tp, ok := dstRule.Spec.TrafficPolicy.(map[string]interface{}); ok {
+						if lb, ok := tp["loadBalancer"].(map[string]interface{}); ok {
+							if m, ok := lb["simple"]; ok {
+								if m != "LEAST_REQUEST" && m != "ROUND_ROBIN" {
+									log.Errorf("loadBalancer info not match:[%s][%+v]", result.DestinationRule)
+									RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("慢启动仅支持:LEAST_REQUEST,ROUND_ROBIN,当前使用的负载均衡算法:%s", m))
+									return
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
 		dstRule := &models.DestinationRuleM{}
 		err = json.Unmarshal(body, dstRule)
 		if err != nil {
@@ -1361,81 +1528,8 @@ func IstioNetworkConfigUpdate(w http.ResponseWriter, r *http.Request) {
 			handleErrorResponse(w, err)
 			return
 		}
-
-		type limit struct {
-			Name          string `json:name`
-			Namespace     string `json:namespace`
-			MaxTokens     int    `json:max_tokens`
-			TokensPerFill int    `json:tokens_per_fill`
-			FillInterval  string `json:fill_interval`
-		}
-		// trafic := dstRule.Spec.TrafficPolicy
-		li := dstRule.Spec.TrafficPolicy.RateLimit
-		object = fmt.Sprintf("%s%s", reteLimitEnvoyFilterPrefix, dstRule.Metadata.Name)
-		p := limit{
-			Name:      object,
-			Namespace: dstRule.Metadata.Namespace,
-		}
-
-		if fill, ok := li["fillInterval"].(string); ok {
-			p.FillInterval = fill
-		}
-
-		if num, ok := li["maxTokens"].(float64); ok {
-			p.MaxTokens = int(num)
-		}
-		if num, ok := li["tokensPerFill"].(float64); ok {
-			p.TokensPerFill = int(num)
-		}
-
-		t, err := template.New("test").Parse(rateLimtTpl)
-		if err != nil {
-			log.Infof("err:[%s]", err)
-			handleErrorResponse(w, err)
-			return
-		}
-		var buf bytes.Buffer
-		err = t.Execute(&buf, p)
-		if err != nil {
-			log.Infof("err:[%s]", err)
-			handleErrorResponse(w, err)
-			return
-		}
-
-		body = buf.Bytes()
-
-	}
-
-	if networkType == TYPE_SLOWSTART {
-		result, err := business.IstioConfig.GetIstioConfigDetails(namespace, kubernetes.DestinationRules, object)
-		if err == nil {
-			if result.DestinationRule != nil {
-				dstRule := result.DestinationRule
-				if tp, ok := dstRule.Spec.TrafficPolicy.(map[string]interface{}); ok {
-					if lb, ok := tp["loadBalancer"].(map[string]interface{}); ok {
-						if m, ok := lb["simple"]; ok {
-							if m != "LEAST_REQUEST" && m != "ROUND_ROBIN" {
-								log.Errorf("loadBalancer info not match:[%s][%+v]", result.DestinationRule)
-								RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("慢启动仅支持:LEAST_REQUEST,ROUND_ROBIN,当前使用的负载均衡算法:%s", m))
-								return
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	if objectType == kubernetes.DestinationRules {
-		v := &models.DestinationRuleM{}
-		err = json.Unmarshal(body, v)
-		if err != nil {
-			log.Infof("err:[%s]", err)
-			handleErrorResponse(w, err)
-			return
-		}
-		v.Spec.Host = fmt.Sprintf("%s.%s.svc.cluster.local", v.Metadata.Name, v.Metadata.Namespace)
-		body, err = json.Marshal(v)
+		dstRule.Spec.Host = fmt.Sprintf("%s.%s.svc.cluster.local", dstRule.Metadata.Name, dstRule.Metadata.Namespace)
+		body, err = json.Marshal(dstRule)
 		if err != nil {
 			log.Infof("err:[%s]", err)
 			handleErrorResponse(w, err)
@@ -1443,22 +1537,18 @@ func IstioNetworkConfigUpdate(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if networkType == TYPE_OUTLIERDETECTION {
-			if v.Spec.TrafficPolicy.OutlierDetection != nil {
-				outli := v.Spec.TrafficPolicy.OutlierDetection
+			if dstRule.Spec.TrafficPolicy.OutlierDetection != nil {
+				outli := dstRule.Spec.TrafficPolicy.OutlierDetection
 				if !isDuration(*outli.BaseEjectionTime) || !isDuration(*outli.Interval) {
 					RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("时间格式错误:%s,%s", *outli.BaseEjectionTime, *outli.Interval))
 					return
-
 				}
 			}
 		}
-
 	}
 
 	_, err = business.IstioConfig.GetIstioConfigDetails(namespace, objectType, object)
 	if err == nil {
-		// fmt.Printf("IstioNetworkConfig-updatemirror-xxx:%+v\n", string(body))
-
 		jsonPatch := string(body)
 		updatedConfigDetails, err := business.IstioConfig.UpdateIstioConfigDetail(api, namespace, objectType, object, jsonPatch)
 		if err != nil {
