@@ -183,6 +183,10 @@ func ServiceList(w http.ResponseWriter, r *http.Request) {
 							if lb["localityLbSetting"] != nil {
 								istioConfigStatus["localityLbsetting"] = true
 							}
+
+							if lb["warmupDurationSecs"] != nil {
+								istioConfigStatus["slowStart"] = true
+							}
 						}
 					}
 				}
@@ -199,10 +203,15 @@ func ServiceList(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		filterName := fmt.Sprintf("filter-mirror-%s", svc.Name)
-		result, err = business.IstioConfig.GetIstioConfigDetails(namespace, kubernetes.EnvoyFilters, filterName)
+		mirrorName := geneMirrorName(svc.Name, namespace)
+		result, err = business.IstioConfig.GetIstioConfigDetails(namespace, kubernetes.EnvoyFilters, mirrorName)
 		if err == nil && result.EnvoyFilter != nil {
 			istioConfigStatus["mirror"] = true
+		} else {
+			result, err = business.IstioConfig.GetIstioConfigDetails(ISTIO_SYSTEM_NAMESPACE, kubernetes.EnvoyFilters, mirrorName)
+			if err == nil && result.EnvoyFilter != nil {
+				istioConfigStatus["mirror"] = true
+			}
 		}
 
 		serviceList.Services[i].IstioConfigStatus = istioConfigStatus

@@ -17,7 +17,7 @@ type DestinationSpec struct {
 	Host string `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
 	// 流量熔断配置
 	// TrafficPolicy *TrafficPolicy `protobuf:"bytes,2,opt,name=trafficPolicy,json=trafficPolicy,proto3" json:"trafficPolicy,omitempty"`
-	TrafficPolicy interface{} `json:"trafficPolicy,omitempty"`
+	TrafficPolicy *TrafficPolicy `json:"trafficPolicy,omitempty"`
 
 	// 服务版本
 	// Subsets []*Subset `protobuf:"bytes,3,rep,name=subsets,proto3" json:"subsets,omitempty"`
@@ -51,6 +51,7 @@ type TrafficPolicy struct {
 	// 异常检测
 	OutlierDetection *OutlierDetection `protobuf:"bytes,3,opt,name=outlierDetection,json=outlierDetection,proto3" json:"outlierDetection,omitempty"`
 
+	RateLimit map[string]interface{} `json:"rateLimit"`
 	// PortLevelSettings    []*TrafficPolicy_PortTrafficPolicy `protobuf:"bytes,5,rep,name=port_level_settings,json=portLevelSettings,proto3" json:"port_level_settings,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`

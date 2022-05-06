@@ -47,6 +47,16 @@ func graphNamespacesIstio(business *business.Layer, prom *prometheus.Client, o g
 	return code, config
 }
 
+func GetMirrorQps(business *business.Layer, query string) (qps float64, err error) {
+	prom, err := prometheus.NewClient()
+	if err != nil {
+		return 0, err
+	}
+	// code, config = graphNodeIstio(business, prom, o)
+	qps = istio.GetQueryResut(query, prom)
+	return qps, nil
+}
+
 // GraphNode generates a node graph using the provided options
 func GraphNode(business *business.Layer, o graph.Options) (code int, config interface{}) {
 	if len(o.Namespaces) != 1 {

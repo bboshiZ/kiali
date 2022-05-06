@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 	"text/template"
+	"unicode"
 
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -18,10 +19,12 @@ import (
 
 	"github.com/kiali/kiali/business"
 	"github.com/kiali/kiali/config"
+	"github.com/kiali/kiali/graph/api"
 	"github.com/kiali/kiali/kubernetes"
 	"github.com/kiali/kiali/log"
 	"github.com/kiali/kiali/models"
 	"github.com/kiali/kiali/util"
+	"github.com/shopspring/decimal"
 )
 
 func LocalityList(w http.ResponseWriter, r *http.Request) {
@@ -58,16 +61,16 @@ func LocalityList(w http.ResponseWriter, r *http.Request) {
 	dist := map[string]int{}
 
 	for c, _ := range meshCluster {
-
 		serviceDetails, err := business.Svc.GetService(c, namespace, service, defaultHealthRateInterval, util.Clock.Now())
 		if err != nil {
 			log.Errorf("GetService from [%s] err:[%s]", c, err)
-			// RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
-			// return
 			continue
 		}
 		nodeList, err := business.Svc.GetAllNode()
-
+		if err != nil {
+			log.Errorf("GetAllNode err:[%s]", err)
+			continue
+		}
 		for _, ep := range serviceDetails.Endpoints {
 			for _, dpAddress := range ep.Addresses {
 				for _, cn := range nodeList {
@@ -151,10 +154,6 @@ func IstioConfigList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	includeValidations := false
-	// if _, found := query["validate"]; found {
-	// 	includeValidations = true
-	// }
-
 	labelSelector := ""
 	if _, found := query["labelSelector"]; found {
 		labelSelector = query.Get("labelSelector")
@@ -276,6 +275,8 @@ func IstioConfigDetails(w http.ResponseWriter, r *http.Request) {
 	objectType := params["object_type"]
 	object := params["object"]
 	clusterMap := business.ClusterMap
+	cidStr := r.URL.Query().Get("cid")
+	sourceCid, _ := strconv.Atoi(cidStr)
 
 	includeValidations := false
 	query := r.URL.Query()
@@ -312,7 +313,6 @@ func IstioConfigDetails(w http.ResponseWriter, r *http.Request) {
 	}
 
 	istioConfigDetails, err := business.IstioConfig.GetIstioConfigDetails(namespace, objectType, object)
-	// fmt.Printf("xxxxxx-xxxx-%+v,%+v\n", istioConfigDetails, err)
 
 	if objectType == kubernetes.VirtualServices {
 		if istioConfigDetails.VirtualService == nil {
@@ -343,8 +343,13 @@ func IstioConfigDetails(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		object = fmt.Sprintf("filter-mirror-%s", object)
-		result, err := business.IstioConfig.GetIstioConfigDetails(namespace, kubernetes.EnvoyFilters, object)
+		// mirrorFilter := fmt.Sprintf("filter-mirror-%s", object)
+		// mirrorFilter := geneMirrorName(object, namespace)
+
+		result, err := business.IstioConfig.GetIstioConfigDetails(namespace, kubernetes.EnvoyFilters, geneMirrorName(object, namespace))
+		if err != nil {
+			result, err = business.IstioConfig.GetIstioConfigDetails(ISTIO_SYSTEM_NAMESPACE, kubernetes.EnvoyFilters, geneMirrorName(object, namespace))
+		}
 		if err == nil && result.EnvoyFilter != nil {
 			if configP, ok := result.EnvoyFilter.Spec.ConfigPatches.([]interface{}); ok {
 				date, err := json.Marshal(configP[0])
@@ -353,23 +358,38 @@ func IstioConfigDetails(w http.ResponseWriter, r *http.Request) {
 					err = json.Unmarshal(date, &patch)
 					if err == nil {
 						if httpList, ok := istioConfigDetails.VirtualService.Spec.Http.([]interface{}); ok {
-							// fmt.Printf("xxxxxx-httpList-%+v\n", httpList)
 							if len(httpList) > 0 {
 								vsHttp := httpList[0].(map[string]interface{})
-								// vsHttp["mirror"] = []interface{}{}
 								hCluster, err := GetHulkClusters()
 								if err != nil {
 									log.Errorf("GetHulkClusters err:[%s]", err)
 									RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
 									return
 								}
+
+								var svcClusterName string
+								for _, hc := range hCluster.Result {
+									if sourceCid == hc.Id {
+										svcClusterName = hc.Name
+										break
+									}
+								}
+
+								query := fmt.Sprintf(`sum(rate(istio_requests_total{reporter="destination",destination_cluster="%s",destination_service_namespace="%s",destination_app="%s"}[1m]))`, svcClusterName, namespace, object)
+
+								// query := fmt.Sprintf(`sum(rate(istio_requests_total{reporter="source",destination_cluster="%s",destination_workload_namespace="%s",destination_workload="%s"}[1m]))`, svcClusterName, namespace, object)
+
+								// query := fmt.Sprintf(`sum(rate(istio_requests_total{reporter="source",source_cluster="%s",source_workload_namespace="%s",source_workload="%s",destination_cluster="%s",destination_workload_namespace="%s",destination_workload="%s"}[1m]))`, sourceClusterName, namespace, object, s[3], s[2], s[1])
+								currentQPS, err := api.GetMirrorQps(business, query)
+								if err != nil {
+									log.Errorf("err:GetMirrorQps:[%+v]", err)
+								}
+
 								mirrorConfig := []interface{}{}
 								cid := 0
 								for _, mirror := range patch.Patch.Value.Route.RequestMirrorPolicies {
-									// fmt.Printf("xxxxxx-mirror-%+v\n", mirror)
 									k8sClusterType := "outMesh"
 									s := strings.Split(mirror.ServiceInfo, "|")
-									// label := result.EnvoyFilter.Metadata.Labels
 									if len(s) != 4 {
 										log.Errorf("err:ServiceInfo format wrong [%s]", mirror.ServiceInfo)
 										continue
@@ -399,9 +419,11 @@ func IstioConfigDetails(w http.ResponseWriter, r *http.Request) {
 									if cid == 0 || tPort == 0 {
 										log.Errorf("err:cid tPort err:[%d],[%d]", cid, tPort)
 										continue
-										// RespondWithError(w, http.StatusInternalServerError, "cid or targetPort error")
-										// return
+
 									}
+
+									qps := float64(currentQPS) * (float64(mirror.RuntimeFraction.DefaultValue.Numerator) / 10000) / 100
+									qps, _ = decimal.NewFromFloat(qps).Round(2).Float64()
 									mirrorConfig = append(mirrorConfig, map[string]interface{}{
 										"clusterType":      k8sClusterType,
 										"cluster":          s[3],
@@ -410,6 +432,8 @@ func IstioConfigDetails(w http.ResponseWriter, r *http.Request) {
 										"service":          s[1],
 										"targetPort":       tPort,
 										"mirrorPercentage": float64(mirror.RuntimeFraction.DefaultValue.Numerator) / 10000,
+										"currentQPS":       qps,
+										// "currentQPS":       float64(currentQPS) * (float64(mirror.RuntimeFraction.DefaultValue.Numerator) / 10000) / 100,
 									})
 
 								}
@@ -449,18 +473,15 @@ func IstioConfigDetails(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		object = fmt.Sprintf("%s%s", reteLimitEnvoyFilterPrefix, object)
-		result, err := business.IstioConfig.GetIstioConfigDetails(namespace, kubernetes.EnvoyFilters, object)
-		// fmt.Printf("xxxxxx-aaa-%+v,%+v\n", result, err)
+		rateLimitFilter := fmt.Sprintf("%s%s", reteLimitEnvoyFilterPrefix, object)
+		result, err := business.IstioConfig.GetIstioConfigDetails(namespace, kubernetes.EnvoyFilters, rateLimitFilter)
 		if err == nil && result.EnvoyFilter != nil {
-			// fmt.Printf("xxxxxx-bbb-%+v\n", result.EnvoyFilter.Spec.ConfigPatches)
 			if configP, ok := result.EnvoyFilter.Spec.ConfigPatches.([]interface{}); ok {
 				date, err := json.Marshal(configP[0])
 				if err == nil {
 					var patch ConfigPatches
 					err = json.Unmarshal(date, &patch)
 					bucket := patch.Patch.Value.TypedConfig.Value.TokenBucket
-					// fmt.Printf("xxxxxx-%+v,%+v\n", patch.Patch.Value.TypedConfig.Value.TokenBucket, err)
 					if err == nil {
 						traffic := istioConfigDetails.DestinationRule.Spec.TrafficPolicy.(map[string]interface{})
 						mToken, _ := strconv.Atoi(bucket.MaxTokens)
@@ -623,15 +644,16 @@ const (
 	TYPE_SUBNET                = "subset"
 	reteLimitEnvoyFilterPrefix = "filter-local-ratelimit-"
 
-	serviceEntryTpl = `
+	ISTIO_SYSTEM_NAMESPACE = "istio-system"
+	serviceEntryTpl        = `
 {
 	"apiVersion": "networking.istio.io/v1alpha3",
 	"kind": "ServiceEntry",
 	"metadata": {
 		"name": "{{.Name}}",
-		"namespace": "{{.Namespace}}",
+		"namespace": "istio-system",
 		"labels": {
-			"mirror": "{{.MirrorName}}"
+			"mirror": "{{.MirrorLabel}}"
 		}
 	},
 	"spec": {
@@ -660,15 +682,105 @@ const (
 	
 `
 
-	mirrorTpl = `
+	// 	serviceEntryTplClient = `
+	// {
+	// 	"apiVersion": "networking.istio.io/v1alpha3",
+	// 	"kind": "ServiceEntry",
+	// 	"metadata": {
+	// 		"name": "{{.Name}}",
+	// 		"namespace": "{{.Namespace}}",
+	// 		"labels": {
+	// 			"mirror": "{{.MirrorLabel}}"
+	// 		}
+	// 	},
+	// 	"spec": {
+	// 		"hosts": [
+	// 		"{{.Host}}"
+	// 		],
+	// 		"ports": [
+	// 		{
+	// 			"number": {{.Port}},
+	// 			"name": "http",
+	// 			"protocol": "HTTP"
+	// 		}
+	// 		],
+	// 		"resolution": "STATIC",
+	// 		"endpoints": [
+	// 		{{ $length := len .Address }}
+	// 		{{range $index, $element := .Address}}
+	// 		{
+	// 			"address": "{{.}}"
+	// 		}{{ $index := inc $index }}{{ if lt $index $length }},{{ end }}
+	// 		{{end}}
+	// 		],
+	// 		"location": "MESH_EXTERNAL"
+	// 	}
+	// 	}
+
+	// `
+
+	mirrorTplClientSide = `
 {
 	"apiVersion": "networking.istio.io/v1alpha3",
 	"kind": "EnvoyFilter",
 	"metadata": {
-		"name": "filter-mirror-{{.Name}}",
+		"name": "{{.Name}}",
+		"namespace": "istio-system"
+	},
+	"spec": {
+		"configPatches": [
+		{
+			"applyTo": "HTTP_ROUTE",
+			"match": {
+			"routeConfiguration": {
+				"vhost": {
+				"name": "{{.Host}}"
+				}
+			}
+			},
+			"patch": {
+			"operation": "MERGE",
+			"value": {
+				"route": {
+				"request_mirror_policies": [
+					{{ $length := len .Array }}
+					{{range $index, $element := .Array}}
+					{
+					"cluster": "{{.MirrorCluster}}",
+					"service_info": "{{.ServiceInfo}}",
+					"runtime_fraction": {
+						"default_value": {
+						"numerator": {{.Numerator}},
+						"denominator": "MILLION"
+						}
+					}
+					}{{ $index := inc $index }}{{ if lt $index $length }},{{ end }}
+					{{end}}
+				]
+				}
+			}
+			}
+		}
+		]
+	}
+	}
+	
+`
+
+	mirrorTplServerSide = `
+{
+	"apiVersion": "networking.istio.io/v1alpha3",
+	"kind": "EnvoyFilter",
+	"metadata": {
+		"name": "{{.Name}}",
 		"namespace": "{{.Namespace}}"
 	},
 	"spec": {
+		"workloadSelector": {
+			"labels": {
+			  "app": "{{.WorkloadSelector}}"
+			}
+		  },
 		"configPatches": [
 		{
 			"applyTo": "HTTP_ROUTE",
@@ -783,6 +895,17 @@ const (
 `
 )
 
+func geneMirrorLabel(name, namespace string) string {
+
+	return fmt.Sprintf("mirror=mirror-%s-%s", name, namespace)
+
+}
+
+func geneMirrorName(name, namespace string) string {
+	return fmt.Sprintf("filter-mirror-%s-%s", name, namespace)
+
+}
+
 func IstioNetworkConfigDelete(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	namespace := params["namespace"]
@@ -815,23 +938,42 @@ func IstioNetworkConfigDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if networkType == TYPE_MIRROR {
-		filterName := fmt.Sprintf("filter-mirror-%s", object)
-		err := business.IstioConfig.DeleteIstioConfigDetail(api, namespace, kubernetes.EnvoyFilters, filterName)
+		// filterName := fmt.Sprintf("filter-mirror-%s", object)
+		filterName := geneMirrorName(object, namespace)
+		business.IstioConfig.DeleteIstioConfigDetail(api, namespace, kubernetes.EnvoyFilters, filterName)
+		// if err != nil {
+		// 	log.Infof("err:[%s]", err)
+
+		// }
+
+		// objects, err := business.IstioConfig.GetIstioObject(namespace, kubernetes.ServiceEntries, geneMirrorLabel(object, namespace))
+		// if err == nil {
+		// 	for _, ob := range objects {
+		// 		err = business.IstioConfig.DeleteIstioConfigDetail(api, namespace, kubernetes.ServiceEntries, ob.GetObjectMeta().Name)
+		// 		if err != nil {
+		// 			log.Infof("err:[%s]", err)
+		// 		}
+		// 	}
+		// }
+
+		err = business.IstioConfig.DeleteIstioConfigDetail(api, ISTIO_SYSTEM_NAMESPACE, kubernetes.EnvoyFilters, filterName)
 		if err != nil {
 			log.Infof("err:[%s]", err)
 			// RespondWithError(w, http.StatusInternalServerError, "delete  ratelimit error: "+err.Error())
 			// return
 		}
-		label := fmt.Sprintf("mirror=mirror-%s-%s", object, namespace)
-		objects, err := business.IstioConfig.GetIstioObject(namespace, kubernetes.ServiceEntries, label)
+
+		// label := fmt.Sprintf("mirror=mirror-%s-%s", object, namespace)
+		objects, err := business.IstioConfig.GetIstioObject(ISTIO_SYSTEM_NAMESPACE, kubernetes.ServiceEntries, geneMirrorLabel(object, namespace))
 		if err == nil {
 			for _, ob := range objects {
-				err = business.IstioConfig.DeleteIstioConfigDetail(api, namespace, kubernetes.ServiceEntries, ob.GetObjectMeta().Name)
+				err = business.IstioConfig.DeleteIstioConfigDetail(api, ISTIO_SYSTEM_NAMESPACE, kubernetes.ServiceEntries, ob.GetObjectMeta().Name)
 				if err != nil {
 					log.Infof("err:[%s]", err)
 				}
 			}
 		}
+
 		RespondWithJSON(w, http.StatusOK, "")
 		return
 	}
@@ -881,15 +1023,318 @@ func IstioNetworkConfigDelete(w http.ResponseWriter, r *http.Request) {
 	RespondWithJSON(w, http.StatusOK, "")
 }
 
-func IstioNetworkConfigUpdate(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
+func isDuration(d string) bool {
+	unit := d[len(d)-1:]
+	if unit != "ms" && unit != "s" && unit != "m" && unit != "h" {
+		return false
+	}
+
+	for _, ch := range d[:len(d)-1] {
+		if !unicode.IsDigit(ch) {
+			return false
+		}
+	}
+
+	// _, err := strconv.ParseFloat(d[:len(d)-1], 64)
+	// return err == nil
+
+	return true
+
+}
+
+func genMirrorCluster(port int32, svc, ns string) string {
+
+	return fmt.Sprintf("outbound|%d||%s.%s.svc.cluster.local", port, svc, ns)
+
+	// return fmt.Sprintf("outbound|%d||%s.%s.svc.cluster.local", port, svc, ns)
+
+}
+
+func genMirrorClusterClientSide(port int32, svc, ns string) string {
+
+	// return fmt.Sprintf("outbound|%d||%s.%s.svc.cluster.local", port, svc, ns)
+
+	return fmt.Sprintf("outbound|%d||%s.%s.svc.cluster.local", port, svc, ns)
+
+}
+
+func IstioNetworkConfigUpdateMirror(w http.ResponseWriter, r *http.Request, params map[string]string) {
 	namespace := params["namespace"]
 	objectType := params["object_type"]
-	networkType := params["network_type"]
 	object := params["object"]
 	clusterMap := business.ClusterMap
 	cidStr := r.URL.Query().Get("cid")
 	sourceCid, _ := strconv.Atoi(cidStr)
+	api := business.GetIstioAPI(objectType)
+
+	business, err := getBusiness(r)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
+		return
+	}
+
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, "Create request could not be read: "+err.Error())
+		return
+	}
+
+	objectType = kubernetes.EnvoyFilters
+	dstRule := &models.VirtualServiceM{}
+	err = json.Unmarshal(body, dstRule)
+	if err != nil {
+		log.Infof("err:[%s]", err)
+		handleErrorResponse(w, err)
+		return
+	}
+
+	for _, m := range dstRule.Spec.Http[0].Mirror {
+		if m.Cid == sourceCid && m.Namespace == namespace && m.Service == object {
+			RespondWithError(w, http.StatusBadRequest, "源服务不能和目的服务相同")
+			return
+		}
+
+		if m.TargetPort <= 0 {
+			log.Errorf("m.TargetPort <= 0:[%s]", m.TargetPort)
+			RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("目的服务端口不能小于0:%d", m.TargetPort))
+			return
+		}
+	}
+
+	type Service struct {
+		MirrorCluster string `json:"mirror_cluster"`
+		Numerator     string `json:"numerator"`
+		ServiceInfo   string `json:"serviceInfo"`
+	}
+	type Mirror struct {
+		Name             string `json:"name"`
+		Namespace        string `json:"namespace"`
+		Array            []Service
+		Host             string `json:"host"`
+		WorkloadSelector string `json:workloadSelector`
+		// MirrorCluster string `json:"mirror_cluster"`
+		// Numerator     string `json:"numerator"`
+	}
+
+	var cName string
+
+	HulkCluster, err := GetHulkClusters()
+	if err != nil {
+		log.Errorf("GetHulkClusters err:[%s]", err)
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	for _, c := range HulkCluster.Result {
+		if c.Id == sourceCid {
+			cName = c.Name
+		}
+	}
+
+	targerService, err := business.Svc.GetService(cName, dstRule.Metadata.Namespace, dstRule.Metadata.Name, defaultHealthRateInterval, util.Clock.Now())
+	if err != nil {
+		log.Infof("err:[%s]", err)
+		handleErrorResponse(w, err)
+		return
+	}
+
+	var mConfig = Mirror{
+		Name: geneMirrorName(object, namespace),
+	}
+
+	objects, err := business.IstioConfig.GetIstioObject(ISTIO_SYSTEM_NAMESPACE, kubernetes.ServiceEntries, geneMirrorLabel(object, namespace))
+	if err == nil {
+		for _, ob := range objects {
+			err = business.IstioConfig.DeleteIstioConfigDetail(api, ISTIO_SYSTEM_NAMESPACE, kubernetes.ServiceEntries, ob.GetObjectMeta().Name)
+			if err != nil {
+				log.Infof("DeleteIstioConfigDetail err:[%s]", err)
+			}
+		}
+	}
+
+	business.IstioConfig.DeleteIstioConfigDetail(api, ISTIO_SYSTEM_NAMESPACE, kubernetes.EnvoyFilters, mConfig.Name)
+	business.IstioConfig.DeleteIstioConfigDetail(api, namespace, kubernetes.EnvoyFilters, mConfig.Name)
+
+	var mirrorTpl string
+	if targerService.IstioSidecar {
+		mirrorTpl = mirrorTplServerSide
+		mConfig.Host = fmt.Sprintf("inbound|http|%d", targerService.Service.Ports[0].Port)
+		mConfig.Namespace = namespace
+		mConfig.WorkloadSelector = object
+	} else {
+		mirrorTpl = mirrorTplClientSide
+		mConfig.Host = fmt.Sprintf("%s.%s.svc.cluster.local:%d", dstRule.Metadata.Name, dstRule.Metadata.Namespace, targerService.Service.Ports[0].Port)
+		mConfig.Namespace = ISTIO_SYSTEM_NAMESPACE
+	}
+
+	var inMesh bool
+	for _, m := range dstRule.Spec.Http[0].Mirror {
+		inMesh = false
+		for cName := range clusterMap {
+			if m.Cluster == "shareit-cce-test" {
+				break
+			}
+			if m.Cluster == cName {
+				inMesh = true
+				mirrorService, err := business.Svc.GetService(m.Cluster, m.Namespace, m.Service, defaultHealthRateInterval, util.Clock.Now())
+				if err != nil {
+					log.Infof("err:[%s]", err)
+					handleErrorResponse(w, err)
+					return
+				}
+				mConfig.Array = append(mConfig.Array, Service{
+					MirrorCluster: genMirrorCluster(mirrorService.Service.Ports[0].Port, m.Service, m.Namespace),
+					// MirrorCluster: fmt.Sprintf("outbound|%d||%s.%s.svc.cluster.local", mirrorService.Service.Ports[0].Port, m.Service, m.Namespace),
+					Numerator:   strconv.FormatInt(int64(m.MirrorPercentage*10000), 10),
+					ServiceInfo: fmt.Sprintf("%d|%s|%s|%s", m.TargetPort, m.Service, m.Namespace, m.Cluster),
+				})
+				inMesh = true
+				break
+			}
+		}
+
+		if inMesh {
+			continue
+		}
+
+		var clusterFound bool
+		for _, c := range HulkCluster.Result {
+			clusterFound = false
+			if m.Cluster == c.Name {
+				podIps, err := GetHulkClusterEndpointsIps(m.Service, m.Namespace, m.Cid)
+				if err != nil {
+					log.Infof("GetHulkClusterEndpointsIps err:[%s]", err)
+					RespondWithError(w, http.StatusInternalServerError, err.Error())
+					return
+				}
+
+				type ServiceEn struct {
+					Name string `json:"name"`
+					// Namespace   string   `json:"namespace"`
+					Address     []string `json:"address"`
+					Host        string   `json:"host"`
+					Port        string   `json:"port"`
+					MirrorLabel string   `json:"mirrorLabel"`
+					// MirrorCluster string `json:"mirror_cluster"`
+					// Numerator     string `json:"numerator"`
+				}
+
+				// snName := fmt.Sprintf("mirror-%s-to-%s", object, m.Service)
+				snName := fmt.Sprintf("mirror-%s-%s-to-%s-%s-%s", object, namespace, m.Service, m.Namespace, m.Cluster)
+				snHost := snName + ".ushareit"
+				sn := ServiceEn{
+					Name: snName,
+					// Namespace:   namespace,
+					Host:        snHost,
+					Port:        strconv.Itoa(m.TargetPort),
+					Address:     podIps,
+					MirrorLabel: fmt.Sprintf("mirror-%s-%s", object, namespace),
+				}
+
+				t, err := template.New("test").Funcs(tplFuncMap).Parse(serviceEntryTpl)
+				if err != nil {
+					log.Infof("template:[%s]", err)
+					handleErrorResponse(w, err)
+					return
+				}
+				var buf bytes.Buffer
+				err = t.Execute(&buf, sn)
+				if err != nil {
+					log.Errorf("err:[%s]", err)
+					handleErrorResponse(w, err)
+					return
+				}
+
+				body = buf.Bytes()
+				business.IstioConfig.DeleteIstioConfigDetail(api, ISTIO_SYSTEM_NAMESPACE, kubernetes.ServiceEntries, snName)
+				_, err = business.IstioConfig.CreateIstioConfigDetail(api, ISTIO_SYSTEM_NAMESPACE, kubernetes.ServiceEntries, body)
+				if err != nil {
+					handleErrorResponse(w, err)
+					return
+				}
+
+				//Request URL: https://scmp.ushareit.me/hulk/api/v2/apps/sprs/deployment/store-house/pods
+				// podUrl := fmt.Sprintf("http://scmp-hulk.sgt:80/hulk/api/v2/apps/%s/%s/%s/pods", m.Namespace, appType, m.Service)
+
+				mConfig.Array = append(mConfig.Array, Service{
+					// MirrorCluster: genMirrorCluster(int32(m.TargetPort), object, m.Service),
+					MirrorCluster: fmt.Sprintf("outbound|%d||%s", m.TargetPort, snHost),
+
+					// MirrorCluster: fmt.Sprintf("outbound|%d||mirror-%s-to-%s.ushareit", m.TargetPort, object, m.Service),
+					Numerator:   strconv.FormatInt(int64(m.MirrorPercentage*10000), 10),
+					ServiceInfo: fmt.Sprintf("%d|%s|%s|%s", m.TargetPort, m.Service, m.Namespace, m.Cluster),
+				})
+
+				clusterFound = true
+				break
+			}
+		}
+
+		if !clusterFound {
+			log.Errorf("hulkCluster not found:[%s][%+v]", m.Cluster, HulkCluster.Result)
+			RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("hulkCluster not found:%s", m.Cluster))
+			return
+		}
+	}
+
+	t, err := template.New("test").Funcs(tplFuncMap).Parse(mirrorTpl)
+	if err != nil {
+		log.Infof("template:[%s]", err)
+		handleErrorResponse(w, err)
+		return
+	}
+	var buf bytes.Buffer
+	err = t.Execute(&buf, mConfig)
+	if err != nil {
+		log.Infof("template Execute:[%s]", err)
+		handleErrorResponse(w, err)
+		return
+	}
+
+	body = buf.Bytes()
+	log.Infof("mirror filter:[%s]", string(body))
+	object = geneMirrorName(object, namespace)
+
+	_, err = business.IstioConfig.GetIstioConfigDetails(mConfig.Namespace, objectType, object)
+	if err == nil {
+		// fmt.Printf("IstioNetworkConfig-updatemirror-xxx:%+v\n", string(body))
+
+		jsonPatch := string(body)
+		updatedConfigDetails, err := business.IstioConfig.UpdateIstioConfigDetail(api, mConfig.Namespace, objectType, object, jsonPatch)
+		if err != nil {
+			handleErrorResponse(w, err)
+			return
+		}
+		audit(r, "UPDATE on Namespace: "+mConfig.Namespace+" Type: "+objectType+" Name: "+object+" Patch: "+jsonPatch)
+		RespondWithJSON(w, http.StatusOK, updatedConfigDetails)
+	} else {
+		fmt.Println("create-xxx:", mConfig.Namespace, objectType, string(body))
+
+		createdConfigDetails, err := business.IstioConfig.CreateIstioConfigDetail(api, mConfig.Namespace, objectType, body)
+		if err != nil {
+			handleErrorResponse(w, err)
+			return
+		}
+		audit(r, "CREATE on Namespace: "+mConfig.Namespace+" Type: "+objectType+" Object: "+string(body))
+		RespondWithJSON(w, http.StatusOK, createdConfigDetails)
+	}
+
+}
+
+func IstioNetworkConfigUpdate(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	networkType := params["network_type"]
+
+	if networkType == TYPE_MIRROR {
+		IstioNetworkConfigUpdateMirror(w, r, params)
+		return
+	}
+
+	namespace := params["namespace"]
+	objectType := params["object_type"]
+	object := params["object"]
+	// clusterMap := business.ClusterMap
+	// cidStr := r.URL.Query().Get("cid")
+	// sourceCid, _ := strconv.Atoi(cidStr)
 	api := business.GetIstioAPI(objectType)
 	if api == "" {
 		RespondWithError(w, http.StatusBadRequest, "Object type not managed: "+objectType)
@@ -907,361 +1352,6 @@ func IstioNetworkConfigUpdate(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusBadRequest, "Create request could not be read: "+err.Error())
 	}
 
-	if networkType == TYPE_MIRROR {
-
-		objectType = kubernetes.EnvoyFilters
-		dstRule := &models.VirtualServiceM{}
-		err = json.Unmarshal(body, dstRule)
-		if err != nil {
-			log.Infof("err:[%s]", err)
-			handleErrorResponse(w, err)
-			return
-		}
-
-		for _, m := range dstRule.Spec.Http[0].Mirror {
-			if m.Cid == sourceCid && m.Namespace == namespace && m.Service == object {
-				RespondWithError(w, http.StatusBadRequest, "源服务不能和目的服务相同")
-				return
-			}
-		}
-
-		type Service struct {
-			MirrorCluster string `json:"mirror_cluster"`
-			Numerator     string `json:"numerator"`
-			ServiceInfo   string `json:"serviceInfo"`
-		}
-		type Mirror struct {
-			Name      string `json:"name"`
-			Namespace string `json:"namespace"`
-			Array     []Service
-			Host      string `json:"host"`
-			// MirrorCluster string `json:"mirror_cluster"`
-			// Numerator     string `json:"numerator"`
-		}
-
-		var cName string
-
-		HulkCluster, err := GetHulkClusters()
-		if err != nil {
-			log.Errorf("GetHulkClusters err:[%s]", err)
-			RespondWithError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-		for _, c := range HulkCluster.Result {
-			if c.Id == sourceCid {
-				cName = c.Name
-			}
-		}
-
-		targerService, err := business.Svc.GetService(cName, dstRule.Metadata.Namespace, dstRule.Metadata.Name, defaultHealthRateInterval, util.Clock.Now())
-		if err != nil {
-			log.Infof("err:[%s]", err)
-			handleErrorResponse(w, err)
-			return
-		}
-		mConfig := Mirror{
-			Name:      dstRule.Metadata.Name,
-			Namespace: dstRule.Metadata.Namespace,
-			Host:      fmt.Sprintf("%s.%s.svc.cluster.local:%d", dstRule.Metadata.Name, dstRule.Metadata.Namespace, targerService.Service.Ports[0].Port),
-		}
-
-		label := fmt.Sprintf("mirror=mirror-%s-%s", object, namespace)
-		objects, err := business.IstioConfig.GetIstioObject(namespace, kubernetes.ServiceEntries, label)
-		// fmt.Println("xxxxx-", objects, err)
-		if err == nil {
-			for _, ob := range objects {
-				err = business.IstioConfig.DeleteIstioConfigDetail(api, namespace, kubernetes.ServiceEntries, ob.GetObjectMeta().Name)
-				if err != nil {
-					log.Infof("err:[%s]", err)
-				}
-			}
-		}
-
-		for _, m := range dstRule.Spec.Http[0].Mirror {
-
-			inMesh := false
-			if m.TargetPort <= 0 {
-				log.Errorf("m.TargetPort <= 0:[%s]", m.TargetPort)
-				RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("TargetPort err:%d", m.TargetPort))
-				return
-			}
-
-			for cName := range clusterMap {
-				if m.Cluster == "shareit-cce-test" {
-					break
-				}
-				if m.Cluster == cName {
-					inMesh = true
-					mirrorService, err := business.Svc.GetService(m.Cluster, m.Namespace, m.Service, defaultHealthRateInterval, util.Clock.Now())
-					if err != nil {
-						log.Infof("err:[%s]", err)
-						handleErrorResponse(w, err)
-						return
-					}
-					mConfig.Array = append(mConfig.Array, Service{
-						MirrorCluster: fmt.Sprintf("outbound|%d||%s.%s.svc.cluster.local", mirrorService.Service.Ports[0].Port, m.Service, m.Namespace),
-						Numerator:     strconv.FormatInt(int64(m.MirrorPercentage*10000), 10),
-						ServiceInfo:   fmt.Sprintf("%d|%s|%s|%s", m.TargetPort, m.Service, m.Namespace, m.Cluster),
-					})
-					inMesh = true
-					break
-					// result["inMesh"] = append(result["inMesh"], models.ClusterM{Id: c.Id, Name: c.Name, Address: c.Address})
-				}
-			}
-
-			if inMesh {
-				continue
-			}
-
-			var clusterFound bool
-			for _, c := range HulkCluster.Result {
-				clusterFound = false
-				if m.Cluster == c.Name {
-					podIps, err := GetHulkClusterEndpointsIps(m.Service, m.Namespace, m.Cid)
-					if err != nil {
-						log.Infof("GetHulkClusterEndpointsIps err:[%s]", err)
-						RespondWithError(w, http.StatusInternalServerError, err.Error())
-						return
-					}
-
-					type ServiceEn struct {
-						Name       string   `json:"name"`
-						Namespace  string   `json:"namespace"`
-						Address    []string `json:"address"`
-						Host       string   `json:"host"`
-						Port       string   `json:"port"`
-						MirrorName string   `json:"mirror_name"`
-						// MirrorCluster string `json:"mirror_cluster"`
-						// Numerator     string `json:"numerator"`
-					}
-
-					snName := fmt.Sprintf("mirror-%s-to-%s", object, m.Service)
-					sn := ServiceEn{
-						Name:       snName,
-						Namespace:  namespace,
-						Host:       fmt.Sprintf("mirror-%s-to-%s.ushareit", object, m.Service),
-						Port:       strconv.Itoa(m.TargetPort),
-						Address:    podIps,
-						MirrorName: fmt.Sprintf("mirror-%s-%s", object, namespace),
-					}
-
-					t, err := template.New("test").Funcs(tplFuncMap).Parse(serviceEntryTpl)
-					if err != nil {
-						log.Infof("template:[%s]", err)
-						handleErrorResponse(w, err)
-						return
-					}
-					var buf bytes.Buffer
-					err = t.Execute(&buf, sn)
-					if err != nil {
-						log.Errorf("err:[%s]", err)
-						handleErrorResponse(w, err)
-						return
-					}
-
-					body = buf.Bytes()
-					// object = fmt.Sprintf("mirror-entry-%s", m.Service)
-
-					log.Infof("body-111:[%s]", string(body))
-					business.IstioConfig.DeleteIstioConfigDetail(api, namespace, kubernetes.ServiceEntries, snName)
-					// if err != nil {
-					// 	log.Infof("err:[%s]", err)
-					// 	handleErrorResponse(w, err)
-					// 	return
-					// }
-					_, err = business.IstioConfig.CreateIstioConfigDetail(api, namespace, kubernetes.ServiceEntries, body)
-					if err != nil {
-						handleErrorResponse(w, err)
-						return
-					}
-					// appFound = true
-					// break
-
-					// appUrl := fmt.Sprintf("http://scmp-hulk.sgt:80/hulk/api/v2/apps/%s/all?limit=10000&page=1", m.Namespace)
-					// req, err := http.NewRequest("GET", appUrl, nil)
-					// if err != nil {
-					// 	log.Infof("err:[%s]", err)
-					// 	handleErrorResponse(w, err)
-					// 	return
-					// }
-					// req.Header.Set("cid", strconv.Itoa(m.Cid))
-					// client := &http.Client{}
-					// resp, err := client.Do(req)
-					// if err != nil {
-					// 	log.Errorf("err:[%s]", err)
-					// 	handleErrorResponse(w, err)
-					// 	return
-					// }
-					// defer resp.Body.Close()
-					// appBody, _ := ioutil.ReadAll(resp.Body)
-					// log.Infof("mirror-xxx:[%+v][%+v]", string(appBody), err)
-
-					// type AppInfo struct {
-					// 	Code   int `json:"code"`
-					// 	Result []struct {
-					// 		Id     int               `json:"id"`
-					// 		Name   string            `json:"name"`
-					// 		Type   int               `json:"type"`
-					// 		Labels map[string]string `json:"labels"`
-					// 	} `json:"result"`
-					// }
-
-					// var app AppInfo
-					// err = json.Unmarshal(appBody, &app)
-					// if err != nil {
-					// 	log.Error(err)
-					// 	RespondWithError(w, http.StatusInternalServerError, err.Error())
-					// 	return
-					// }
-					// if app.Code != 0 {
-					// 	RespondWithError(w, http.StatusInternalServerError, "Get apps error:"+string(appBody))
-					// 	return
-					// }
-
-					// var appType, podUrl string
-					// var podIps []string
-					// var appFound bool
-					// for _, a := range app.Result {
-					// 	if a.Name == m.Service {
-					// 		if a.Type == 0 {
-					// 			appType = "deployment"
-					// 			podUrl = fmt.Sprintf("http://scmp-hulk.sgt:80/hulk/api/v2/apps/%s/%s/%s/pods?cid=%d", m.Namespace, appType, a.Name, m.Cid)
-
-					// 		} else if a.Type == 2 {
-					// 			appType = "cloneset"
-					// 			podUrl = fmt.Sprintf("http://scmp-hulk.sgt:80/hulk/api/v2/apps/%s/%s/%s/pods?cid=%d", m.Namespace, appType, a.Name, m.Cid)
-
-					// 		}
-
-					// 		resp, err := http.Get(podUrl)
-					// 		if err != nil {
-					// 			log.Error(err)
-					// 			RespondWithError(w, http.StatusInternalServerError, err.Error())
-					// 			return
-					// 		}
-
-					// 		defer resp.Body.Close()
-					// 		podBody, _ := ioutil.ReadAll(resp.Body)
-
-					// 		type PodInfo struct {
-					// 			Result []struct {
-					// 				Id    int    `json:"id"`
-					// 				PodIp string `json:"pod_ip"`
-					// 			} `json:"result"`
-					// 		}
-
-					// 		var pod PodInfo
-					// 		err = json.Unmarshal(podBody, &pod)
-					// 		if err != nil {
-					// 			log.Error(err)
-					// 			RespondWithError(w, http.StatusInternalServerError, err.Error())
-					// 			return
-					// 		}
-					// 		for _, p := range pod.Result {
-					// 			podIps = append(podIps, p.PodIp)
-					// 		}
-
-					// 		type ServiceEn struct {
-					// 			Name       string   `json:"name"`
-					// 			Namespace  string   `json:"namespace"`
-					// 			Address    []string `json:"address"`
-					// 			Host       string   `json:"host"`
-					// 			Port       string   `json:"port"`
-					// 			MirrorName string   `json:"mirror_name"`
-					// 		}
-
-					// 		if m.TargetPort <= 0 {
-					// 			// m.TargetPort = 80
-					// 			log.Errorf("m.TargetPort <= 0:[%s]", m.TargetPort)
-					// 			msg := fmt.Sprintf("TargetPort err:%d", m.TargetPort)
-					// 			RespondWithError(w, http.StatusBadRequest, msg)
-					// 			return
-					// 		}
-
-					// 		snName := fmt.Sprintf("mirror-%s-to-%s", object, m.Service)
-					// 		sn := ServiceEn{
-					// 			Name:       snName,
-					// 			Namespace:  namespace,
-					// 			Host:       fmt.Sprintf("mirror-%s-to-%s.ushareit", object, m.Service),
-					// 			Port:       strconv.Itoa(m.TargetPort),
-					// 			Address:    podIps,
-					// 			MirrorName: fmt.Sprintf("mirror-%s-%s", object, namespace),
-					// 		}
-
-					// 		t, err := template.New("test").Funcs(tplFuncMap).Parse(serviceEntryTpl)
-					// 		if err != nil {
-					// 			log.Infof("template:[%s]", err)
-					// 			handleErrorResponse(w, err)
-					// 			return
-					// 		}
-					// 		var buf bytes.Buffer
-					// 		err = t.Execute(&buf, sn)
-					// 		if err != nil {
-					// 			log.Errorf("err:[%s]", err)
-					// 			handleErrorResponse(w, err)
-					// 			return
-					// 		}
-
-					// 		body = buf.Bytes()
-					// 		log.Infof("body-111:[%s]", string(body))
-					// 		business.IstioConfig.DeleteIstioConfigDetail(api, namespace, kubernetes.ServiceEntries, snName)
-					// 		_, err = business.IstioConfig.CreateIstioConfigDetail(api, namespace, kubernetes.ServiceEntries, body)
-					// 		if err != nil {
-					// 			handleErrorResponse(w, err)
-					// 			return
-					// 		}
-					// 		appFound = true
-					// 		break
-					// 	}
-					// }
-
-					// if !appFound {
-					// 	RespondWithError(w, http.StatusBadRequest, "App not found")
-					// 	return
-
-					// }
-
-					//Request URL: https://scmp.ushareit.me/hulk/api/v2/apps/sprs/deployment/store-house/pods
-					// podUrl := fmt.Sprintf("http://scmp-hulk.sgt:80/hulk/api/v2/apps/%s/%s/%s/pods", m.Namespace, appType, m.Service)
-
-					mConfig.Array = append(mConfig.Array, Service{
-						MirrorCluster: fmt.Sprintf("outbound|%d||mirror-%s-to-%s.ushareit", m.TargetPort, object, m.Service),
-						Numerator:     strconv.FormatInt(int64(m.MirrorPercentage*10000), 10),
-						ServiceInfo:   fmt.Sprintf("%d|%s|%s|%s", m.TargetPort, m.Service, m.Namespace, m.Cluster),
-					})
-
-					clusterFound = true
-					break
-				}
-			}
-
-			if !clusterFound {
-				log.Errorf("hulkCluster not found:[%s][%+v]", m.Cluster, HulkCluster.Result)
-				RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("hulkCluster not found:%s", m.Cluster))
-				return
-			}
-
-		}
-
-		t, err := template.New("test").Funcs(tplFuncMap).Parse(mirrorTpl)
-		if err != nil {
-			log.Infof("template:[%s]", err)
-			handleErrorResponse(w, err)
-			return
-		}
-		var buf bytes.Buffer
-		err = t.Execute(&buf, mConfig)
-		if err != nil {
-			log.Infof("template Execute:[%s]", err)
-			handleErrorResponse(w, err)
-			return
-		}
-
-		body = buf.Bytes()
-		log.Infof("mirror filter:[%s]", string(body))
-		object = fmt.Sprintf("filter-mirror-%s", dstRule.Metadata.Name)
-
-	}
 	if networkType == TYPE_RATELIMIT {
 		objectType = kubernetes.EnvoyFilters
 		dstRule := &models.DestinationRuleM{}
@@ -1279,8 +1369,8 @@ func IstioNetworkConfigUpdate(w http.ResponseWriter, r *http.Request) {
 			TokensPerFill int    `json:tokens_per_fill`
 			FillInterval  string `json:fill_interval`
 		}
-		trafic := dstRule.Spec.TrafficPolicy.(map[string]interface{})
-		li := trafic["rateLimit"].(map[string]interface{})
+		// trafic := dstRule.Spec.TrafficPolicy
+		li := dstRule.Spec.TrafficPolicy.RateLimit
 		object = fmt.Sprintf("%s%s", reteLimitEnvoyFilterPrefix, dstRule.Metadata.Name)
 		p := limit{
 			Name:      object,
@@ -1351,6 +1441,18 @@ func IstioNetworkConfigUpdate(w http.ResponseWriter, r *http.Request) {
 			handleErrorResponse(w, err)
 			return
 		}
+
+		if networkType == TYPE_OUTLIERDETECTION {
+			if v.Spec.TrafficPolicy.OutlierDetection != nil {
+				outli := v.Spec.TrafficPolicy.OutlierDetection
+				if !isDuration(*outli.BaseEjectionTime) || !isDuration(*outli.Interval) {
+					RespondWithError(w, http.StatusBadRequest, fmt.Sprintf("时间格式错误:%s,%s", *outli.BaseEjectionTime, *outli.Interval))
+					return
+
+				}
+			}
+		}
+
 	}
 
 	_, err = business.IstioConfig.GetIstioConfigDetails(namespace, objectType, object)

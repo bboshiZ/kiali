@@ -447,6 +447,18 @@ func BuildNodeTrafficMap(o graph.TelemetryOptions, client *prometheus.Client, gl
 	return trafficMap
 }
 
+func GetQueryResut(query string, client *prometheus.Client) float64 {
+	inVector := promQuery(query, time.Unix(time.Now().Unix(), 0), client.API())
+	for _, s := range inVector {
+		// m := s.Metric
+		if s.Value > 0 {
+			return float64(s.Value)
+		}
+
+	}
+	return 0
+}
+
 // buildNodeTrafficMap returns a map of all nodes requesting or requested by the target node (key=id). Node graphs
 // are from the perspective of the node, as such we use destination telemetry for incoming traffic and source telemetry
 // for outgoing traffic.

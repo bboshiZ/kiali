@@ -202,7 +202,7 @@ func NewRoutes() (r *Routes) {
 		},
 
 		{
-			"IstioNetworkConfig",
+			"IstioNetworkConfigUpdate",
 			"POST",
 			"/api/namespaces/{namespace}/{object_type}/{network_type}/{object}",
 			// "/api/namespaces/sample/destinationrules/outlier-detection/hellworld",
@@ -212,7 +212,7 @@ func NewRoutes() (r *Routes) {
 		},
 
 		{
-			"IstioNetworkConfig",
+			"IstioNetworkConfigDelete",
 			"DELETE",
 			"/api/namespaces/{namespace}/{object_type}/{network_type}/{object}",
 			// "/api/namespaces/sample/destinationrules/outlier-detection/hellworld",
