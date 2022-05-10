@@ -20,7 +20,7 @@ type HulkCluster struct {
 }
 
 func GetHulkClusters() (cluster HulkCluster, err error) {
-	hulkUrl := "http://scmp-hulk.sgt:80/hulk/clusters"
+	hulkUrl := "http://scmp-hulk.sgt:80/hulk/clusters?limit=1000"
 	resp, err := http.Get(hulkUrl)
 	if err != nil {
 		log.Error(err)

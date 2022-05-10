@@ -831,7 +831,7 @@ const (
 	"spec": {
 		"workloadSelector": {
 		"labels": {
-			"app": "{{.Name}}"
+			"app": "{{.WorkloadSelector}}"
 		}
 		},
 		"configPatches": [
@@ -1352,17 +1352,19 @@ func IstioNetworkConfigUpdateRateLimit(w http.ResponseWriter, r *http.Request, p
 	}
 
 	type limit struct {
-		Name          string `json:"name"`
-		Namespace     string `json:"namespace"`
-		MaxTokens     int    `json:"max_tokens"`
-		TokensPerFill int    `json:"tokens_per_fill"`
-		FillInterval  string `json:"fill_interval"`
+		Name             string `json:"name"`
+		WorkloadSelector string `json:"WorkloadSelector"`
+		Namespace        string `json:"namespace"`
+		MaxTokens        int    `json:"max_tokens"`
+		TokensPerFill    int    `json:"tokens_per_fill"`
+		FillInterval     string `json:"fill_interval"`
 	}
 	li := dstRule.Spec.TrafficPolicy.RateLimit
 	object := fmt.Sprintf("%s%s", reteLimitEnvoyFilterPrefix, dstRule.Metadata.Name)
 	p := limit{
-		Name:      object,
-		Namespace: dstRule.Metadata.Namespace,
+		WorkloadSelector: dstRule.Metadata.Name,
+		Name:             object,
+		Namespace:        dstRule.Metadata.Namespace,
 	}
 
 	if fill, ok := li["fillInterval"].(string); ok {

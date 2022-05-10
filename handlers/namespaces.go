@@ -15,7 +15,7 @@ import (
 func MeshClusterList(w http.ResponseWriter, r *http.Request) {
 	result := map[string][]models.ClusterM{}
 
-	hulkUrl := "http://scmp-hulk.sgt:80/hulk/clusters"
+	hulkUrl := "http://scmp-hulk.sgt:80/hulk/clusters?limit=1000"
 	resp, err := http.Get(hulkUrl)
 	if err != nil {
 		log.Error(err)
