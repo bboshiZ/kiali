@@ -625,7 +625,7 @@ func (aHandler AuthenticationHandler) Handle(next http.Handler) http.Handler {
 		case config.AuthStrategyToken:
 			statusCode, token = checkTokenSession(w, r)
 			authInfo = &api.AuthInfo{Token: token}
-		case config.AuthStrategyAnonymous:
+		case config.AuthStrategyAnonymous: // 默认这里
 			log.Tracef("Access to the server endpoint is not secured with credentials - letting request come in. Url: [%s]", r.URL.String())
 			token = aHandler.saToken
 			authInfo = &api.AuthInfo{Token: token}

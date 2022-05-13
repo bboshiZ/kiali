@@ -325,6 +325,7 @@ func IstioConfigDetails(w http.ResponseWriter, r *http.Request) {
 				Tcp      interface{} `json:"tcp,omitempty"`
 				Tls      interface{} `json:"tls,omitempty"`
 				ExportTo interface{} `json:"exportTo,omitempty"`
+				QPS      float64     `json:"qps"`
 			}
 
 			istioConfigDetails.VirtualService = &models.VirtualService{
@@ -341,6 +342,28 @@ func IstioConfigDetails(w http.ResponseWriter, r *http.Request) {
 					},
 				},
 			}
+
+		}
+
+		hCluster, err := GetHulkClusters()
+		// log.Errorf("GetHulkClusters-xxxx:[%+v]", err)
+		// log.Errorf("GetHulkClusters-xxxx:[%+v]", hCluster)
+		if err == nil {
+			var svcClusterName string
+			for _, hc := range hCluster.Result {
+				if sourceCid == hc.Id {
+					svcClusterName = hc.Name
+					break
+				}
+			}
+			query := fmt.Sprintf(`sum(rate(istio_requests_total{reporter="destination",destination_cluster="%s",destination_service_namespace="%s",destination_app="%s"}[1m]))`, svcClusterName, namespace, object)
+			currentQPS, _ := api.GetMirrorQps(business, query)
+			if currentQPS <= 0 {
+				query := fmt.Sprintf(`sum(rate(istio_requests_total{reporter="source",destination_cluster="%s",destination_service_namespace="%s",destination_service_name="%s"}[1m]))`, svcClusterName, namespace, object)
+				currentQPS, _ = api.GetMirrorQps(business, query)
+			}
+
+			istioConfigDetails.VirtualService.Spec.QPS, _ = decimal.NewFromFloat(currentQPS).Round(2).Float64()
 		}
 
 		// mirrorFilter := fmt.Sprintf("filter-mirror-%s", object)
@@ -360,30 +383,35 @@ func IstioConfigDetails(w http.ResponseWriter, r *http.Request) {
 						if httpList, ok := istioConfigDetails.VirtualService.Spec.Http.([]interface{}); ok {
 							if len(httpList) > 0 {
 								vsHttp := httpList[0].(map[string]interface{})
-								hCluster, err := GetHulkClusters()
-								if err != nil {
-									log.Errorf("GetHulkClusters err:[%s]", err)
-									RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
-									return
-								}
+								// hCluster, err := GetHulkClusters()
+								// if err != nil {
+								// 	log.Errorf("GetHulkClusters err:[%s]", err)
+								// 	RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
+								// 	return
+								// }
 
-								var svcClusterName string
-								for _, hc := range hCluster.Result {
-									if sourceCid == hc.Id {
-										svcClusterName = hc.Name
-										break
-									}
-								}
+								// var svcClusterName string
+								// for _, hc := range hCluster.Result {
+								// 	if sourceCid == hc.Id {
+								// 		svcClusterName = hc.Name
+								// 		break
+								// 	}
+								// }
 
-								query := fmt.Sprintf(`sum(rate(istio_requests_total{reporter="destination",destination_cluster="%s",destination_service_namespace="%s",destination_app="%s"}[1m]))`, svcClusterName, namespace, object)
+								// query := fmt.Sprintf(`sum(rate(istio_requests_total{reporter="destination",destination_cluster="%s",destination_service_namespace="%s",destination_app="%s"}[1m]))`, svcClusterName, namespace, object)
 
-								// query := fmt.Sprintf(`sum(rate(istio_requests_total{reporter="source",destination_cluster="%s",destination_workload_namespace="%s",destination_workload="%s"}[1m]))`, svcClusterName, namespace, object)
+								// // query := fmt.Sprintf(`sum(rate(istio_requests_total{reporter="source",destination_cluster="%s",destination_workload_namespace="%s",destination_workload="%s"}[1m]))`, svcClusterName, namespace, object)
 
-								// query := fmt.Sprintf(`sum(rate(istio_requests_total{reporter="source",source_cluster="%s",source_workload_namespace="%s",source_workload="%s",destination_cluster="%s",destination_workload_namespace="%s",destination_workload="%s"}[1m]))`, sourceClusterName, namespace, object, s[3], s[2], s[1])
-								currentQPS, err := api.GetMirrorQps(business, query)
-								if err != nil {
-									log.Errorf("err:GetMirrorQps:[%+v]", err)
-								}
+								// // query := fmt.Sprintf(`sum(rate(istio_requests_total{reporter="source",source_cluster="%s",source_workload_namespace="%s",source_workload="%s",destination_cluster="%s",destination_workload_namespace="%s",destination_workload="%s"}[1m]))`, sourceClusterName, namespace, object, s[3], s[2], s[1])
+								// currentQPS, err := api.GetMirrorQps(business, query)
+								// if err != nil {
+								// 	log.Errorf("err:GetMirrorQps:[%+v]", err)
+								// }
+
+								// if currentQPS <= 0 {
+								// 	query := fmt.Sprintf(`sum(rate(istio_requests_total{reporter="source",destination_cluster="%s",destination_service_namespace="%s",destination_service_name="%s"}[1m]))`, svcClusterName, namespace, object)
+								// 	currentQPS, _ = api.GetMirrorQps(business, query)
+								// }
 
 								mirrorConfig := []interface{}{}
 								cid := 0
@@ -422,8 +450,8 @@ func IstioConfigDetails(w http.ResponseWriter, r *http.Request) {
 
 									}
 
-									qps := float64(currentQPS) * (float64(mirror.RuntimeFraction.DefaultValue.Numerator) / 10000) / 100
-									qps, _ = decimal.NewFromFloat(qps).Round(2).Float64()
+									// qps := float64(currentQPS) * (float64(mirror.RuntimeFraction.DefaultValue.Numerator) / 10000) / 100
+									// qps, _ = decimal.NewFromFloat(qps).Round(2).Float64()
 									mirrorConfig = append(mirrorConfig, map[string]interface{}{
 										"clusterType":      k8sClusterType,
 										"cluster":          s[3],
@@ -432,7 +460,7 @@ func IstioConfigDetails(w http.ResponseWriter, r *http.Request) {
 										"service":          s[1],
 										"targetPort":       tPort,
 										"mirrorPercentage": float64(mirror.RuntimeFraction.DefaultValue.Numerator) / 10000,
-										"currentQPS":       qps,
+										// "currentQPS":       qps,
 										// "currentQPS":       float64(currentQPS) * (float64(mirror.RuntimeFraction.DefaultValue.Numerator) / 10000) / 100,
 									})
 
@@ -663,8 +691,8 @@ const (
 		"ports": [
 		{
 			"number": {{.Port}},
-			"name": "http",
-			"protocol": "HTTP"
+			"name": "{{.PortName}}",
+			"protocol": "{{.AppProtocol}}"
 		}
 		],
 		"resolution": "STATIC",
@@ -718,6 +746,57 @@ const (
 	// 	}
 
 	// `
+
+	mirrorTplClientSideMultiHost = `
+	{
+		"apiVersion": "networking.istio.io/v1alpha3",
+		"kind": "EnvoyFilter",
+		"metadata": {
+			"name": "{{.Name}}",
+			"namespace": "istio-system"
+		},
+		"spec": {
+			"configPatches": [
+			{{ $hlength := len .HostArray }}
+			{{range $hindex, $helement := .HostArray}}
+			{
+				"applyTo": "HTTP_ROUTE",
+				"match": {
+				"routeConfiguration": {
+					"vhost": {
+					"name": "{{.Host}}"
+					}
+				}
+				},
+				"patch": {
+				"operation": "MERGE",
+				"value": {
+					"route": {
+					"request_mirror_policies": [
+						{{ $length := len .Array }}
+						{{range $index, $element := .Array}}
+						{
+						"cluster": "{{.MirrorCluster}}",
+						"service_info": "{{.ServiceInfo}}",
+						"runtime_fraction": {
+							"default_value": {
+							"numerator": {{.Numerator}},
+							"denominator": "MILLION"
+							}
+						}
+						}{{ $index := inc $index }}{{ if lt $index $length }},{{ end }}
+						{{end}}
+					]
+					}
+				}
+				}
+			}{{ $hindex := inc $hindex }}{{ if lt $hindex $hlength }},{{ end }}
+			{{end}}
+			]
+		}
+		}
+		
+	`
 
 	mirrorTplClientSide = `
 {
@@ -1107,10 +1186,11 @@ func IstioNetworkConfigUpdateMirror(w http.ResponseWriter, r *http.Request, para
 		ServiceInfo   string `json:"serviceInfo"`
 	}
 	type Mirror struct {
-		Name             string `json:"name"`
-		Namespace        string `json:"namespace"`
-		Array            []Service
-		Host             string `json:"host"`
+		Name      string `json:"name"`
+		Namespace string `json:"namespace"`
+		Array     []Service
+		Host      string `json:"host"`
+		// HostArray        []string `json:"HostArray"`
 		WorkloadSelector string `json:workloadSelector`
 		// MirrorCluster string `json:"mirror_cluster"`
 		// Numerator     string `json:"numerator"`
@@ -1131,9 +1211,20 @@ func IstioNetworkConfigUpdateMirror(w http.ResponseWriter, r *http.Request, para
 	}
 
 	targerService, err := business.Svc.GetService(cName, dstRule.Metadata.Namespace, dstRule.Metadata.Name, defaultHealthRateInterval, util.Clock.Now())
+	// for _, w := range targerService.Workloads {
+	// 	log.Errorf("GetService xxxxxx:[%+v]", w)
+
+	// }
+
+	// log.Errorf("GetService xxxxxx:[%+v]", targerService)
+	// log.Errorf("GetService xxxxxx:[%+s]", err)
 	if err != nil {
 		log.Infof("err:[%s]", err)
 		handleErrorResponse(w, err)
+		return
+	}
+	if len(targerService.Service.Ports) < 1 {
+		RespondWithError(w, http.StatusBadRequest, "服务端口为空")
 		return
 	}
 
@@ -1154,6 +1245,10 @@ func IstioNetworkConfigUpdateMirror(w http.ResponseWriter, r *http.Request, para
 	business.IstioConfig.DeleteIstioConfigDetail(api, ISTIO_SYSTEM_NAMESPACE, kubernetes.EnvoyFilters, mConfig.Name)
 	business.IstioConfig.DeleteIstioConfigDetail(api, namespace, kubernetes.EnvoyFilters, mConfig.Name)
 
+	appProtocol := "HTTP"
+	if strings.Contains(targerService.Service.Ports[0].Name, "grpc") || strings.Contains(targerService.Service.Ports[0].Name, "GRPC") {
+		appProtocol = "GRPC"
+	}
 	var mirrorTpl string
 	if targerService.IstioSidecar {
 		mirrorTpl = mirrorTplServerSide
@@ -1214,6 +1309,8 @@ func IstioNetworkConfigUpdateMirror(w http.ResponseWriter, r *http.Request, para
 					Host        string   `json:"host"`
 					Port        string   `json:"port"`
 					MirrorLabel string   `json:"mirrorLabel"`
+					PortName    string   `json:"PortName"`
+					AppProtocol string   `json:"AppProtocol"`
 					// MirrorCluster string `json:"mirror_cluster"`
 					// Numerator     string `json:"numerator"`
 				}
@@ -1227,6 +1324,8 @@ func IstioNetworkConfigUpdateMirror(w http.ResponseWriter, r *http.Request, para
 					Host:        snHost,
 					Port:        strconv.Itoa(m.TargetPort),
 					Address:     podIps,
+					PortName:    targerService.Service.Ports[0].Name,
+					AppProtocol: appProtocol,
 					MirrorLabel: fmt.Sprintf("mirror-%s-%s", object, namespace),
 				}
 
@@ -1276,23 +1375,71 @@ func IstioNetworkConfigUpdateMirror(w http.ResponseWriter, r *http.Request, para
 		}
 	}
 
-	t, err := template.New("test").Funcs(tplFuncMap).Parse(mirrorTpl)
-	if err != nil {
-		log.Infof("template:[%s]", err)
-		handleErrorResponse(w, err)
-		return
-	}
-	var buf bytes.Buffer
-	err = t.Execute(&buf, mConfig)
-	if err != nil {
-		log.Infof("template Execute:[%s]", err)
-		handleErrorResponse(w, err)
-		return
+	// mirrorConfigs := []Mirror{mConfig}
+	var multiHost bool
+	if !targerService.IstioSidecar {
+		if len(targerService.VirtualServices.Items) > 0 {
+			vs := targerService.VirtualServices.Items[0]
+			if len(vs.Spec.Hosts) > 0 {
+				multiHost = true
+				type A struct {
+					Name      string `json:"name"`
+					HostArray []Mirror
+				}
+				mirrorTpl = mirrorTplClientSideMultiHost
+
+				var mirrorConfigs A
+				mirrorConfigs.Name = mConfig.Name
+				mirrorConfigs.HostArray = []Mirror{mConfig}
+				for _, h := range vs.Spec.Hosts {
+					if h == object || h == object+"."+namespace+".svc.cluster.local" {
+						continue
+					}
+					hm := mConfig
+					hm.Host = h + ":80"
+					mirrorConfigs.HostArray = append(mirrorConfigs.HostArray, hm)
+				}
+
+				t, err := template.New("test").Funcs(tplFuncMap).Parse(mirrorTpl)
+				if err != nil {
+					log.Infof("template:[%s]", err)
+					handleErrorResponse(w, err)
+					return
+				}
+				var buf bytes.Buffer
+				err = t.Execute(&buf, mirrorConfigs)
+				if err != nil {
+					log.Infof("template Execute:[%s]", err)
+					handleErrorResponse(w, err)
+					return
+				}
+
+				body = buf.Bytes()
+				log.Infof("mirror filter:[%s]", string(body))
+				object = geneMirrorName(object, namespace)
+			}
+		}
 	}
 
-	body = buf.Bytes()
-	log.Infof("mirror filter:[%s]", string(body))
-	object = geneMirrorName(object, namespace)
+	if !multiHost {
+		t, err := template.New("test").Funcs(tplFuncMap).Parse(mirrorTpl)
+		if err != nil {
+			log.Infof("template:[%s]", err)
+			handleErrorResponse(w, err)
+			return
+		}
+		var buf bytes.Buffer
+		err = t.Execute(&buf, mConfig)
+		if err != nil {
+			log.Infof("template Execute:[%s]", err)
+			handleErrorResponse(w, err)
+			return
+		}
+
+		body = buf.Bytes()
+		log.Infof("mirror filter:[%s]", string(body))
+		object = geneMirrorName(object, namespace)
+	}
 
 	_, err = business.IstioConfig.GetIstioConfigDetails(mConfig.Namespace, objectType, object)
 	if err == nil {

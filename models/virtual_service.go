@@ -18,6 +18,7 @@ type VirtualService struct {
 		Tcp      interface{} `json:"tcp,omitempty"`
 		Tls      interface{} `json:"tls,omitempty"`
 		ExportTo interface{} `json:"exportTo,omitempty"`
+		QPS      float64     `json:"qps"`
 	} `json:"spec"`
 }
 

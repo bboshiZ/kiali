@@ -141,7 +141,7 @@ func ServiceList(w http.ResponseWriter, r *http.Request) {
 	if len(searchName) > 0 {
 		tmp := []models.ServiceOverview{}
 		for i := range serviceList.Services {
-			if strings.HasPrefix(serviceList.Services[i].Name, searchName) {
+			if strings.Contains(serviceList.Services[i].Name, searchName) {
 				tmp = append(tmp, serviceList.Services[i])
 			}
 		}

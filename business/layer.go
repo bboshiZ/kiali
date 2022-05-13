@@ -1,6 +1,7 @@
 package business
 
 import (
+	"crypto/md5"
 	"sync"
 
 	"k8s.io/client-go/tools/clientcmd/api"
@@ -36,6 +37,8 @@ type Layer struct {
 
 // Global clientfactory and prometheus clients.
 var clientFactory kubernetes.ClientFactory
+var clientFactoryMap = map[string]kubernetes.ClientFactory{}
+
 var prometheusClient prometheus.ClientInterface
 var once sync.Once
 var kialiCache cache.KialiCache
@@ -93,6 +96,77 @@ func IsResourceCached(cluster, namespace string, resource string) bool {
 	return ok
 }
 
+func getTokenHash(authInfo *api.AuthInfo) string {
+	tokenData := authInfo.Token
+
+	if authInfo.Impersonate != "" {
+		tokenData += authInfo.Impersonate
+	}
+
+	if authInfo.ImpersonateGroups != nil {
+		for _, group := range authInfo.ImpersonateGroups {
+			tokenData += group
+		}
+	}
+
+	if authInfo.ImpersonateUserExtra != nil {
+		for key, element := range authInfo.ImpersonateUserExtra {
+			for _, userExtra := range element {
+				tokenData += key + userExtra
+			}
+		}
+
+	}
+
+	h := md5.New()
+	_, err := h.Write([]byte(tokenData))
+	if err != nil {
+		// errcheck linter want us to check for the error returned by h.Write.
+		// However, docs of md5 say that this Writer never returns an error.
+		// See: https://golang.org/pkg/hash/#Hash
+		// So, let's check the error, and panic. Per the docs, this panic should
+		// never be reached.
+		panic("md5.Write returned error.")
+	}
+	return string(h.Sum(nil))
+
+}
+
+// Get the business.Layer
+func GetByCliuster(cluster string) (*Layer, error) {
+
+	if len(clientFactoryMap) == 0 {
+		userClient, err := kubernetes.GetClientFactory()
+		if err != nil {
+			return nil, err
+		}
+		clientFactory = userClient
+
+	}
+
+	// Creates a new k8s client based on the current users token
+	k8s, err := clientFactory.GetClient(authInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	// Use an existing Prometheus client if it exists, otherwise create and use in the future
+	if prometheusClient == nil {
+		prom, err := prometheus.NewClient()
+		if err != nil {
+			return nil, err
+		}
+		prometheusClient = prom
+	}
+
+	// Create Jaeger client
+	jaegerLoader := func() (jaeger.ClientInterface, error) {
+		return jaeger.NewClient(authInfo.Token)
+	}
+
+	return NewWithBackends(k8s, prometheusClient, jaegerLoader), nil
+}
+
 // Get the business.Layer
 func Get(authInfo *api.AuthInfo) (*Layer, error) {
 	// Kiali Cache will be initialized once at first use of Business layer
@@ -105,6 +179,18 @@ func Get(authInfo *api.AuthInfo) (*Layer, error) {
 			return nil, err
 		}
 		clientFactory = userClient
+
+		// tokenHash := getTokenHash(authInfo)
+
+	}
+
+	if len(clientFactoryMap) == 0 {
+		userClient, err := kubernetes.GetClientFactory()
+		if err != nil {
+			return nil, err
+		}
+		clientFactory = userClient
+
 	}
 
 	// Creates a new k8s client based on the current users token

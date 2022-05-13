@@ -358,7 +358,7 @@ func (workload *Workload) SetServices(svcs []core_v1.Service) {
 func (workload *Workload) HasIstioSidecar() bool {
 	// if no pods we can't prove there is no sidecar, so return true
 	if len(workload.Pods) == 0 {
-		return true
+		return false
 	}
 	// All pods in a deployment should be the same
 	if workload.Type == "Deployment" {

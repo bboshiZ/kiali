@@ -1161,7 +1161,7 @@ func fetchWorkload(layer *Layer, cluster, namespace string, workloadName string,
 			// pods, err = kialiCache.GetPods(namespace, "")
 		} else {
 			// pods, err = layer.k8s.GetPods(namespace, "")
-			pods, err = remoteIstioClusters[defaultClusterID].K8s.GetPods(namespace, "")
+			pods, err = remoteIstioClusters[cluster].K8s.GetPods(namespace, "")
 		}
 		if err != nil {
 			log.Errorf("Error fetching Pods per namespace %s: %s", namespace, err)
@@ -1184,7 +1184,7 @@ func fetchWorkload(layer *Layer, cluster, namespace string, workloadName string,
 			// dep, err = kialiCache.GetDeployment(namespace, workloadName)
 		} else {
 			// dep, err = layer.k8s.GetDeployment(namespace, workloadName)
-			dep, err = remoteIstioClusters[defaultClusterID].K8s.GetDeployment(namespace, workloadName)
+			dep, err = remoteIstioClusters[cluster].K8s.GetDeployment(namespace, workloadName)
 		}
 
 		if err != nil {
@@ -1212,7 +1212,7 @@ func fetchWorkload(layer *Layer, cluster, namespace string, workloadName string,
 			// repset, err = kialiCache.GetReplicaSets(namespace)
 		} else {
 			// repset, err = layer.k8s.GetReplicaSets(namespace)
-			repset, err = remoteIstioClusters[defaultClusterID].K8s.GetReplicaSets(namespace)
+			repset, err = remoteIstioClusters[cluster].K8s.GetReplicaSets(namespace)
 
 		}
 		if err != nil {
@@ -1230,7 +1230,7 @@ func fetchWorkload(layer *Layer, cluster, namespace string, workloadName string,
 		var err error
 		if isWorkloadIncluded(kubernetes.ReplicationControllerType) {
 			// repcon, err = layer.k8s.GetReplicationControllers(namespace)
-			repcon, err = remoteIstioClusters[defaultClusterID].K8s.GetReplicationControllers(namespace)
+			repcon, err = remoteIstioClusters[cluster].K8s.GetReplicationControllers(namespace)
 
 			if err != nil {
 				log.Errorf("Error fetching GetReplicationControllers per namespace %s: %s", namespace, err)
@@ -1268,7 +1268,7 @@ func fetchWorkload(layer *Layer, cluster, namespace string, workloadName string,
 				// fulset, err = kialiCache.GetStatefulSet(namespace, workloadName)
 			} else {
 				// fulset, err = layer.k8s.GetStatefulSet(namespace, workloadName)
-				fulset, err = remoteIstioClusters[defaultClusterID].K8s.GetStatefulSet(namespace, workloadName)
+				fulset, err = remoteIstioClusters[cluster].K8s.GetStatefulSet(namespace, workloadName)
 
 			}
 			if err != nil {

@@ -88,6 +88,10 @@ func getBusiness(r *http.Request) (*business.Layer, error) {
 	return business.Get(authInfo)
 }
 
+func getBusinessByCluster(cluster string) (*business.Layer, error) {
+	return business.Get(custer)
+}
+
 func SlicePage(page, pageSize, nums int) (sliceStart, sliceEnd, pageCount int) {
 	if page < 0 {
 		page = 1
