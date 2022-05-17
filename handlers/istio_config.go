@@ -47,7 +47,9 @@ func LocalityList(w http.ResponseWriter, r *http.Request) {
 	// Get business layer
 
 	meshCluster := business.ClusterMap
-	business, err := getBusiness(r)
+	// business, err := getBusiness(r)
+	business, err := getBusinessByCluster(r)
+
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
 		return
@@ -290,7 +292,9 @@ func IstioConfigDetails(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get business layer
-	business, err := getBusiness(r)
+	// business, err := getBusiness(r)
+	business, err := getBusinessByCluster(r)
+
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
 		return
@@ -557,7 +561,9 @@ func IstioConfigDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get business layer
-	business, err := getBusiness(r)
+	// business, err := getBusiness(r)
+	business, err := getBusinessByCluster(r)
+
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
 		return
@@ -585,7 +591,9 @@ func IstioConfigUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get business layer
-	business, err := getBusiness(r)
+	// business, err := getBusiness(r)
+	business, err := getBusinessByCluster(r)
+
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
 		return
@@ -998,7 +1006,9 @@ func IstioNetworkConfigDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	business, err := getBusiness(r)
+	// business, err := getBusiness(r)
+	business, err := getBusinessByCluster(r)
+
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
 		return
@@ -1146,7 +1156,7 @@ func IstioNetworkConfigUpdateMirror(w http.ResponseWriter, r *http.Request, para
 	sourceCid, _ := strconv.Atoi(cidStr)
 	api := business.GetIstioAPI(objectType)
 
-	business, err := getBusiness(r)
+	business, err := getBusinessByCluster(r)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
 		return
@@ -1207,9 +1217,11 @@ func IstioNetworkConfigUpdateMirror(w http.ResponseWriter, r *http.Request, para
 	for _, c := range HulkCluster.Result {
 		if c.Id == sourceCid {
 			cName = c.Name
+			break
 		}
 	}
 
+	cName = strings.ToLower(cName)
 	targerService, err := business.Svc.GetService(cName, dstRule.Metadata.Namespace, dstRule.Metadata.Name, defaultHealthRateInterval, util.Clock.Now())
 	// for _, w := range targerService.Workloads {
 	// 	log.Errorf("GetService xxxxxx:[%+v]", w)
@@ -1263,6 +1275,7 @@ func IstioNetworkConfigUpdateMirror(w http.ResponseWriter, r *http.Request, para
 
 	var inMesh bool
 	for _, m := range dstRule.Spec.Http[0].Mirror {
+		m.Cluster = strings.ToLower(m.Cluster)
 		inMesh = false
 		for cName := range clusterMap {
 			if m.Cluster == "shareit-cce-test" {
@@ -1316,7 +1329,7 @@ func IstioNetworkConfigUpdateMirror(w http.ResponseWriter, r *http.Request, para
 				}
 
 				// snName := fmt.Sprintf("mirror-%s-to-%s", object, m.Service)
-				snName := fmt.Sprintf("mirror-%s-%s-to-%s-%s-%s", object, namespace, m.Service, m.Namespace, m.Cluster)
+				snName := fmt.Sprintf("mirror-%s-%s-to-%s-%s", object, namespace, m.Service, m.Namespace)
 				snHost := snName + ".ushareit"
 				sn := ServiceEn{
 					Name: snName,
@@ -1478,7 +1491,9 @@ func IstioNetworkConfigUpdateRateLimit(w http.ResponseWriter, r *http.Request, p
 		return
 	}
 
-	business, err := getBusiness(r)
+	// business, err := getBusiness(r)
+	business, err := getBusinessByCluster(r)
+
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
 		return
@@ -1584,7 +1599,9 @@ func IstioNetworkConfigUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	business, err := getBusiness(r)
+	// business, err := getBusiness(r)
+	business, err := getBusinessByCluster(r)
+
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
 		return

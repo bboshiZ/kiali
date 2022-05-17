@@ -2,6 +2,7 @@ package business
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -219,6 +220,8 @@ func (in *SvcService) buildServiceList(namespace models.Namespace, svcs []core_v
 func (in *SvcService) GetService(cluster, namespace, service, interval string, queryTime time.Time) (*models.ServiceDetails, error) {
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
+
+	cluster = strings.ToLower(cluster)
 	if _, err := in.businessLayer.Namespace.GetNamespace(namespace); err != nil {
 		return nil, err
 	}
@@ -255,7 +258,7 @@ func (in *SvcService) GetService(cluster, namespace, service, interval string, q
 				pods, err2 = kialiCache.GetPods(namespace, labelsSelector)
 			} else {
 				// pods, err2 = in.k8s.GetPods(namespace, labelsSelector)
-				pods, err2 = remoteIstioClusters[defaultClusterID].K8s.GetPods(namespace, labelsSelector)
+				pods, err2 = remoteIstioClusters[cluster].K8s.GetPods(namespace, labelsSelector)
 			}
 			if err2 != nil {
 				errChan <- err2
@@ -402,6 +405,10 @@ func (in *SvcService) getService(cluster, namespace, service string) (svc *core_
 	// 	// svc, err = in.k8s.GetService(namespace, service)
 	// 	svc, err = remoteIstioClusters[defaultClusterID].K8s.GetService(namespace, service)
 	// }
+
+	fmt.Println("xxxxx1-remoteIstioClusters:", remoteIstioClusters)
+	fmt.Println("xxxxx2-remoteIstioClusters:", cluster)
+
 	svc, err = remoteIstioClusters[cluster].K8s.GetService(namespace, service)
 	return svc, err
 }
@@ -434,6 +441,9 @@ func (in *SvcService) getServiceDefinition(cluster, namespace, service string) (
 			}
 		} else {
 			// eps, err2 = in.k8s.GetEndpoints(namespace, service)
+			fmt.Println("xxxxx-remoteIstioClusters:", remoteIstioClusters)
+			fmt.Println("xxxxx-remoteIstioClusters:", cluster)
+
 			eps, err2 = remoteIstioClusters[cluster].K8s.GetEndpoints(namespace, service)
 
 		}

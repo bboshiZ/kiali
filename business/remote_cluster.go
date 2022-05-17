@@ -6,7 +6,6 @@ import (
 
 	"github.com/kiali/kiali/config"
 	"github.com/kiali/kiali/kubernetes"
-	"github.com/kiali/kiali/kubernetes/cache"
 	"github.com/kiali/kiali/log"
 	"k8s.io/client-go/tools/clientcmd/api"
 )
@@ -36,8 +35,11 @@ type RemoteCluster struct {
 var (
 	remoteIstioClusters = map[string]RemoteCluster{}
 	defaultClusterID    = "shareit-cce-test"
+	secretDataName      = "istio-config-manager"
 	ClusterMap          = map[string]bool{}
 	remoteClusters      []string
+
+	IstioPrimary = map[string]string{}
 )
 
 func InitRemoteCluster() (clusterID string) {
@@ -46,17 +48,16 @@ func InitRemoteCluster() (clusterID string) {
 		log.Errorf("Error GetKialiToken: %v", err)
 		return
 	}
-	// fmt.Printf("saToken:%+v\n", string(saToken))
+	fmt.Printf("saToken:%+v\n", string(saToken))
 	business, err := Get(&api.AuthInfo{Token: saToken})
 	if err != nil {
 		log.Errorf("Error Get business: %v", err)
 		return
 	}
 	in := business.Mesh
-	// business.Mesh.InitRemoteCluster()
 
 	conf := config.Get()
-	secrets, err := in.k8s.GetSecrets(conf.IstioNamespace, "istio/remoteKiali=true")
+	secrets, err := in.k8s.GetSecrets(conf.IstioNamespace, "istio-config-manager=true")
 	if err != nil {
 		log.Errorf("Error GetSecrets: %v", err)
 		return
@@ -68,16 +69,18 @@ func InitRemoteCluster() (clusterID string) {
 		return
 	}
 
-	// clusters := make([]RemoteCluster, 0, len(secrets))
-
-	// Inspect the secret to extract the cluster_id and api_endpoint of each remote cluster.
 	for _, secret := range secrets {
-		clusterName, ok := secret.Annotations["networking.istio.io/cluster"]
+		// log.Errorf("GetSecrets-11111: %+v", secret.Labels)
+		// log.Errorf("GetSecrets-11111: %+v", (secret.Data))
+
+		clusterName, ok := secret.Labels["istio-k8s-cluster"]
 		if !ok {
-			clusterName = DefaultClusterID
+			continue
 		}
 
-		kubeconfigFile, ok := secret.Data[clusterName]
+		kubeconfigFile, ok := secret.Data[secretDataName]
+		// log.Errorf("GetSecrets-22: %+v", string(kubeconfigFile))
+		// log.Errorf("GetSecrets-22: %+v", ok)
 		if !ok {
 			continue
 		}
@@ -90,10 +93,16 @@ func InitRemoteCluster() (clusterID string) {
 			continue
 		}
 
+		IstioPrimary[clusterName] = secret.Labels["istio-primary-cluster"]
+
 		restConfig, restConfigErr := kubernetes.UseRemoteCreds(remoteSecret)
 		if restConfigErr != nil {
 			log.Errorf("Error using remote creds: %v", restConfigErr)
 			continue
+		}
+
+		if _, ok := secret.Labels["istio-primary"]; ok {
+			kubernetes.IstioPrimaryResctConfig[clusterName] = restConfig
 		}
 
 		restConfig.Timeout = 15 * time.Second
@@ -128,21 +137,17 @@ func InitRemoteCluster() (clusterID string) {
 		}
 
 		meshCluster.KialiInstances = in.findRemoteKiali(clusterName, remoteSecret)
+		ClusterMap[clusterName] = true
+		remoteIstioClusters[clusterName] = meshCluster
 
-		remoteC := secret.Annotations["istio/remoteCluster"]
-		defaultClusterID = remoteC
-		clusterID = defaultClusterID
-		ClusterMap[remoteC] = true
-		remoteIstioClusters[remoteC] = meshCluster
-
-		k8sClient, err := kubernetes.NewClientFromConfig(restConfig)
-		if err != nil {
-			log.Errorf("Error NewClientFromConfig: %v", err)
-			continue
-		}
-		cache.RemoteK8S = k8sClient
-		cache.RemoteClusters[remoteC] = k8sClient
-		remoteClusters = append(remoteClusters, remoteC)
+		// k8sClient, err := kubernetes.NewClientFromConfig(restConfig)
+		// if err != nil {
+		// 	log.Errorf("Error NewClientFromConfig: %v", err)
+		// 	continue
+		// }
+		// cache.RemoteK8S = k8sClient
+		// cache.RemoteClusters[remoteC] = k8sClient
+		// remoteClusters = append(remoteClusters, remoteC)
 
 	}
 
@@ -151,6 +156,8 @@ func InitRemoteCluster() (clusterID string) {
 	for k, c := range remoteIstioClusters {
 		fmt.Printf("new remote k8s cluster:%s,%+v\n", k, c)
 	}
+
+	fmt.Printf("new IstioPrimary:%s\n", IstioPrimary)
 
 	return
 }

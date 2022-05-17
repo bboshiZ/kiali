@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"crypto/md5"
+	"fmt"
 	"sync"
 	"time"
 
@@ -14,6 +15,8 @@ import (
 )
 
 var factory *clientFactory
+var factoryMap map[string]*clientFactory
+var IstioPrimaryResctConfig = map[string]*rest.Config{}
 
 // Mutex for when modifying the stored clients
 var mutex = &sync.RWMutex{}
@@ -36,6 +39,53 @@ type clientFactory struct {
 type clientEntry struct {
 	client  ClientInterface
 	created time.Time
+}
+
+// GetClientFactory returns the client factory. Creates a new one if necessary
+func GetClientFactoryMap() (map[string]*clientFactory, error) {
+	if factoryMap == nil {
+		// Get the normal configuration
+		// config, err := ConfigClient()
+		// if err != nil {
+		// 	return nil, err
+		// }
+
+		factoryMap = map[string]*clientFactory{}
+		// fmt.Printf("11111-IstioPrimaryResctConfig:%+v\n", IstioPrimaryResctConfig)
+		for clusterName, config := range IstioPrimaryResctConfig {
+
+			fmt.Printf("11111-GetClientFactoryMap:%+v\n", clusterName)
+
+			// Create a new config based on what was gathered above but don't specify the bearer token to use
+			istioConfig := &rest.Config{
+				Host:            config.Host,
+				TLSClientConfig: config.TLSClientConfig,
+				QPS:             kialiConfig.Get().KubernetesConfig.QPS,
+				Burst:           kialiConfig.Get().KubernetesConfig.Burst,
+			}
+
+			// f, err := getClientFactory(&istioConfig, expirationTime)
+
+			clientEntriesMap := make(map[string]*clientEntry)
+
+			factoryMap[clusterName] = &clientFactory{
+				baseIstioConfig: istioConfig,
+				clientEntries:   clientEntriesMap,
+			}
+
+			// factoryMap[clusterName] = f
+
+			go watchClients(clientEntriesMap, expirationTime)
+
+		}
+
+	}
+
+	fmt.Printf("11111-factoryMap:%+v\n", factoryMap)
+
+	// fmt.Printf("11111-factoryMap:%+v\n", factoryMap)
+
+	return factoryMap, nil
 }
 
 // GetClientFactory returns the client factory. Creates a new one if necessary
@@ -150,6 +200,7 @@ func (cf *clientFactory) GetClient(authInfo *api.AuthInfo) (ClientInterface, err
 func (cf *clientFactory) getClientEntry(authInfo *api.AuthInfo) (*clientEntry, error) {
 	tokenHash := getTokenHash(authInfo)
 	mutex.RLock()
+	// fmt.Printf("2222222-:%+v\n", cf.clientEntries)
 	cEntry, ok := cf.clientEntries[tokenHash]
 	mutex.RUnlock()
 	if ok {

@@ -2,6 +2,8 @@ package business
 
 import (
 	"crypto/md5"
+	"errors"
+	"fmt"
 	"sync"
 
 	"k8s.io/client-go/tools/clientcmd/api"
@@ -133,38 +135,57 @@ func getTokenHash(authInfo *api.AuthInfo) string {
 }
 
 // Get the business.Layer
-func GetByCliuster(cluster string) (*Layer, error) {
+func GetByCluster(cluster string) (*Layer, error) {
 
 	if len(clientFactoryMap) == 0 {
-		userClient, err := kubernetes.GetClientFactory()
+		userClient, err := kubernetes.GetClientFactoryMap()
+		// fmt.Printf("xxxxxx-GetClientFactoryMap:%+v\n", userClient)
+
 		if err != nil {
 			return nil, err
 		}
-		clientFactory = userClient
+		for c, _ := range userClient {
+			clientFactoryMap[c] = userClient[c]
+
+		}
 
 	}
 
-	// Creates a new k8s client based on the current users token
-	k8s, err := clientFactory.GetClient(authInfo)
-	if err != nil {
-		return nil, err
-	}
+	// fmt.Printf("xxxxxx:%+v\n", clientFactoryMap)
+	// fmt.Printf("xxxxxx:%+v\n", kubernetes.IstioPrimaryResctConfig)
+	// fmt.Printf("xxxxxx:%+v\n", cluster)
 
-	// Use an existing Prometheus client if it exists, otherwise create and use in the future
-	if prometheusClient == nil {
-		prom, err := prometheus.NewClient()
+	if clientFac, ok := clientFactoryMap[cluster]; ok {
+		// Creates a new k8s client based on the current users token
+
+		fmt.Printf("xxxxxx-clientFac:%+v\n", clientFac)
+
+		token := kubernetes.IstioPrimaryResctConfig[cluster].BearerToken
+		k8s, err := clientFac.GetClient(&api.AuthInfo{Token: token})
 		if err != nil {
 			return nil, err
 		}
-		prometheusClient = prom
+
+		// Use an existing Prometheus client if it exists, otherwise create and use in the future
+		if prometheusClient == nil {
+			prom, err := prometheus.NewClient()
+			if err != nil {
+				return nil, err
+			}
+			prometheusClient = prom
+		}
+
+		// Create Jaeger client
+		jaegerLoader := func() (jaeger.ClientInterface, error) {
+			return jaeger.NewClient("")
+		}
+
+		return NewWithBackends(k8s, prometheusClient, jaegerLoader), nil
+
+	} else {
+		return nil, errors.New("clientFactory not found")
 	}
 
-	// Create Jaeger client
-	jaegerLoader := func() (jaeger.ClientInterface, error) {
-		return jaeger.NewClient(authInfo.Token)
-	}
-
-	return NewWithBackends(k8s, prometheusClient, jaegerLoader), nil
 }
 
 // Get the business.Layer
@@ -179,20 +200,7 @@ func Get(authInfo *api.AuthInfo) (*Layer, error) {
 			return nil, err
 		}
 		clientFactory = userClient
-
-		// tokenHash := getTokenHash(authInfo)
-
 	}
-
-	if len(clientFactoryMap) == 0 {
-		userClient, err := kubernetes.GetClientFactory()
-		if err != nil {
-			return nil, err
-		}
-		clientFactory = userClient
-
-	}
-
 	// Creates a new k8s client based on the current users token
 	k8s, err := clientFactory.GetClient(authInfo)
 	if err != nil {

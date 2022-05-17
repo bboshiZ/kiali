@@ -27,7 +27,7 @@ func ServiceInject(w http.ResponseWriter, r *http.Request) {
 
 	params := mux.Vars(r)
 	service := params["service"]
-	business, err := getBusiness(r)
+	business, err := getBusinessByCluster(r)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Workloads initialization error: "+err.Error())
 		return
@@ -67,7 +67,7 @@ func ServiceUnInject(w http.ResponseWriter, r *http.Request) {
 	}
 
 	service := params["service"]
-	business, err := getBusiness(r)
+	business, err := getBusinessByCluster(r)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Workloads initialization error: "+err.Error())
 		return
@@ -116,6 +116,7 @@ func ServiceList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cluster := r.URL.Query().Get("cluster")
+	cluster = strings.ToLower(cluster)
 	if _, ok := business.ClusterMap[cluster]; !ok {
 		RespondWithJSON(w, http.StatusOK, resp)
 		return
@@ -125,18 +126,19 @@ func ServiceList(w http.ResponseWriter, r *http.Request) {
 	namespace := params["namespace"]
 
 	// Get business layer
-	business, err := getBusiness(r)
+	business, err := getBusinessByCluster(r)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
 		return
 	}
 
 	// Fetch and build services
-	serviceList, err := business.Svc.GetServiceList(cluster, namespace, true)
+	serviceList, err := business.Svc.GetServiceList(cluster, namespace, false)
 	if err != nil {
 		handleErrorResponse(w, err)
 		return
 	}
+
 	searchName := r.URL.Query().Get("name")
 	if len(searchName) > 0 {
 		tmp := []models.ServiceOverview{}
@@ -217,6 +219,7 @@ func ServiceList(w http.ResponseWriter, r *http.Request) {
 		serviceList.Services[i].IstioConfigStatus = istioConfigStatus
 
 	}
+
 	resp.Data = serviceList
 
 	RespondWithJSON(w, http.StatusOK, resp)
@@ -231,7 +234,8 @@ func ServiceDetails(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get business layer
-	business, err := getBusiness(r)
+	business, err := getBusinessByCluster(r)
+
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
 		return
@@ -288,7 +292,7 @@ func ServiceDetails(w http.ResponseWriter, r *http.Request) {
 
 func ServiceUpdate(w http.ResponseWriter, r *http.Request) {
 	// Get business layer
-	business, err := getBusiness(r)
+	business, err := getBusinessByCluster(r)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
 		return

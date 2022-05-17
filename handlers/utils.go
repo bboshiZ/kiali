@@ -2,8 +2,11 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"k8s.io/client-go/tools/clientcmd/api"
 
@@ -88,8 +91,29 @@ func getBusiness(r *http.Request) (*business.Layer, error) {
 	return business.Get(authInfo)
 }
 
-func getBusinessByCluster(cluster string) (*business.Layer, error) {
-	return business.Get(custer)
+func getBusinessByCluster(r *http.Request) (*business.Layer, error) {
+	idStr := r.Header.Get("cid")
+	cid, _ := strconv.Atoi(idStr)
+
+	hCluster, err := GetHulkClusters()
+	if err != nil {
+		return nil, err
+	}
+	for _, hc := range hCluster.Result {
+		if cid == hc.Id {
+			// svcClusterName = hc.Name
+			cName := strings.ToLower(hc.Name)
+			fmt.Println("xxxxx-cName:", cName)
+			fmt.Println("xxxxx-business.IstioPrimary:", business.IstioPrimary)
+
+			if c, ok := business.IstioPrimary[cName]; ok {
+				return business.GetByCluster(business.IstioPrimary[c])
+			}
+
+		}
+	}
+
+	return nil, errors.New("cluster not found")
 }
 
 func SlicePage(page, pageSize, nums int) (sliceStart, sliceEnd, pageCount int) {
