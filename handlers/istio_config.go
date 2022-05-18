@@ -317,6 +317,7 @@ func IstioConfigDetails(w http.ResponseWriter, r *http.Request) {
 	}
 
 	istioConfigDetails, err := business.IstioConfig.GetIstioConfigDetails(namespace, objectType, object)
+	hCluster, _ := GetHulkClusters()
 
 	if objectType == kubernetes.VirtualServices {
 		if istioConfigDetails.VirtualService == nil {
@@ -349,10 +350,10 @@ func IstioConfigDetails(w http.ResponseWriter, r *http.Request) {
 
 		}
 
-		hCluster, err := GetHulkClusters()
+		// hCluster, err := GetHulkClusters()
 		// log.Errorf("GetHulkClusters-xxxx:[%+v]", err)
 		// log.Errorf("GetHulkClusters-xxxx:[%+v]", hCluster)
-		if err == nil {
+		if len(hCluster.Result) > 0 {
 			var svcClusterName string
 			for _, hc := range hCluster.Result {
 				if sourceCid == hc.Id {
@@ -360,6 +361,7 @@ func IstioConfigDetails(w http.ResponseWriter, r *http.Request) {
 					break
 				}
 			}
+			svcClusterName = strings.ToLower(svcClusterName)
 			query := fmt.Sprintf(`sum(rate(istio_requests_total{reporter="destination",destination_cluster="%s",destination_service_namespace="%s",destination_app="%s"}[1m]))`, svcClusterName, namespace, object)
 			currentQPS, _ := api.GetMirrorQps(business, query)
 			if currentQPS <= 0 {
@@ -689,7 +691,10 @@ const (
 		"name": "{{.Name}}",
 		"namespace": "istio-system",
 		"labels": {
-			"mirror": "{{.MirrorLabel}}"
+			"mirror": "{{.MirrorLabel}}",
+			"targetCluster": "{{.TargetCluster}}",
+			"targetService": "{{.TargetService}}",
+			"targetNamespace": "{{.TargetNamespace}}"
 		}
 	},
 	"spec": {
@@ -1275,15 +1280,15 @@ func IstioNetworkConfigUpdateMirror(w http.ResponseWriter, r *http.Request, para
 
 	var inMesh bool
 	for _, m := range dstRule.Spec.Http[0].Mirror {
-		m.Cluster = strings.ToLower(m.Cluster)
+		lowerCName := strings.ToLower(m.Cluster)
 		inMesh = false
 		for cName := range clusterMap {
-			if m.Cluster == "shareit-cce-test" {
+			if lowerCName == "shareit-cce-test" {
 				break
 			}
-			if m.Cluster == cName {
+			if lowerCName == cName {
 				inMesh = true
-				mirrorService, err := business.Svc.GetService(m.Cluster, m.Namespace, m.Service, defaultHealthRateInterval, util.Clock.Now())
+				mirrorService, err := business.Svc.GetService(lowerCName, m.Namespace, m.Service, defaultHealthRateInterval, util.Clock.Now())
 				if err != nil {
 					log.Infof("err:[%s]", err)
 					handleErrorResponse(w, err)
@@ -1307,6 +1312,8 @@ func IstioNetworkConfigUpdateMirror(w http.ResponseWriter, r *http.Request, para
 		var clusterFound bool
 		for _, c := range HulkCluster.Result {
 			clusterFound = false
+			// lowerCName := strings.ToLower(m.Cluster)
+
 			if m.Cluster == c.Name {
 				podIps, err := GetHulkClusterEndpointsIps(m.Service, m.Namespace, m.Cid)
 				if err != nil {
@@ -1318,28 +1325,38 @@ func IstioNetworkConfigUpdateMirror(w http.ResponseWriter, r *http.Request, para
 				type ServiceEn struct {
 					Name string `json:"name"`
 					// Namespace   string   `json:"namespace"`
-					Address     []string `json:"address"`
-					Host        string   `json:"host"`
-					Port        string   `json:"port"`
-					MirrorLabel string   `json:"mirrorLabel"`
-					PortName    string   `json:"PortName"`
-					AppProtocol string   `json:"AppProtocol"`
+					Address         []string `json:"address"`
+					Host            string   `json:"host"`
+					Port            string   `json:"port"`
+					MirrorLabel     string   `json:"mirrorLabel"`
+					TargetService   string   `json:"TargetService"`
+					TargetNamespace string   `json:"TargetNamespace"`
+					TargetCluster   string   `json:"TargetCluster"`
+					PortName        string   `json:"PortName"`
+					AppProtocol     string   `json:"AppProtocol"`
 					// MirrorCluster string `json:"mirror_cluster"`
 					// Numerator     string `json:"numerator"`
 				}
 
 				// snName := fmt.Sprintf("mirror-%s-to-%s", object, m.Service)
 				snName := fmt.Sprintf("mirror-%s-%s-to-%s-%s", object, namespace, m.Service, m.Namespace)
+				err = ValidateWildcardDomain(snName)
+				if err != nil {
+					snName = fmt.Sprintf("mirror-%s-%s-to-randomname-%s", object, namespace, RandStringBytesRmndr(5))
+				}
 				snHost := snName + ".ushareit"
 				sn := ServiceEn{
 					Name: snName,
 					// Namespace:   namespace,
-					Host:        snHost,
-					Port:        strconv.Itoa(m.TargetPort),
-					Address:     podIps,
-					PortName:    targerService.Service.Ports[0].Name,
-					AppProtocol: appProtocol,
-					MirrorLabel: fmt.Sprintf("mirror-%s-%s", object, namespace),
+					Host:            snHost,
+					Port:            strconv.Itoa(m.TargetPort),
+					Address:         podIps,
+					PortName:        targerService.Service.Ports[0].Name,
+					AppProtocol:     appProtocol,
+					MirrorLabel:     fmt.Sprintf("mirror-%s-%s", object, namespace),
+					TargetCluster:   m.Cluster,
+					TargetService:   m.Service,
+					TargetNamespace: m.Namespace,
 				}
 
 				t, err := template.New("test").Funcs(tplFuncMap).Parse(serviceEntryTpl)

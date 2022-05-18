@@ -405,10 +405,6 @@ func (in *SvcService) getService(cluster, namespace, service string) (svc *core_
 	// 	// svc, err = in.k8s.GetService(namespace, service)
 	// 	svc, err = remoteIstioClusters[defaultClusterID].K8s.GetService(namespace, service)
 	// }
-
-	fmt.Println("xxxxx1-remoteIstioClusters:", remoteIstioClusters)
-	fmt.Println("xxxxx2-remoteIstioClusters:", cluster)
-
 	svc, err = remoteIstioClusters[cluster].K8s.GetService(namespace, service)
 	return svc, err
 }
@@ -441,8 +437,6 @@ func (in *SvcService) getServiceDefinition(cluster, namespace, service string) (
 			}
 		} else {
 			// eps, err2 = in.k8s.GetEndpoints(namespace, service)
-			fmt.Println("xxxxx-remoteIstioClusters:", remoteIstioClusters)
-			fmt.Println("xxxxx-remoteIstioClusters:", cluster)
 
 			eps, err2 = remoteIstioClusters[cluster].K8s.GetEndpoints(namespace, service)
 

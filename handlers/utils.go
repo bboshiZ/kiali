@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"math/rand"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -103,9 +105,6 @@ func getBusinessByCluster(r *http.Request) (*business.Layer, error) {
 		if cid == hc.Id {
 			// svcClusterName = hc.Name
 			cName := strings.ToLower(hc.Name)
-			fmt.Println("xxxxx-cName:", cName)
-			fmt.Println("xxxxx-business.IstioPrimary:", business.IstioPrimary)
-
 			if c, ok := business.IstioPrimary[cName]; ok {
 				return business.GetByCluster(business.IstioPrimary[c])
 			}
@@ -141,4 +140,92 @@ func SlicePage(page, pageSize, nums int) (sliceStart, sliceEnd, pageCount int) {
 		sliceEnd = nums
 	}
 	return sliceStart, sliceEnd, pageCount
+}
+
+const (
+	DNS1123LabelMaxLength = 63 // Public for testing only.
+	dns1123LabelFmt       = "[a-zA-Z0-9](?:[-a-zA-Z0-9]*[a-zA-Z0-9])?"
+	// a wild-card prefix is an '*', a normal DNS1123 label with a leading '*' or '*-', or a normal DNS1123 label
+	wildcardPrefix = `(\*|(\*|\*-)?` + dns1123LabelFmt + `)`
+
+	// Using kubernetes requirement, a valid key must be a non-empty string consist
+	// of alphanumeric characters, '-', '_' or '.', and must start and end with an
+	// alphanumeric character (e.g. 'MyValue',  or 'my_value',  or '12345'
+	qualifiedNameFmt = "(?:[A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]"
+
+	// In Kubernetes, label names can start with a DNS name followed by a '/':
+	dnsNamePrefixFmt       = dns1123LabelFmt + `(?:\.` + dns1123LabelFmt + `)*/`
+	dnsNamePrefixMaxLength = 253
+)
+
+var (
+	tagRegexp            = regexp.MustCompile("^(" + dnsNamePrefixFmt + ")?(" + qualifiedNameFmt + ")$") // label value can be an empty string
+	labelValueRegexp     = regexp.MustCompile("^" + "(" + qualifiedNameFmt + ")?" + "$")
+	dns1123LabelRegexp   = regexp.MustCompile("^" + dns1123LabelFmt + "$")
+	wildcardPrefixRegexp = regexp.MustCompile("^" + wildcardPrefix + "$")
+)
+
+// encapsulates DNS 1123 checks common to both wildcarded hosts and FQDNs
+func checkDNS1123Preconditions(name string) error {
+	if len(name) > 255 {
+		return fmt.Errorf("domain name %q too long (max 255)", name)
+	}
+	if len(name) == 0 {
+		return fmt.Errorf("empty domain name not allowed")
+	}
+	return nil
+}
+
+func IsWildcardDNS1123Label(value string) bool {
+	return len(value) <= DNS1123LabelMaxLength && wildcardPrefixRegexp.MatchString(value)
+}
+
+// IsDNS1123Label tests for a string that conforms to the definition of a label in
+// DNS (RFC 1123).
+func IsDNS1123Label(value string) bool {
+	return len(value) <= DNS1123LabelMaxLength && dns1123LabelRegexp.MatchString(value)
+}
+
+func validateDNS1123Labels(domain string) error {
+	parts := strings.Split(domain, ".")
+	topLevelDomain := parts[len(parts)-1]
+	if _, err := strconv.Atoi(topLevelDomain); err == nil {
+		return fmt.Errorf("domain name %q invalid (top level domain %q cannot be all-numeric)", domain, topLevelDomain)
+	}
+	for i, label := range parts {
+		// Allow the last part to be empty, for unambiguous names like `istio.io.`
+		if i == len(parts)-1 && label == "" {
+			return nil
+		}
+		if !IsDNS1123Label(label) {
+			return fmt.Errorf("domain name %q invalid (label %q invalid)", domain, label)
+		}
+	}
+	return nil
+}
+
+// ValidateWildcardDomain checks that a domain is a valid FQDN, but also allows wildcard prefixes.
+func ValidateWildcardDomain(domain string) error {
+	if err := checkDNS1123Preconditions(domain); err != nil {
+		return err
+	}
+	// We only allow wildcards in the first label; split off the first label (parts[0]) from the rest of the host (parts[1])
+	parts := strings.SplitN(domain, ".", 2)
+	if !IsWildcardDNS1123Label(parts[0]) {
+		return fmt.Errorf("domain name %q invalid (label %q invalid)", domain, parts[0])
+	} else if len(parts) > 1 {
+		return validateDNS1123Labels(parts[1])
+	}
+	return nil
+}
+
+const letterBytes = "abcdefghijklmnopqrstuvwxyz"
+
+// 用rand.Int63()替换rand.Intn()
+func RandStringBytesRmndr(n int) string {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[rand.Int63()%int64(len(letterBytes))]
+	}
+	return string(b)
 }

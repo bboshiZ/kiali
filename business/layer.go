@@ -3,7 +3,6 @@ package business
 import (
 	"crypto/md5"
 	"errors"
-	"fmt"
 	"sync"
 
 	"k8s.io/client-go/tools/clientcmd/api"
@@ -157,8 +156,6 @@ func GetByCluster(cluster string) (*Layer, error) {
 
 	if clientFac, ok := clientFactoryMap[cluster]; ok {
 		// Creates a new k8s client based on the current users token
-
-		fmt.Printf("xxxxxx-clientFac:%+v\n", clientFac)
 
 		token := kubernetes.IstioPrimaryResctConfig[cluster].BearerToken
 		k8s, err := clientFac.GetClient(&api.AuthInfo{Token: token})

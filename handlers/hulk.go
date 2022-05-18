@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strings"
 
 	"github.com/kiali/kiali/log"
 )
@@ -41,9 +40,9 @@ func GetHulkClusters() (cluster HulkCluster, err error) {
 		return cluster, errors.New(string(clusterBody))
 	}
 
-	for i := range cluster.Result {
-		cluster.Result[i].Name = strings.ToLower(cluster.Result[i].Name)
-	}
+	// for i := range cluster.Result {
+	// 	cluster.Result[i].Name = strings.ToLower(cluster.Result[i].Name)
+	// }
 	return
 }
 
