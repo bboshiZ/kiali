@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"crypto/md5"
-	"fmt"
 	"sync"
 	"time"
 
@@ -54,8 +53,6 @@ func GetClientFactoryMap() (map[string]*clientFactory, error) {
 		// fmt.Printf("11111-IstioPrimaryResctConfig:%+v\n", IstioPrimaryResctConfig)
 		for clusterName, config := range IstioPrimaryResctConfig {
 
-			fmt.Printf("11111-GetClientFactoryMap:%+v\n", clusterName)
-
 			// Create a new config based on what was gathered above but don't specify the bearer token to use
 			istioConfig := &rest.Config{
 				Host:            config.Host,
@@ -80,10 +77,6 @@ func GetClientFactoryMap() (map[string]*clientFactory, error) {
 		}
 
 	}
-
-	fmt.Printf("11111-factoryMap:%+v\n", factoryMap)
-
-	// fmt.Printf("11111-factoryMap:%+v\n", factoryMap)
 
 	return factoryMap, nil
 }

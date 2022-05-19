@@ -102,6 +102,10 @@ func (o *K8SClientMock) GetToken() string {
 	return args.Get(0).(string)
 }
 
+func (o *K8SClientMock) GetNode() (*core_v1.NodeList, error) {
+	return nil, nil
+}
+
 // GetAuthInfo returns the AuthInfo struct for the client
 func (o *K8SClientMock) GetAuthInfo() *api.AuthInfo {
 	args := o.Called()

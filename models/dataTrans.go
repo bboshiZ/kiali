@@ -265,7 +265,8 @@ type HTTPRoute struct {
 	// example: 10s
 	Timeout string `json:"timeout,omitempty"`
 
-	Mirror []MirrorPolice `json:"mirror"`
+	Mirror       []MirrorPolice `json:"mirror"`
+	ClientMirror ClientMirror   `json:"clientMirror"`
 	// MirrorPercentage *Percent       `json:"mirrorPercentage,omitempty"`
 }
 type MirrorPolice struct {
@@ -275,6 +276,18 @@ type MirrorPolice struct {
 	Service          string  `json:"service"`
 	TargetPort       int     `json:"targetPort"`
 	MirrorPercentage float64 `json:"mirrorPercentage"`
+
+	ClientMirror    bool   `json:"clientMirror"`
+	ClientCluster   string `json:"clientCluster"`
+	ClientNamespace string `json:"clientNamespace"`
+	ClientService   string `json:"clientService"`
+}
+
+type ClientMirror struct {
+	ClientMirror    bool   `json:"clientMirror"`
+	ClientCluster   string `json:"clientCluster"`
+	ClientNamespace string `json:"clientNamespace"`
+	ClientService   string `json:"clientService"`
 }
 
 type Percent struct {

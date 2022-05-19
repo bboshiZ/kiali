@@ -37,7 +37,7 @@ var (
 	defaultClusterID    = "shareit-cce-test"
 	secretDataName      = "istio-config-manager"
 	ClusterMap          = map[string]bool{}
-	remoteClusters      []string
+	// remoteClusters      []string
 
 	IstioPrimary = map[string]string{}
 )
@@ -151,7 +151,11 @@ func InitRemoteCluster() (clusterID string) {
 
 	}
 
-	initKialiCache(remoteClusters)
+	cs := []string{}
+	for c := range ClusterMap {
+		cs = append(cs, c)
+	}
+	initKialiCache(cs)
 
 	for k, c := range remoteIstioClusters {
 		fmt.Printf("new remote k8s cluster:%s,%+v\n", k, c)

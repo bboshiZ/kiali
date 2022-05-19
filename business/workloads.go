@@ -95,7 +95,7 @@ func (in *WorkloadService) GetWorkloadList(namespace string, linkIstioResources 
 	go func() {
 		defer wg.Done()
 		// var err2 error
-		for _, c := range remoteClusters {
+		for c, _ := range ClusterMap {
 			w, err2 := fetchWorkloads(in.businessLayer, c, namespace, "")
 			if err2 != nil {
 				log.Errorf("Error fetching Workloads per namespace %s: %s", namespace, err2)
@@ -568,10 +568,13 @@ func fetchWorkloads(layer *Layer, cluster, namespace string, labelSelector strin
 			// pods, err = kialiCache.GetPods(namespace, labelSelector)
 		} else {
 			// pods, err = layer.k8s.GetPods(namespace, labelSelector)
-			for _, c := range remoteIstioClusters {
-				ps, _ := c.K8s.GetPods(namespace, labelSelector)
-				pods = append(pods, ps...)
-			}
+
+			pods, err = remoteIstioClusters[cluster].K8s.GetPods(namespace, labelSelector)
+
+			// for _, c := range remoteIstioClusters {
+			// 	ps, _ := c.K8s.GetPods(namespace, labelSelector)
+			// 	pods = append(pods, ps...)
+			// }
 
 		}
 		if err != nil {
@@ -1076,6 +1079,27 @@ func fetchWorkloads(layer *Layer, cluster, namespace string, labelSelector strin
 				log.Errorf("Workload %s is not found as Deployment", cname)
 				cnFound = false
 			}
+		case kubernetes.CloneSetType:
+			w.SetPods(kubernetes.FilterPodsForSelector(selector, pods))
+
+			// found := false
+			// iFound := -1
+			// for i, ds := range daeset {
+			// 	if ds.Name == cname {
+			// 		found = true
+			// 		iFound = i
+			// 		break
+			// 	}
+			// }
+			// if found {
+			// 	selector := labels.Set(daeset[iFound].Spec.Template.Labels).AsSelector()
+			// 	w.SetPods(kubernetes.FilterPodsForSelector(selector, pods))
+			// 	w.ParseDaemonSet(&daeset[iFound])
+			// } else {
+			// 	log.Errorf("Workload %s is not found as Deployment", cname)
+			// 	cnFound = false
+			// }
+
 		default:
 			// ReplicaSet should be used to link Pods with a custom controller type i.e. Argo Rollout
 			childType := ctype
