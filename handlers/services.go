@@ -100,9 +100,9 @@ func ServiceUnInject(w http.ResponseWriter, r *http.Request) {
 
 // ServiceList is the API handler to fetch the list of services in a given namespace
 func ServiceList(w http.ResponseWriter, r *http.Request) {
-	resp := RespList{
-		Data: []interface{}{},
-	}
+	params := mux.Vars(r)
+	namespace := params["namespace"]
+
 	// page := r.URL.Query().Get("page")
 	page, err := strconv.Atoi(r.URL.Query().Get("page"))
 	if err != nil {
@@ -117,13 +117,13 @@ func ServiceList(w http.ResponseWriter, r *http.Request) {
 
 	cluster := r.URL.Query().Get("cluster")
 	cluster = strings.ToLower(cluster)
+	resp := RespList{
+		Data: []interface{}{},
+	}
 	if _, ok := business.ClusterMap[cluster]; !ok {
 		RespondWithJSON(w, http.StatusOK, resp)
 		return
 	}
-
-	params := mux.Vars(r)
-	namespace := params["namespace"]
 
 	// Get business layer
 	business, err := getBusinessByCluster(r)
@@ -205,16 +205,27 @@ func ServiceList(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		mirrorName := geneMirrorName(svc.Name, namespace)
-		result, err = business.IstioConfig.GetIstioConfigDetails(namespace, kubernetes.EnvoyFilters, mirrorName)
-		if err == nil && result.EnvoyFilter != nil {
-			istioConfigStatus["mirror"] = true
-		} else {
-			result, err = business.IstioConfig.GetIstioConfigDetails(ISTIO_SYSTEM_NAMESPACE, kubernetes.EnvoyFilters, mirrorName)
-			if err == nil && result.EnvoyFilter != nil {
+		mirrorLabel := geneMirrorLabelV1(svc.Name, namespace)
+		selectLabel := "mirror=" + mirrorLabel
+		allNs, _ := business.Namespace.GetNamespaces()
+		for _, ns := range allNs {
+			objects, err := business.IstioConfig.GetIstioObject(ns.Name, kubernetes.EnvoyFilters, selectLabel)
+			if err == nil && len(objects) > 0 {
 				istioConfigStatus["mirror"] = true
+				break
 			}
 		}
+
+		// mirrorName := geneMirrorName(svc.Name, namespace)
+		// result, err = business.IstioConfig.GetIstioConfigDetails(namespace, kubernetes.EnvoyFilters, mirrorName)
+		// if err == nil && result.EnvoyFilter != nil {
+		// 	istioConfigStatus["mirror"] = true
+		// } else {
+		// 	result, err = business.IstioConfig.GetIstioConfigDetails(ISTIO_SYSTEM_NAMESPACE, kubernetes.EnvoyFilters, mirrorName)
+		// 	if err == nil && result.EnvoyFilter != nil {
+		// 		istioConfigStatus["mirror"] = true
+		// 	}
+		// }
 
 		serviceList.Services[i].IstioConfigStatus = istioConfigStatus
 
@@ -352,4 +363,110 @@ func ServiceUpdate(w http.ResponseWriter, r *http.Request) {
 
 	audit(r, "UPDATE on Namespace: "+namespace+" Service name: "+service+" Patch: "+jsonPatch)
 	RespondWithJSON(w, http.StatusOK, serviceDetails)
+}
+
+func IstioMirrorClientDetail(w http.ResponseWriter, r *http.Request) {
+
+	// params := mux.Vars(r)
+	// namespace := params["namespace"]
+	// object := params["object"]
+
+	idStr := r.Header.Get("cid")
+	cid, _ := strconv.Atoi(idStr)
+
+	istioPrimaryRemote := business.IstioPrimary
+
+	business, err := getBusinessByCluster(r)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "Services initialization error: "+err.Error())
+		return
+	}
+
+	resp := map[string]interface{}{
+		"cluster":   nil,
+		"namespace": nil,
+		"service":   nil,
+	}
+
+	hulkCluster, err := GetHulkClusters()
+	if err != nil {
+		log.Errorf("GetHulkClusters err:[%s]", err)
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	getType := r.URL.Query().Get("type")
+	if getType == "cluster" {
+
+		cRes := []string{}
+
+		var svcCluster string
+		for _, c := range hulkCluster.Result {
+			if c.Id == cid {
+				svcCluster = c.Name
+				break
+			}
+		}
+
+		svcCluster = strings.ToLower(svcCluster)
+		primaryCluster, ok := istioPrimaryRemote[svcCluster]
+		if ok {
+			tmp := []string{}
+
+			for k, v := range istioPrimaryRemote {
+				if primaryCluster == v {
+					tmp = append(tmp, k)
+				}
+			}
+
+			for _, c := range tmp {
+				for _, hc := range hulkCluster.Result {
+					if c == strings.ToLower(hc.Name) {
+						cRes = append(cRes, hc.Name)
+						break
+					}
+				}
+			}
+
+			resp["cluster"] = cRes
+		}
+
+	} else if getType == "namespace" {
+		c := r.URL.Query().Get("clientCluster")
+		c = strings.ToLower(c)
+		allNs, _ := business.Namespace.GetRemoteNamespaces(c)
+		nsRes := []string{}
+		for _, ns := range allNs {
+			nsRes = append(nsRes, ns.Name)
+		}
+		resp["namespace"] = nsRes
+
+	} else if getType == "service" {
+
+		c := r.URL.Query().Get("clientCluster")
+		c = strings.ToLower(c)
+		ns := r.URL.Query().Get("clientNamespace")
+
+		sList, err := business.Svc.GetServiceList(c, ns, false)
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, "GetServiceList: "+err.Error())
+			return
+		}
+
+		svcRes := []string{}
+		for _, s := range sList.Services {
+			if s.Name == "kubernetes" {
+				continue
+			}
+			if s.IstioSidecar {
+				svcRes = append(svcRes, s.Name)
+			}
+		}
+
+		resp["service"] = svcRes
+
+	}
+
+	RespondWithJSON(w, http.StatusOK, resp)
+
 }

@@ -35,6 +35,7 @@ type IstioConfigDetails struct {
 	RequestAuthentication *RequestAuthentication `json:"requestAuthentication"`
 	Permissions           ResourcePermissions    `json:"permissions"`
 	IstioValidation       *IstioValidation       `json:"validation"`
+	IstioSidecar          bool                   `json:"istioSidecar"`
 }
 
 // ResourcePermissions holds permission flags for an object type

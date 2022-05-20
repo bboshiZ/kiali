@@ -28,6 +28,38 @@ func NewRoutes() (r *Routes) {
 	r.Routes = []Route{
 
 		{
+			"IstioNetworkConfigUpdate",
+			"POST",
+			"/api/namespaces/{namespace}/{object_type}/{network_type}/{object}",
+			handlers.IstioNetworkConfigUpdate,
+			true,
+		},
+
+		{
+			"IstioNetworkConfigDelete",
+			"DELETE",
+			"/api/namespaces/{namespace}/{object_type}/{network_type}/{object}",
+			handlers.IstioNetworkConfigDelete,
+			true,
+		},
+
+		{
+			"IstioConfigDetails",
+			"GET",
+			"/api/namespaces/{namespace}/{object_type}/{object}",
+			handlers.IstioConfigDetailsV2,
+			true,
+		},
+
+		{
+			"IstioMirrorClusterList",
+			"GET",
+			"/api/mirrorclient/namespaces/{namespace}/services/{object}",
+			handlers.IstioMirrorClientDetail,
+			true,
+		},
+
+		{
 			"ClusterList",
 			"GET",
 			"/api/clusters",
@@ -96,22 +128,6 @@ func NewRoutes() (r *Routes) {
 			"POST",
 			"/api/namespaces/{namespace}/services/{service}/unInject",
 			handlers.ServiceUnInject,
-			true,
-		},
-
-		{
-			"IstioNetworkConfigUpdate",
-			"POST",
-			"/api/namespaces/{namespace}/{object_type}/{network_type}/{object}",
-			handlers.IstioNetworkConfigUpdate,
-			true,
-		},
-
-		{
-			"IstioNetworkConfigDelete",
-			"DELETE",
-			"/api/namespaces/{namespace}/{object_type}/{network_type}/{object}",
-			handlers.IstioNetworkConfigDelete,
 			true,
 		},
 
@@ -246,14 +262,6 @@ func NewRoutes() (r *Routes) {
 			"GET",
 			"/api/istio/permissions",
 			handlers.IstioConfigPermissions,
-			true,
-		},
-
-		{
-			"IstioConfigDetails",
-			"GET",
-			"/api/namespaces/{namespace}/{object_type}/{object}",
-			handlers.IstioConfigDetails,
 			true,
 		},
 
