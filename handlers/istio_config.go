@@ -451,6 +451,7 @@ func IstioConfigDetailsV2(w http.ResponseWriter, r *http.Request) {
 									}
 
 									mc := map[string]interface{}{
+										"clientMirror":     false,
 										"clusterType":      k8sClusterType,
 										"cluster":          targetSvc[3],
 										"cid":              cid,
@@ -1520,11 +1521,11 @@ func geneMirrorName(name, namespace string) string {
 	return fmt.Sprintf("filter-mirror-%s-%s", name, namespace)
 }
 
-func geneMirrorNameV2(cientSide bool, serviceName, serviceNs, clientName string) string {
+func geneMirrorNameV2(cientSide bool, serviceName, serviceNs, mName string) string {
 	if cientSide {
-		return fmt.Sprintf("mirror-%s-%s-clientside-fromclient-%s", serviceName, serviceNs, clientName)
+		return fmt.Sprintf("mirror-%s-%s-clientside-fromclient-%s", serviceName, serviceNs, mName)
 	} else {
-		return fmt.Sprintf("mirror-%s-%s-serverside", serviceName, serviceNs)
+		return fmt.Sprintf("mirror-%s-%s-serverside-%s", serviceName, serviceNs, mName)
 	}
 }
 
@@ -1854,7 +1855,7 @@ func IstioNetworkConfigUpdateMirrorV2(w http.ResponseWriter, r *http.Request, pa
 			mConfig.Namespace = ISTIO_SYSTEM_NAMESPACE
 		}
 
-		mConfig.Name = geneMirrorNameV2(false, object, namespace, "")
+		mConfig.Name = geneMirrorNameV2(false, object, namespace, m.Service)
 		mConfig.MirrorLabel = mirrorLabel
 
 		mConfig.ServiceInfo = fmt.Sprintf("%d|%s|%s|%s", mirrorService.Service.Ports[0].Port, dstRule.Metadata.Name, dstRule.Metadata.Namespace, mirrorCluster)
