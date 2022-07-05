@@ -21,8 +21,9 @@ import (
 
 func ServiceInject(w http.ResponseWriter, r *http.Request) {
 	cluster := r.URL.Query().Get("cluster")
-	if _, ok := business.ClusterMap[cluster]; !ok {
-		RespondWithJSON(w, http.StatusOK, "")
+	lowerCluster := strings.ToLower(cluster)
+	if _, ok := business.ClusterMap[lowerCluster]; !ok {
+		RespondWithError(w, http.StatusInternalServerError, "cluster not found")
 		return
 	}
 
@@ -37,7 +38,7 @@ func ServiceInject(w http.ResponseWriter, r *http.Request) {
 	namespace := params["namespace"]
 	// workloadType := "Deployment"
 
-	serviceDetails, err := business.Svc.GetService(cluster, namespace, service, defaultHealthRateInterval, util.Clock.Now())
+	serviceDetails, err := business.Svc.GetService(lowerCluster, namespace, service, defaultHealthRateInterval, util.Clock.Now())
 	if err != nil {
 		handleErrorResponse(w, err)
 		return
@@ -46,6 +47,7 @@ func ServiceInject(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		RespondWithError(w, http.StatusBadRequest, "Create request could not be read: "+err.Error())
+		return
 	}
 
 	type InjectData struct {
@@ -60,9 +62,11 @@ func ServiceInject(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal(body, &data)
 	if err != nil {
 		log.Infof("err:[%s]", err)
-		handleErrorResponse(w, err)
-		return
+		// handleErrorResponse(w, err)
+		// return
 	}
+	err = nil
+
 	if data.ProxyCPU == 0 {
 		data.ProxyCPU = 0.5
 	}
@@ -88,7 +92,7 @@ func ServiceInject(w http.ResponseWriter, r *http.Request) {
 
 	// jsonPatch := string(`{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/inject":"true","sidecar.istio.io/concurrency":"2","sidecar.istio.io/proxyCPU":"1000m","sidecar.istio.io/proxyCPULimit":"1000m","sidecar.istio.io/proxyMemory":"256Mi","sidecar.istio.io/proxyMemoryLimit":"256Mi"}}}}}`)
 	for _, deploy := range serviceDetails.Workloads {
-		err1 := business.Workload.UpdateRemoteWorkload(cluster, namespace, deploy.Name, deploy.Type, true, jsonPatch)
+		err1 := business.Workload.UpdateRemoteWorkload(lowerCluster, namespace, deploy.Name, deploy.Type, true, jsonPatch)
 		if err1 != nil {
 			err = err1
 		}
@@ -106,8 +110,9 @@ func ServiceInject(w http.ResponseWriter, r *http.Request) {
 func ServiceUnInject(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	cluster := r.URL.Query().Get("cluster")
-	if _, ok := business.ClusterMap[cluster]; !ok {
-		RespondWithJSON(w, http.StatusOK, "")
+	lowerCluster := strings.ToLower(cluster)
+	if _, ok := business.ClusterMap[lowerCluster]; !ok {
+		RespondWithError(w, http.StatusInternalServerError, "cluster not found")
 		return
 	}
 
@@ -121,18 +126,15 @@ func ServiceUnInject(w http.ResponseWriter, r *http.Request) {
 	namespace := params["namespace"]
 	// workloadType := "Deployment"
 
-	serviceDetails, err := business.Svc.GetService(cluster, namespace, service, defaultHealthRateInterval, util.Clock.Now())
+	serviceDetails, err := business.Svc.GetService(lowerCluster, namespace, service, defaultHealthRateInterval, util.Clock.Now())
 	if err != nil {
 		handleErrorResponse(w, err)
 		return
 	}
 
-	// fmt.Println(cluster, namespace, service, defaultHealthRateInterval, util.Clock.Now())
-	// fmt.Println(serviceDetails.Workloads)
 	jsonPatch := string(`{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/inject":"false"}}}}}`)
 	for _, deploy := range serviceDetails.Workloads {
-		// fmt.Printf("deploy:xxx:%+v\n", deploy)
-		err1 := business.Workload.UpdateRemoteWorkload(cluster, namespace, deploy.Name, deploy.Type, true, jsonPatch)
+		err1 := business.Workload.UpdateRemoteWorkload(lowerCluster, namespace, deploy.Name, deploy.Type, true, jsonPatch)
 		if err1 != nil {
 			err = err1
 		}

@@ -2043,12 +2043,7 @@ func IstioNetworkConfigUpdateMirrorV2(w http.ResponseWriter, r *http.Request, pa
 			}
 
 			body = buf.Bytes()
-			// log.Infof("mirror filter:[%s]", string(body))
-			// object = geneMirrorName(object, namespace)
 		}
-
-		// _, err = business.IstioConfig.GetIstioConfigDetails(mConfig.Namespace, objectType, object)
-		fmt.Println("create-mirror-xxx:", mConfig.Name, objectType, string(body))
 
 		_, err := business.IstioConfig.CreateIstioConfigDetail(api, mConfig.Namespace, objectType, body)
 		if err != nil {
@@ -2389,8 +2384,6 @@ func IstioNetworkConfigUpdateMirror(w http.ResponseWriter, r *http.Request, para
 
 	_, err = business.IstioConfig.GetIstioConfigDetails(mConfig.Namespace, objectType, object)
 	if err == nil {
-		// fmt.Printf("IstioNetworkConfig-updatemirror-xxx:%+v\n", string(body))
-
 		jsonPatch := string(body)
 		updatedConfigDetails, err := business.IstioConfig.UpdateIstioConfigDetail(api, mConfig.Namespace, objectType, object, jsonPatch)
 		if err != nil {
@@ -2400,8 +2393,6 @@ func IstioNetworkConfigUpdateMirror(w http.ResponseWriter, r *http.Request, para
 		audit(r, "UPDATE on Namespace: "+mConfig.Namespace+" Type: "+objectType+" Name: "+object+" Patch: "+jsonPatch)
 		RespondWithJSON(w, http.StatusOK, updatedConfigDetails)
 	} else {
-		fmt.Println("create-xxx:", mConfig.Namespace, objectType, string(body))
-
 		createdConfigDetails, err := business.IstioConfig.CreateIstioConfigDetail(api, mConfig.Namespace, objectType, body)
 		if err != nil {
 			handleErrorResponse(w, err)
