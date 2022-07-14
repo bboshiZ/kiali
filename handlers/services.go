@@ -190,6 +190,13 @@ func ServiceList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	for i := range serviceList.Services {
+		if serviceList.Services[i].Name == "kubernetes" {
+			serviceList.Services = append(serviceList.Services[0:i], serviceList.Services[i+1:]...)
+			break
+		}
+	}
+
 	searchName := r.URL.Query().Get("name")
 	if len(searchName) > 0 {
 		tmp := []models.ServiceOverview{}
