@@ -35,7 +35,7 @@ import (
 )
 
 type K8SClientInterface interface {
-	ForwardGetRequest(namespace, podName string, localPort, destinationPort int, path string) ([]byte, error)
+	ForwardGetRequest(namespace, podName string, localPort, destinationPort int, path string, ip string) ([]byte, error)
 	GetClusterServicesByLabels(labelsSelector string) ([]core_v1.Service, error)
 	GetConfigMap(namespace, name string) (*core_v1.ConfigMap, error)
 	GetCronJobs(namespace string) ([]batch_v1.CronJob, error)
@@ -76,22 +76,28 @@ type OSClientInterface interface {
 	UpdateProject(project string, jsonPatch string) (*osproject_v1.Project, error)
 }
 
-func (in *K8SClient) ForwardGetRequest(namespace, podName string, localPort, destinationPort int, path string) ([]byte, error) {
-	f, err := in.GetPodPortForwarder(namespace, podName, fmt.Sprintf("%d:%d", localPort, destinationPort))
-	if err != nil {
-		return nil, err
-	}
+func (in *K8SClient) ForwardGetRequest(namespace, podName string, localPort, destinationPort int, path string, ip string) ([]byte, error) {
+	// f, err := in.GetPodPortForwarder(namespace, podName, fmt.Sprintf("%d:%d", localPort, destinationPort))
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	// Start the forwarding
-	if err := (*f).Start(); err != nil {
-		return nil, err
-	}
+	// // Start the forwarding
+	// if err := (*f).Start(); err != nil {
+	// 	return nil, err
+	// }
 
-	// Defering the finish of the port-forwarding
-	defer (*f).Stop()
+	// // Defering the finish of the port-forwarding
+	// defer (*f).Stop()
 
 	// Ready to create a request
-	resp, code, _, err := httputil.HttpGet(fmt.Sprintf("http://localhost:%d%s", localPort, path), nil, 10*time.Second, nil, nil)
+	resp, code, _, err := httputil.HttpGet(fmt.Sprintf("http://%s:%d%s", ip, destinationPort, path), nil, 10*time.Second, nil, nil)
+
+	// fmt.Println("xxxxxx1:", ip, localPort, path)
+	// fmt.Println("xxxxxx2:", code)
+	// fmt.Println("xxxxxx3:", string(resp))
+
+	// resp, code, _, err := httputil.HttpGet(fmt.Sprintf("http://localhost:%d%s", localPort, path), nil, 10*time.Second, nil, nil)
 	if code >= 400 {
 		return resp, fmt.Errorf("error fetching %s from %s/%s. Response code: %d", path, namespace, podName, code)
 	}
